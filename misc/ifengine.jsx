@@ -37,8 +37,8 @@ const IFEngine = (function() {
   function flattenDirectionSynonyms() {
     let result = [];
 
-    for(let p in directionSynonyms) {
-      if(directionSynonyms.hasOwnProperty(p)) {
+    for (let p in directionSynonyms) {
+      if (directionSynonyms.hasOwnProperty(p)) {
         result = result.concat(directionSynonyms[p]);
       }
     }
@@ -48,26 +48,32 @@ const IFEngine = (function() {
 
   // borrowed from: http://stackoverflow.com/a/7220510/170217
   function syntaxHighlight(json) {
-    if (typeof json != 'string') {
-         json = JSON.stringify(json, undefined, 2);
+    if (typeof json != "string") {
+      json = JSON.stringify(json, undefined, 2);
     }
-    json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
-        let cls = 'number';
+    json = json
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    return json.replace(
+      /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+      function(match) {
+        let cls = "number";
         if (/^"/.test(match)) {
-            if (/:$/.test(match)) {
-                cls = 'key';
-            } else {
-                cls = 'string';
-            }
+          if (/:$/.test(match)) {
+            cls = "key";
+          } else {
+            cls = "string";
+          }
         } else if (/true|false/.test(match)) {
-            cls = 'boolean';
+          cls = "boolean";
         } else if (/null/.test(match)) {
-            cls = 'null';
+          cls = "null";
         }
-        return '<span class="' + cls + '">' + match + '</span>';
-    });
-  };
+        return '<span class="' + cls + '">' + match + "</span>";
+      }
+    );
+  }
 
   class DataLoader {
     load(dataUrl, error, complete) {
@@ -77,14 +83,14 @@ const IFEngine = (function() {
           error(status);
         },
         success: function(data) {
-          complete(data)
+          complete(data);
         }
       });
     }
     read(data) {
       const idAndDataRegex = /^(\d+)\s+/;
 
-      let readNumberedLines = (data) => {
+      let readNumberedLines = data => {
         // Example:
         //
         // 1 You are in the Foyer of the Opera House. This room has doors to the
@@ -93,10 +99,11 @@ const IFEngine = (function() {
 
         let result = [];
 
-        _.forEach(data, (l) => {
-          if(idAndDataRegex.test(l)) {
-            const s = l.split(idAndDataRegex)
-                     .filter(function(el) {return el.length != 0});
+        _.forEach(data, l => {
+          if (idAndDataRegex.test(l)) {
+            const s = l.split(idAndDataRegex).filter(function(el) {
+              return el.length != 0;
+            });
 
             result.push({
               id: Number(s[0]),
@@ -106,14 +113,14 @@ const IFEngine = (function() {
         });
 
         return result;
-      }
+      };
 
-      let joinNumberedLines = (data) => {
+      let joinNumberedLines = data => {
         let result = [];
         const ids = _.uniq(_.pluck(data, "id"));
 
-        _.forEach(ids, (id) => {
-          const d = _.where(data, { "id" : id});
+        _.forEach(ids, id => {
+          const d = _.where(data, { id: id });
           const textJoined = _.pluck(d, "text").join(" ");
 
           result.push({
@@ -123,31 +130,30 @@ const IFEngine = (function() {
         });
 
         return result;
-      }
+      };
 
-      let getGroupedLines = (data) => {
+      let getGroupedLines = data => {
         let groups = [];
         const temp = readNumberedLines(data);
         const ids = _.uniq(_.pluck(temp, "id"));
 
-        _.forEach(ids, (id) => {
-          const d = _.where(temp, { "id" : id});
+        _.forEach(ids, id => {
+          const d = _.where(temp, { id: id });
 
           groups.push({
-             id: id,
-             group: _.pluck(d, "text")
+            id: id,
+            group: _.pluck(d, "text")
           });
         });
 
         return groups;
-      }
+      };
 
       let getStructuredObject = (data, conditional) => {
         let result = [];
         const groups = getGroupedLines(data);
 
-        _.forEach(groups, (g) => {
-
+        _.forEach(groups, g => {
           //console.log(g);
 
           let item = {
@@ -155,18 +161,27 @@ const IFEngine = (function() {
             name: g.group.shift().trim()
           };
 
-          g.group.map((ig) => {
-            if(ig.indexOf(":") != -1) {
+          g.group.map(ig => {
+            if (ig.indexOf(":") != -1) {
               const gName = ig.split(":")[0];
 
               let conditionalItem;
 
-              if(conditional !== undefined) {
-                conditionalItem = conditional(gName, ig.replace(`${gName}:`, "").trim());
+              if (conditional !== undefined) {
+                conditionalItem = conditional(
+                  gName,
+                  ig.replace(`${gName}:`, "").trim()
+                );
               }
 
-              if(conditionalItem === undefined && ig.startsWith(gName)) {
-                item[gName] = ig.replace(`${gName}:`, "").trim().split(",").map((i) => { return i.trim(); });
+              if (conditionalItem === undefined && ig.startsWith(gName)) {
+                item[gName] = ig
+                  .replace(`${gName}:`, "")
+                  .trim()
+                  .split(",")
+                  .map(i => {
+                    return i.trim();
+                  });
               } else {
                 item[gName] = conditionalItem;
               }
@@ -177,13 +192,13 @@ const IFEngine = (function() {
         });
 
         return result;
-      }
+      };
 
-      let readText = (data) => {
+      let readText = data => {
         return joinNumberedLines(readNumberedLines(data));
       };
 
-      let readSynonyms = (data) => {
+      let readSynonyms = data => {
         // Example:
         //
         // synonyms
@@ -198,17 +213,19 @@ const IFEngine = (function() {
         const temp = joinNumberedLines(readNumberedLines(data));
         let synonyms = [];
 
-        _.forEach(temp, (s) => {
+        _.forEach(temp, s => {
           synonyms.push({
             id: s.id,
-            words: s.text.split(",").map((x) => { return x.trim(); })
+            words: s.text.split(",").map(x => {
+              return x.trim();
+            })
           });
         });
 
         return synonyms;
-      }
+      };
 
-      let readRooms = (data) => {
+      let readRooms = data => {
         // Example:
         //
         // rooms
@@ -223,13 +240,15 @@ const IFEngine = (function() {
         // 3 text: 3, 9, 11, 12
 
         return getStructuredObject(data, (gName, data) => {
-          if(gName === "synonyms" || gName === "text") {
-            return data.split(",").map((n) => { return Number(n); });
+          if (gName === "synonyms" || gName === "text") {
+            return data.split(",").map(n => {
+              return Number(n);
+            });
           }
         });
-      }
+      };
 
-      let readActions = (data) => {
+      let readActions = data => {
         // Example:
         //
         // actions
@@ -241,13 +260,15 @@ const IFEngine = (function() {
         // 2 text: 6, 7, 8
 
         return getStructuredObject(data, (gName, data) => {
-          if(gName === "synonyms" || gName === "text" || gName === "rooms") {
-            return data.split(",").map((n) => { return Number(n); });
+          if (gName === "synonyms" || gName === "text" || gName === "rooms") {
+            return data.split(",").map(n => {
+              return Number(n);
+            });
           }
         });
-      }
+      };
 
-      let readTriggers = (data) => {
+      let readTriggers = data => {
         // Example:
         //
         // triggers
@@ -255,13 +276,15 @@ const IFEngine = (function() {
         // 1 rooms: 3
 
         return getStructuredObject(data, (gName, data) => {
-          if(gName === "rooms") {
-            return data.split(" ").map((n) => { return Number(n); });
+          if (gName === "rooms") {
+            return data.split(" ").map(n => {
+              return Number(n);
+            });
           }
         });
-      }
+      };
 
-      let readObjects = (data) => {
+      let readObjects = data => {
         // Example:
         //
         // objects
@@ -275,55 +298,65 @@ const IFEngine = (function() {
         // 2  text: 15
 
         return getStructuredObject(data, (gName, data) => {
-          if(gName === "synonyms" || gName === "text") {
-            return data.split(",").map((n) => { return Number(n); });
+          if (gName === "synonyms" || gName === "text") {
+            return data.split(",").map(n => {
+              return Number(n);
+            });
           } else if (gName === "wearable") {
             let result = false;
 
-            if(data.toLowerCase().trim() === "true") {
-               result = true;
-            } else if(data.toLowerCase().trim() === "false") {
-               result = false;
+            if (data.toLowerCase().trim() === "true") {
+              result = true;
+            } else if (data.toLowerCase().trim() === "false") {
+              result = false;
             }
 
             return result;
           }
         });
-      }
+      };
 
-      let readScenery = (data) => {
+      let readScenery = data => {
         return getStructuredObject(data);
-      }
+      };
 
-      let readExits = (data) => {
-        return readNumberedLines(data).map((e) => {
+      let readExits = data => {
+        return readNumberedLines(data).map(e => {
           return {
             id: e.id,
-            rooms: e.text.split(",").map((n) => { return Number(n); })
-          }
+            rooms: e.text.split(",").map(n => {
+              return Number(n);
+            })
+          };
         });
-      }
+      };
 
-      let readPlayer = (data) => {
+      let readPlayer = data => {
         return getStructuredObject(data, (gName, data) => {
-          if(gName === "items") {
-            return data.split(",").map((n) => { return Number(n); });
-          } else if (gName === "description" ||
-                     gName === "age" ||
-                     gName === "startRoom") {
+          if (gName === "items") {
+            return data.split(",").map(n => {
+              return Number(n);
+            });
+          } else if (
+            gName === "description" ||
+            gName === "age" ||
+            gName === "startRoom"
+          ) {
             return Number(data);
           }
         });
-      }
+      };
 
-      const lines = data.split("\n").filter((el) => {return el.length != 0});
+      const lines = data.split("\n").filter(el => {
+        return el.length != 0;
+      });
       const name = lines.shift().trim();
 
       let result = {
         name: name
       };
 
-      if(name === "text") {
+      if (name === "text") {
         result.data = readText(lines);
       } else if (name === "synonyms") {
         result.data = readSynonyms(lines);
@@ -367,7 +400,7 @@ const IFEngine = (function() {
 
       const roomStyle = {
         backgroundColor: "#000",
-        color: "#fff",
+        color: "#fff"
       };
 
       const scoreStyle = {
@@ -378,16 +411,25 @@ const IFEngine = (function() {
       };
 
       let separator = "";
-      if((this.props.title !== undefined && this.props.title.length > 0) &&
-         (this.props.room !== undefined && this.props.room.length > 0)) {
-           separator = " | ";
-         }
+      if (
+        this.props.title !== undefined &&
+        this.props.title.length > 0 &&
+        this.props.room !== undefined && this.props.room.length > 0
+      ) {
+        separator = " | ";
+      }
 
       return (
         <div id="info" style={infoStyle}>
-          <span id="title" style={titleStyle}>{this.props.title} {separator}</span>
-          <span id="room" style={roomStyle}>{this.props.room}</span>
-          <span id="score" style={scoreStyle}>{this.props.score}</span>
+          <span id="title" style={titleStyle}>
+            {this.props.title} {separator}
+          </span>
+          <span id="room" style={roomStyle}>
+            {this.props.room}
+          </span>
+          <span id="score" style={scoreStyle}>
+            {this.props.score}
+          </span>
         </div>
       );
     }
@@ -421,49 +463,54 @@ const IFEngine = (function() {
 
       resizeCommandInput();
 
-      $(window).resize((e) => {
+      $(window).resize(e => {
         resizeCommandInput();
       });
     }
     onCommandInputKeyUp(e) {
-      if(e.which === keys.Up) {
-        let commandIndex = (this.state.commandIndex === -1) ?
-                            this.state.commandsEntered.length - 1 :
-                            --this.state.commandIndex;
+      if (e.which === keys.Up) {
+        let commandIndex =
+          this.state.commandIndex === -1
+            ? this.state.commandsEntered.length - 1
+            : --this.state.commandIndex;
 
-        if(commandIndex < 0) {
+        if (commandIndex < 0) {
           commandIndex = 0;
         }
 
-        this.setState({ commandIndex: commandIndex}, function() {
+        this.setState({ commandIndex: commandIndex }, function() {
           this.state.commandText.val(this.state.commandsEntered[commandIndex]);
         });
-
       } else if (e.which === keys.Down) {
-        let commandIndex = (this.state.commandIndex === -1) ? 0 : ++this.state.commandIndex;
+        let commandIndex =
+          this.state.commandIndex === -1 ? 0 : ++this.state.commandIndex;
 
-        if(commandIndex > this.state.commandsEntered.length) {
+        if (commandIndex > this.state.commandsEntered.length) {
           commandIndex = this.state.commandsEntered.length;
         }
 
         this.setState({ commandIndex: commandIndex }, function() {
           this.state.commandText.val(this.state.commandsEntered[commandIndex]);
         });
-
-      } else if(e.which === keys.Enter) {
+      } else if (e.which === keys.Enter) {
         const textEntered = this.state.commandText.val();
-        if(!(textEntered.length > 0)) return;
+        if (!(textEntered.length > 0)) return;
 
         this.state.commandText.val("");
 
-        this.setState({
-          commandsEntered: _.uniq(this.state.commandsEntered.concat([textEntered])),
-          commandIndex: -1
-        }, function() {
-          if(this.props.onKeyEnter !== undefined) {
-            this.props.onKeyEnter(textEntered);
+        this.setState(
+          {
+            commandsEntered: _.uniq(
+              this.state.commandsEntered.concat([textEntered])
+            ),
+            commandIndex: -1
+          },
+          function() {
+            if (this.props.onKeyEnter !== undefined) {
+              this.props.onKeyEnter(textEntered);
+            }
           }
-        });
+        );
       }
     }
     render() {
@@ -479,7 +526,14 @@ const IFEngine = (function() {
 
       return (
         <div id="commandContainer" style={commandContainerStyle}>
-          &gt;<input id="commandText" style={textInputStyle} type="text" onKeyUp={this.onCommandInputKeyUp} autoFocus />
+          &gt;
+          <input
+            id="commandText"
+            style={textInputStyle}
+            type="text"
+            onKeyUp={this.onCommandInputKeyUp}
+            autoFocus
+          />
         </div>
       );
     }
@@ -499,18 +553,18 @@ const IFEngine = (function() {
 
             //console.log(player.room.exits);
 
-            for(var i=0; i < player.room.exits.length; i++) {
-              if(player.room.exits[i] !== 0) {
+            for (var i = 0; i < player.room.exits.length; i++) {
+              if (player.room.exits[i] !== 0) {
                 indices.push(i);
               }
             }
 
             //console.log(indices);
 
-            indices.map((i) => {
+            indices.map(i => {
               let counter = 0;
-              for(let d in directionSynonyms) {
-                if(counter === i) {
+              for (let d in directionSynonyms) {
+                if (counter === i) {
                   exits.push(d);
                   return;
                 }
@@ -518,8 +572,10 @@ const IFEngine = (function() {
               }
             });
 
-            if(exits.length > 0) {
-              this.say(`the following exits are available: ${exits.join(', ')}`);
+            if (exits.length > 0) {
+              this.say(
+                `the following exits are available: ${exits.join(", ")}`
+              );
             }
           }.bind(this)
         },
@@ -551,7 +607,7 @@ const IFEngine = (function() {
         {
           synonyms: ["look", "l"],
           func: function(player, system, cmd, args) {
-            if(player.room !== undefined) {
+            if (player.room !== undefined) {
               this.say(player.room.text[0].text);
             }
           }.bind(this)
@@ -559,13 +615,17 @@ const IFEngine = (function() {
         {
           synonyms: ["examine", "x"],
           func: function(player, system, cmd, args) {
-            if(args.length > 0) {
-              if(args[0].toLowerCase() === "self" ||
-                 args[0].toLowerCase() === "me") {
-                const self = _.find(this.state.data.player, { "name" :"self" });
+            if (args.length > 0) {
+              if (
+                args[0].toLowerCase() === "self" ||
+                args[0].toLowerCase() === "me"
+              ) {
+                const self = _.find(this.state.data.player, { name: "self" });
 
-                if(self !== undefined) {
-                  const desc = _.find(this.state.data.text, { "id" : self.description });
+                if (self !== undefined) {
+                  const desc = _.find(this.state.data.text, {
+                    id: self.description
+                  });
                   //console.log(self, desc);
                   this.say(desc.text);
                 }
@@ -602,7 +662,11 @@ const IFEngine = (function() {
 
             const json = JSON.stringify(this.state.player, null, 2);
             this.say(`<h3>Player Data</h3><pre>${syntaxHighlight(json)}</pre>`);
-            this.say(`<h3>Encoded</h3>${btoa(JSON.stringify(this.state.player, null, 2))}`);
+            this.say(
+              `<h3>Encoded</h3>${btoa(
+                JSON.stringify(this.state.player, null, 2)
+              )}`
+            );
           }.bind(this)
         },
         {
@@ -611,10 +675,14 @@ const IFEngine = (function() {
             //this.say("not yet implemented.");
             //console.log(atob("ewogICJzY29yZSI6IDAsCiAgInJvb20iOiB7fSwKICAiaW52ZW50b3J5IjogW10KfQ=="));
 
-            if(args.length > 0) {
+            if (args.length > 0) {
               try {
                 let restoredJSON = JSON.parse(atob(args[0]));
-                this.say(`<h3>Restored Player Data</h3><pre>${syntaxHighlight(restoredJSON)}</pre>`);
+                this.say(
+                  `<h3>Restored Player Data</h3><pre>${syntaxHighlight(
+                    restoredJSON
+                  )}</pre>`
+                );
                 this.say("Restoring player save data.");
 
                 // need to check the properties on the player object because we
@@ -624,30 +692,34 @@ const IFEngine = (function() {
                 let canRestore = [];
                 const props = ["score", "rooms", "inventory"];
 
-                props.map((p) => { canRestore.push(true); });
+                props.map(p => {
+                  canRestore.push(true);
+                });
                 canRestore = _.find(canRestore, false);
 
-                if(canRestore === undefined) {
+                if (canRestore === undefined) {
                   canRestore = true;
                 }
 
-                if(canRestore) {
-                  this.setState({
-                    player: restoredJSON
-                  }, function() {
-                    this.say("Finished restoring player save data.");
-                  }.bind(this));
+                if (canRestore) {
+                  this.setState(
+                    {
+                      player: restoredJSON
+                    },
+                    function() {
+                      this.say("Finished restoring player save data.");
+                    }.bind(this)
+                  );
                 } else {
                   this.say("I cannot restore this save data.");
                 }
-              } catch(e) {
+              } catch (e) {
                 //console.log(e);
                 this.say("Sorry I cannot restore your game.");
               }
             } else {
               this.say("usage: /restore [encoded string]");
             }
-
           }.bind(this)
         },
         {
@@ -661,7 +733,7 @@ const IFEngine = (function() {
           func: function(cmd, args) {
             let json = "";
 
-            if(args.length > 0 && this.state.data.hasOwnProperty(args[0])) {
+            if (args.length > 0 && this.state.data.hasOwnProperty(args[0])) {
               json = JSON.stringify(this.state.data[args[0]], null, 2);
               this.say(`<h3>Game Data - ${args[0]}</h3>`);
             } else {
@@ -686,7 +758,7 @@ const IFEngine = (function() {
           }.bind(this)
         },
         {
-          synonyms: ["help","h"],
+          synonyms: ["help", "h"],
           func: function(cmd, args) {
             const help = [
               "<b>/banner</b> - prints the game title, description and author.",
@@ -700,10 +772,12 @@ const IFEngine = (function() {
               "<b>l, look</b> - prints the description of the current room",
               "<b>x, examine &lt;object&gt;</b> - prints a detailed description of an object",
               "<b>ex, exits</b> - prints the list of exits for this room",
-              "<b>n, north, ne, northeast, nw, northwest, s, south, se, southeast, sw, southwest, e, east, w, west</b> - moves the player to a room relative to the direction specified",
+              "<b>n, north, ne, northeast, nw, northwest, s, south, se, southeast, sw, southwest, e, east, w, west</b> - moves the player to a room relative to the direction specified"
             ];
 
-            this.say(`<h3>Help:</h3><blockquote>${help.join('<br/>')}</blockquote>`);
+            this.say(
+              `<h3>Help:</h3><blockquote>${help.join("<br/>")}</blockquote>`
+            );
           }.bind(this)
         }
       ];
@@ -716,7 +790,7 @@ const IFEngine = (function() {
         roomName: "",
         score: 0,
         moves: 0
-      }
+      };
     }
     initializePlayer() {
       return {
@@ -725,7 +799,7 @@ const IFEngine = (function() {
         room: {},
         previousRooms: {},
         inventory: []
-      }
+      };
     }
     scrollContentArea() {
       $("html, body").animate({ scrollTop: $(document).height() }, 1000);
@@ -739,12 +813,14 @@ const IFEngine = (function() {
     printBanner() {
       this.say(`${this.state.gameInfo.title}<br/>`);
       this.say(this.state.gameInfo.description);
-      this.say(`Author: ${this.state.gameInfo.author}<br/>Release Date: ${this.state.gameInfo.releaseDate}`);
+      this.say(
+        `Author: ${this.state.gameInfo.author}<br/>Release Date: ${this.state.gameInfo.releaseDate}`
+      );
     }
     say(text, newLine = true) {
-      if(text.length > 0) {
+      if (text.length > 0) {
         var spacer = "";
-        if(newLine) {
+        if (newLine) {
           spacer = "<p/>";
         }
         this.state.content.append(text + spacer);
@@ -752,81 +828,97 @@ const IFEngine = (function() {
       }
     }
     getSynonyms(id) {
-      const synonyms = _.find(this.state.data.synonyms, { "id": id });
-      if(synonyms !== undefined) {
+      const synonyms = _.find(this.state.data.synonyms, { id: id });
+      if (synonyms !== undefined) {
         return synonyms.words;
       } else {
         return [];
       }
     }
     getExits(id) {
-      const exits = _.find(this.state.data.exits, { "id" : id });
-      if(exits !== undefined) {
+      const exits = _.find(this.state.data.exits, { id: id });
+      if (exits !== undefined) {
         return exits.rooms;
       } else {
         return [];
       }
     }
     getActions(id) {
-      const actions = _.filter(this.state.data.actions, function (a) {
-        if(a.rooms.indexOf(id) > -1) {
-         return a;
+      const actions = _.filter(this.state.data.actions, function(a) {
+        if (a.rooms.indexOf(id) > -1) {
+          return a;
         }
       });
 
-      if(actions !== undefined) {
-        _.forEach(actions, (a) => {
-          const actionImpl = _.find(this.state.gameInfo.actions, { "name" : a.name });
-          if(actionImpl !== undefined) {
-           a.func = actionImpl.func;
+      if (actions !== undefined) {
+        _.forEach(actions, a => {
+          const actionImpl = _.find(this.state.gameInfo.actions, {
+            name: a.name
+          });
+          if (actionImpl !== undefined) {
+            a.func = actionImpl.func;
           }
         });
 
         return actions;
       } else {
-         return [];
+        return [];
       }
     }
     getTriggers(id) {
-      const triggers = _.find(this.state.data.triggers, { "id" : id });
-      if(triggers !== undefined) {
+      const triggers = _.find(this.state.data.triggers, { id: id });
+      if (triggers !== undefined) {
         return triggers;
       } else {
         return [];
       }
     }
     getObjects(id) {
-      const objects = _.find(this.state.data.objects, { "id" : id });
-      if(actions !== undefined) {
+      const objects = _.find(this.state.data.objects, { id: id });
+      if (actions !== undefined) {
         return objects;
       } else {
         return [];
       }
     }
     getText(id) {
-      const text = _.find(this.state.data.text, { "id" : id });
-      if(text !== undefined) {
+      const text = _.find(this.state.data.text, { id: id });
+      if (text !== undefined) {
         return text;
       } else {
         return [];
       }
     }
     getRoom(id) {
-      const room = _.find(this.state.data.rooms, { "id" : id });
+      const room = _.find(this.state.data.rooms, { id: id });
 
-      if(room !== undefined) {
+      if (room !== undefined) {
         let result = {
           id: id,
           name: room.name,
-          synonyms: _.uniq(_.flatten(room.synonyms.map((s) => { return this.getSynonyms(s); }))),
-          text: room.text.map((t) => { return this.getText(t); }),
+          synonyms: _.uniq(
+            _.flatten(
+              room.synonyms.map(s => {
+                return this.getSynonyms(s);
+              })
+            )
+          ),
+          text: room.text.map(t => {
+            return this.getText(t);
+          }),
           exits: this.getExits(id),
           actions: this.getActions(id),
           triggers: this.getTriggers(id)
         };
 
-        _.forEach(result.actions, (a) => {
-          a.synonyms = _.uniq(_.flatten(a.synonyms.map((s) => { return this.getSynonyms(s); })))
+        _.forEach(result.actions, a => {
+          a.synonyms = _.uniq(
+            _.flatten(
+              a.synonyms.map(s => {
+                return this.getSynonyms(s);
+              })
+            )
+          );
         });
 
         //console.log(result);
@@ -835,36 +927,41 @@ const IFEngine = (function() {
       }
     }
     startGame() {
-      const misc = _.find(this.state.data.player, { "name": "misc" });
+      const misc = _.find(this.state.data.player, { name: "misc" });
       const startingRoom = this.getRoom(misc.startRoom);
 
       //console.log(misc);
       //console.log(startingRoom);
 
-      if(startingRoom !== undefined) {
+      if (startingRoom !== undefined) {
         let player = this.initializePlayer();
         player.room = startingRoom;
 
         //player.inventory = _.uniq(_.flatten(room.synonyms.map((s) => { return this.getSynonyms(s); }))),
 
-        this.setState({
-          player: player,
-          roomName: player.room.name
-        }, function() {
-          this.printBanner();
-          this.say("---");
-          this.say(startingRoom.text[0].text);
-        }.bind(this));
+        this.setState(
+          {
+            player: player,
+            roomName: player.room.name
+          },
+          function() {
+            this.printBanner();
+            this.say("---");
+            this.say(startingRoom.text[0].text);
+          }.bind(this)
+        );
       }
     }
     getCommand(command) {
       let result = {};
       let foundCommand = false;
-      let found = (res) => { result = res; };
+      let found = res => {
+        result = res;
+      };
       let findIn = (commands, commandType, found) => {
-        if(result !== {}) {
-          _.forEach(commands, (cmd) => {
-            if(_.indexOf(cmd.synonyms, command) > -1) {
+        if (result !== {}) {
+          _.forEach(commands, cmd => {
+            if (_.indexOf(cmd.synonyms, command) > -1) {
               foundCommand = true;
 
               found({
@@ -887,7 +984,7 @@ const IFEngine = (function() {
       // console.log(this.state.player.room.actions);
       // console.log("---");
 
-      if(!foundCommand) {
+      if (!foundCommand) {
         this.say(`I don't understand: ${command}`);
       }
 
@@ -920,16 +1017,16 @@ const IFEngine = (function() {
       // 8: up: ["up"]
       // 9: down: ["down"]
 
-      var dirName = _.findKey(directionSynonyms, (ds) => {
+      var dirName = _.findKey(directionSynonyms, ds => {
         return ds.indexOf(direction) > -1;
       });
 
-      if(dirName !== undefined) {
+      if (dirName !== undefined) {
         //console.log(`Direction: ${dirName}`);
         let index = 0;
 
-        for(let p in directionSynonyms) {
-          if(p === dirName) {
+        for (let p in directionSynonyms) {
+          if (p === dirName) {
             break;
           }
           index++;
@@ -939,17 +1036,20 @@ const IFEngine = (function() {
 
         let newRoom = this.getRoom(this.state.player.room.exits[index]);
 
-        if(newRoom !== undefined) {
+        if (newRoom !== undefined) {
           //console.log(newRoom);
           this.state.player.room = newRoom;
 
-          this.setState({
-            roomName: this.state.player.room.name
-          }, () => {
-            this.say("Entered: " + newRoom.name);
-            this.say(this.state.player.room.text[0].text);
-            //this.findAndExecuteTrigger("entry");
-          });
+          this.setState(
+            {
+              roomName: this.state.player.room.name
+            },
+            () => {
+              this.say("Entered: " + newRoom.name);
+              this.say(this.state.player.room.text[0].text);
+              //this.findAndExecuteTrigger("entry");
+            }
+          );
         } else {
           this.say("I cannot go in that direction.");
           //this.findAndExecuteTrigger("movement");
@@ -965,9 +1065,14 @@ const IFEngine = (function() {
 
       const cmdObj = this.getCommand(cmd);
 
-      if(cmdObj.commandType !== undefined) {
-        if(cmdObj.commandType === "player") {
-          cmdObj.command.func(this.state.player, this.state.systemAPI, cmd, args);
+      if (cmdObj.commandType !== undefined) {
+        if (cmdObj.commandType === "player") {
+          cmdObj.command.func(
+            this.state.player,
+            this.state.systemAPI,
+            cmd,
+            args
+          );
         } else if (cmdObj.commandType === "system") {
           cmdObj.command.func(cmd, args);
         }
@@ -976,21 +1081,24 @@ const IFEngine = (function() {
       this.scrollContentArea();
     }
     componentDidMount() {
-      this.setState({
-        content: $("#content"),
-        gameInfo: this.props.gameInfo,
-        data: this.props.data,
-        player: this.initializePlayer(),
-        systemAPI: {
-          // Just one function here so far, if anything else is needed to be
-          // called from the rooms or objects then it'll be put in here.
-          say: function(text, newLine) {
-           this.say(text, newLine);
-          }.bind(this)
+      this.setState(
+        {
+          content: $("#content"),
+          gameInfo: this.props.gameInfo,
+          data: this.props.data,
+          player: this.initializePlayer(),
+          systemAPI: {
+            // Just one function here so far, if anything else is needed to be
+            // called from the rooms or objects then it'll be put in here.
+            say: function(text, newLine) {
+              this.say(text, newLine);
+            }.bind(this)
+          }
+        },
+        function() {
+          this.startGame();
         }
-      }, function() {
-        this.startGame();
-      });
+      );
     }
     render() {
       const contentStyle = {
@@ -1000,9 +1108,11 @@ const IFEngine = (function() {
 
       return (
         <div>
-          <InfoBar title={this.props.gameInfo.title}
-                   room={this.state.roomName}
-                   score={this.state.score} />
+          <InfoBar
+            title={this.props.gameInfo.title}
+            room={this.state.roomName}
+            score={this.state.score}
+          />
           <div id="content" style={contentStyle}></div>
           <CommandInput onKeyEnter={this.onCommandEntered} />
         </div>
@@ -1014,15 +1124,18 @@ const IFEngine = (function() {
     init: function(gameInfo) {
       let dl = new DataLoader();
 
-      dl.load(gameInfo.dataFile,
-        (status) => { console.log(status); },
-        (data) => {
+      dl.load(
+        gameInfo.dataFile,
+        status => {
+          console.log(status);
+        },
+        data => {
           const dataParts = data.split("\n\r");
           //console.log(`Total chunks = ${dataParts.length}`);
 
           let gdata = {};
 
-          _.forEach(dataParts, (dp) => {
+          _.forEach(dataParts, dp => {
             const result = dl.read(dp);
             gdata[result.name] = result.data;
           });
@@ -1031,8 +1144,12 @@ const IFEngine = (function() {
           // console.log(gdata);
           // console.log("----------------------");
 
-          ReactDOM.render(<GameUI gameInfo={gameInfo} data={gdata} />, document.getElementById("ui"));
-        });
+          ReactDOM.render(
+            <GameUI gameInfo={gameInfo} data={gdata} />,
+            document.getElementById("ui")
+          );
+        }
+      );
     }
-  }
+  };
 })();
