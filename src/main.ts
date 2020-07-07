@@ -2,7 +2,8 @@
 // game, not this. LOL!
 //
 // Something more realistic would be to create a websocket server here and then
-// create a simple web UI to go with it.
+// create a simple web UI to go with it and then do what I'm doing here but
+// in a multiplayer context...
 //
 // 7 July 2020
 
@@ -76,6 +77,11 @@ function setCommands(): Command[] {
               inventory: player.inventory,
             },
           );
+        } else if(args.length === 0) {
+          let currentRoom = rooms.find((x) => x.name === player.room);
+          if(currentRoom) {
+            console.log(currentRoom.items);
+          }
         }
       },
     },
