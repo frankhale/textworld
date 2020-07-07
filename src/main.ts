@@ -6,9 +6,11 @@
 //
 // 7 July 2020
 
+// import { v4 } from "https://deno.land/std/uuid/mod.ts";
+
 interface Command {
   names: string[];
-  action: (args: string[]) => void;
+  action: (command: string, args: string[]) => void;
 }
 
 interface Player {
@@ -17,25 +19,25 @@ interface Player {
   experience: number;
   gold: number;
   inventory: string[];
+  room: string;
 }
 
 enum Direction {
-  North,
-  South,
-  East,
-  West,
+  north = "north",
+  south = "south",
+  east = "east",
+  west = "west",
 }
 
 interface Exit {
-  id: string;
+  name: string;
   direction: Direction;
 }
 
 interface Room {
-  id: string;
   name: string;
   description: string;
-  items: string[];
+  items: string[] | null;
   exits: Exit[];
 }
 
@@ -51,30 +53,42 @@ function setCommands(): Command[] {
   return [
     {
       names: ["quit"],
-      action: (args: string[]) => {
+      action: (command: string, args: string[]) => {
         playing = false;
         clearInterval(gameLoop);
       },
     },
     {
       names: ["inv", "inventory"],
-      action: (args: string[]) => {
+      action: (command: string, args: string[]) => {
         console.log(player.inventory);
       },
     },
     {
       names: ["look"],
-      action: (args: string[]) => {
+      action: (command: string, args: string[]) => {
         if (args.find((x) => x === "self")) {
           console.log(
             {
-              name: player.name, 
-              level: player.level, 
+              name: player.name,
+              level: player.level,
               gold: player.gold,
-              inventory: player.inventory
-            }
+              inventory: player.inventory,
+            },
           );
         }
+      },
+    },
+    {
+      names: ["north", "south", "east", "west"],
+      action: (command: string, args: string[]) => {
+        let currentRoom = rooms.find((x) => x.name === player.room);        
+        let exit = currentRoom?.exits.find((y) => y.direction === command);          
+        let gotoRoom = rooms.find((z) => z.name === exit?.name);
+        if (gotoRoom) {
+          player.room = gotoRoom.name;
+          console.log(gotoRoom.description);
+        }               
       },
     },
   ];
@@ -83,7 +97,32 @@ function setCommands(): Command[] {
 let playing = true,
   motd = "Welcome to this wonderful non-game!\r\n",
   commands: Command[] = setCommands(),
-  rooms: Room[],
+  rooms: Room[] = [
+    {
+      name: "Open Field",
+      description:
+        "You are standing in an open field with green grass that stretches for as far as your eyes can see or so you think, you can hear running water to your north.",
+      items: ["piece of bread"],
+      exits: [
+        {
+          direction: Direction.north,
+          name: "Stream",
+        },
+      ],
+    },
+    {
+      name: "Stream",
+      description:
+        "A small stream runs from your east to west, the water looks shallow. You can see fish swimming.",
+      items: [],
+      exits: [
+        {
+          direction: Direction.south,
+          name: "Open Field",
+        },
+      ],
+    },
+  ] as Room[],
   player = {
     name: "Hero",
     level: 1,
@@ -92,6 +131,7 @@ let playing = true,
     inventory: [
       "wooden sword",
     ],
+    room: "Open Field",
   } as Player;
 
 let gameLoop = window.setInterval(() => {
@@ -112,11 +152,12 @@ function processCommand(command: string) {
   let result = commands.find((x) => x.names.find((y) => y === _command));
 
   if (result) {
-    result.action(_args);
+    result.action(_command, _args);
   }
 }
 
 console.log(motd);
+console.log(rooms.find((x) => x.name === player.room)?.description);
 
 while (playing) {
   const command = await commandPrompt("> ");
