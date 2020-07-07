@@ -1,3 +1,11 @@
+// This is just a couple hours of playing around, my end game is a multiplayer
+// game, not this. LOL!
+//
+// Something more realistic would be to create a websocket server here and then
+// create a simple web UI to go with it.
+//
+// 7 July 2020
+
 interface Command {
   names: string[];
   action: (args: string[]) => void;
