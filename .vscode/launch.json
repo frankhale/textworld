@@ -5,14 +5,19 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug Deno (Allow All)",
+      "name": "Deno (Attach)",
+      "type": "node",
+      "request": "attach",
+      "port": 9229      
+    },
+    {
+      "name": "Deno",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}",
       "runtimeExecutable": "deno",
-      "runtimeArgs": ["run", "--inspect-brk", "-A", "${file}"],
-      "port": 9229,          
-      "outputCapture": "std"
+      "runtimeArgs": ["run", "--inspect", "-A", "${file}"],
+      "port": 9229
     }
   ]
 }
