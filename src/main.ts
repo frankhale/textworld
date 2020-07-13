@@ -1,13 +1,34 @@
 // This is just a sandbox for experimentation right now. All the previous code
 // is commented out and I am experimenting with creating an ECS.
 //
-// 9 July 2020
+// 12 July 2020
+//
+// NOTE: This is very much a work in progress, code sucks below? Probably...
 
 import { v4 } from "https://deno.land/std/uuid/mod.ts";
 
+enum Direction {
+  north = "north",
+  south = "south",
+  east = "east",
+  west = "west",
+}
+
+const Directions = [
+  Direction.north,
+  Direction.south,
+  Direction.east,
+  Direction.west,
+];
+
+interface Exit {
+  direction: Direction;
+  name: string;
+}
+
 interface Component {
   name: string;
-  props: Record<string, any>;
+  props: Record<string, Exit[] | any>;
 }
 
 interface Entity {
@@ -24,8 +45,18 @@ function createEntity(name: string, components: Component[]): Entity {
   };
 }
 
-function getEntity(entities: Entity[], entityName: string) {
-  return entities.find(x => x.name === entityName);
+function getEntity(entities: Entity[], entityName: string | undefined) {
+  if(entityName === undefined || entityName === "") return;
+  
+  return entities.find((x) => x.name === entityName);
+}
+
+function getEntityByComponentWithName(entities: Entity[], componentName: string | undefined) {
+  if(componentName === undefined || componentName === "") return;
+  
+  return entities.map((entity) => {
+    return entity.components.find(c => c.name === componentName);
+  });
 }
 
 function createComponent(name: string, props: Record<string, any>): Component {
@@ -35,11 +66,16 @@ function createComponent(name: string, props: Record<string, any>): Component {
   };
 }
 
-function getComponent(entity: Entity, componentName: string) {
+function getComponent(entity: Entity | undefined, componentName: string | undefined) {
+  if(entity === undefined) return;
+  if(componentName === undefined || componentName === "") return;
+  
   return entity.components.find((x) => x.name == componentName);
 }
 
-function removeComponent(entity: Entity, componentName: string) {
+function removeComponent(entity: Entity, componentName: string | undefined) {
+  if(componentName === undefined || componentName === "") return;
+  
   return entity.components.filter((x) => {
     if (!x.props.hasKey(componentName)) {
       return x;
@@ -59,6 +95,12 @@ let playing = true,
             "You are standing in an open field with green grass that stretches for as far as your eyes can see or so you think, you can hear running water to your north.",
         },
       ),
+      createComponent("exits", {
+        value: [{
+          direction: Direction.north,
+          name: "Stream",
+        }],
+      }),
     ]),
     createEntity("Stream", [
       createComponent(
@@ -68,6 +110,12 @@ let playing = true,
             "A small stream runs from your east to west, the water looks shallow. You can see fish swimming.",
         },
       ),
+      createComponent("exits", {
+        value: [{
+          direction: Direction.south,
+          name: "Open Field",
+        }],
+      }),
     ]),
   ],
   playerEntity = createEntity("player", [
@@ -87,46 +135,47 @@ let playing = true,
     // do some game world stuff here...
   }, 1000);
 
-enum Direction {
-  north = "north",
-  south = "south",
-  east = "east",
-  west = "west",
-}
+function processCoreCommandsSystem(commandsEntity: Entity) {
+  let returnComponents = commandsEntity.components.filter((x) =>
+      x.name !== "quit"
+    ),
+    processComponents = commandsEntity.components.filter((x) =>
+      x.name === "quit"
+    );
 
-function processCommandSystem(commandsEntity: Entity) {
-  let returnComponents: Component[] = [];
-
-  commandsEntity.components.forEach((x) => {
+  processComponents.map((x) => {
     if (x.props["name"] == "quit") {
       console.log("Goodbye...");
       playing = false;
       clearInterval(gameLoop);
-    } else {
-      returnComponents.push(x);
     }
   });
 
   commandsEntity = createEntity("commands", returnComponents);
 }
 
-function processMovementSystem(commmandsEntity: Entity, roomEntities: Entity[], playerEntity: Entity) {
-  let returnComponents: Component[] = [],
-      currentRoomComponent = getComponent(playerEntity, "room"),
-      currentRoomEntity = getEntity(roomEntities, currentRoomComponent?.props.value);
+function processMovementCommandSystem(
+  commmandsEntity: Entity,
+  roomEntities: Entity[],
+  playerEntity: Entity,
+) {
+  let returnComponents = commandsEntity.components.filter((x) => {
+      return Directions.some((dir) => x.name !== dir);
+    }),
+    processComponents = commandsEntity.components.filter((x) => {
+      return Directions.some((dir) => x.name === dir);
+    }),
+    playerCurrentRoomComponent = getComponent(playerEntity, "room"),
+    playerCurrentRoomEntity = getEntity(roomEntities, playerCurrentRoomComponent?.name),
+    playerCurrentRoomExits = getComponent(playerCurrentRoomEntity, "exits");    
 
-  // still in the process of writing this...
-
-  commandsEntity.components.forEach((x) => {    
-    if (x.props["name"] == Direction.north) {}
-    else if (x.props["name"] == Direction.south) {}
-    else if (x.props["name"] == Direction.east) {}
-    else if (x.props["name"] == Direction.west) {} 
-    else {
-      returnComponents.push(x);
-    }
+  processComponents.map((direction) => {
+    // direction.name
+    // let newExit = playerCurrentRoomExits?.props["value"].find((exit: Exit) => {
+    // ???
+    // });
   });
-  
+ 
   commmandsEntity = createEntity("commands", returnComponents);
 }
 
@@ -161,8 +210,8 @@ while (playing) {
   commandsEntity.components.push(await commandPrompt("> ", commandsEntity));
 
   if (commandsEntity.components.length > 0) {
-    processCommandSystem(commandsEntity);
-    processMovementSystem(commandsEntity, roomEntities, playerEntity);
+    processCoreCommandsSystem(commandsEntity);
+    processMovementCommandSystem(commandsEntity, roomEntities, playerEntity);
   }
 }
 
