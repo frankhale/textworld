@@ -1,0 +1,12 @@
+C:\Users\frank\Documents\DEV\game-dev\textworld\TextWorldCore\bin\Debug\net5.0\TextWorldCore.exe
+C:\Users\frank\Documents\DEV\game-dev\textworld\TextWorldCore\bin\Debug\net5.0\TextWorldCore.deps.json
+C:\Users\frank\Documents\DEV\game-dev\textworld\TextWorldCore\bin\Debug\net5.0\TextWorldCore.runtimeconfig.json
+C:\Users\frank\Documents\DEV\game-dev\textworld\TextWorldCore\bin\Debug\net5.0\TextWorldCore.runtimeconfig.dev.json
+C:\Users\frank\Documents\DEV\game-dev\textworld\TextWorldCore\bin\Debug\net5.0\TextWorldCore.dll
+C:\Users\frank\Documents\DEV\game-dev\textworld\TextWorldCore\bin\Debug\net5.0\TextWorldCore.pdb
+C:\Users\frank\Documents\DEV\game-dev\textworld\TextWorldCore\obj\Debug\net5.0\TextWorldCore.AssemblyInfoInputs.cache
+C:\Users\frank\Documents\DEV\game-dev\textworld\TextWorldCore\obj\Debug\net5.0\TextWorldCore.AssemblyInfo.cs
+C:\Users\frank\Documents\DEV\game-dev\textworld\TextWorldCore\obj\Debug\net5.0\TextWorldCore.csproj.CoreCompileInputs.cache
+C:\Users\frank\Documents\DEV\game-dev\textworld\TextWorldCore\obj\Debug\net5.0\TextWorldCore.dll
+C:\Users\frank\Documents\DEV\game-dev\textworld\TextWorldCore\obj\Debug\net5.0\TextWorldCore.pdb
+C:\Users\frank\Documents\DEV\game-dev\textworld\TextWorldCore\obj\Debug\net5.0\TextWorldCore.genruntimeconfig.cache
