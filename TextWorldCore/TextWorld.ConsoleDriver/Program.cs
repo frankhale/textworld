@@ -5,6 +5,12 @@ using System.Linq;
 using TextWorld.Core.Components;
 using TextWorld.Core.Misc;
 
+// NOTE: We are not really there yet. The entities are kind of hard to work with, components probably don't
+// need names (only types). There is a lot of collection iteration going on. We can narrow down those so that
+// they don't get out of hand. There is still much to be learned here by playing with this concept.
+//
+// TODO: Need to add a test project before we get too much further along
+
 namespace TextWorld.ConsoleDriver
 {
     public class TextWorld
@@ -42,6 +48,26 @@ namespace TextWorld.ConsoleDriver
             roomEntites.Add(openField);
             roomEntites.Add(stream);
             roomEntites.Add(rock);
+        }
+
+        private DescriptionComponent GetPlayersCurrentRoomDescriptionComponent()
+        {
+            if (playerEntity.Components.FirstOrDefault(x => x.Name == "current room") is IdComponent currentRoomComponent)
+            {
+                // find the room entity with that Id
+                var currentRoomEntity = roomEntites.FirstOrDefault(x => x.Id == currentRoomComponent.Id);
+
+                if (currentRoomEntity != null)
+                {
+                    // get description component
+                    if (currentRoomEntity.Components.FirstOrDefault(x => x.Name == "description") is DescriptionComponent description)
+                    {
+                        return description;
+                    }
+                }
+            }
+
+            return null;
         }
 
         private void Quit()
@@ -94,7 +120,7 @@ namespace TextWorld.ConsoleDriver
             }
 
             // get the component called "current room" on the player entity
-            var currentRoomComponent = playerEntity.Components.FirstOrDefault(x => x.Name == "current room") as IdComponent;
+            var currentRoomComponent = (IdComponent) playerEntity.Components.FirstOrDefault(x => x.Name == "current room");
 
             if (currentRoomComponent != null)
             {
@@ -190,26 +216,6 @@ namespace TextWorld.ConsoleDriver
             }
         }
 
-        private DescriptionComponent GetPlayersCurrentRoomDescriptionComponent()
-        {
-            if (playerEntity.Components.FirstOrDefault(x => x.Name == "current room") is IdComponent currentRoomComponent)
-            {
-                // find the room entity with that Id
-                var currentRoomEntity = roomEntites.FirstOrDefault(x => x.Id == currentRoomComponent.Id);
-
-                if (currentRoomEntity != null)
-                {
-                    // get description component
-                    if (currentRoomEntity.Components.FirstOrDefault(x => x.Name == "description") is DescriptionComponent description)
-                    {
-                        return description;
-                    }
-                }
-            }
-
-            return null;
-        }
-
         private void UnknownCommandSystem()
         {
             var unknownCommandComponents = new List<UnknownCommandComponent>();
@@ -246,7 +252,7 @@ namespace TextWorld.ConsoleDriver
 
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
             var tw = new TextWorld();
             tw.Run();
