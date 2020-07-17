@@ -1,1 +1,3 @@
-*.cs linguist-language=csharp
+*.cs    linguist-language=csharp
+*.js    linguist-detectable=false
+*.ts    linguist-detectable=false
