@@ -2,124 +2,28 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using TextWorld.Core.Components;
+using TextWorld.Core.Misc;
 
-namespace TextWorldCore
+namespace TextWorld.ConsoleDriver
 {
-    public enum Direction
-    {
-        North,
-        South,
-        East,
-        West
-    }
-
-    public abstract class Component
-    {
-        public string Name { get; private set; }
-
-        protected Component(string name)
-        {
-            Name = name;
-        }
-    }
-
-    public class CommandComponent : Component
-    {
-        public string Command { get; private set; }
-
-        public CommandComponent(string name, string command) : base(name)
-        {
-            Command = command;
-        }
-    }
-
-    public class DescriptionComponent : Component
-    {
-        public string Description { get; private set; }
-
-        public DescriptionComponent(string name, string description) : base(name)
-        {
-            Description = description;
-        }
-    }
-
-    public class DisplayNameComponent : Component
-    {
-        public string DisplayName { get; private set; }
-
-        public DisplayNameComponent(string name, string displayName) : base(name)
-        {
-            DisplayName = displayName;
-        }
-    }
-
-    public class IdComponent : Component
-    {
-        public Guid Id { get; private set; }
-
-        public IdComponent(string name, Guid id) : base(name)
-        {
-            Id = id;
-        }
-
-        public void SetId(Guid id)
-        {
-            Id = id;
-        }
-    }
-
-    public class RoomChangedComponent : Component
-    {
-        public RoomChangedComponent(string name = "room changed") : base(name) { }
-    }
-
-    public class ExitComponent : Component
-    {
-        public Direction Direction { get; private set; }
-        public Guid RoomId { get; private set; }
-
-        public ExitComponent(string name, Direction direction, Guid roomId) : base(name)
-        {
-            Direction = direction;
-            RoomId = roomId;
-        }
-    }
-
-    public class Entity
-    {
-        public Guid Id { get; } = Guid.NewGuid();
-        public string Name { get; private set; }
-        public List<Component> Components { get; private set; } = new List<Component>();
-
-        public Entity(string name)
-        {
-            Name = name;
-        }
-
-        public void AddComponent<T>(T component) where T : Component
-        {
-            Components.Add(component);
-        }
-
-        public void RemoveComponent<T>(T component) where T : Component
-        {
-            Components.Remove(component);
-        }
-    }
-
     public class TextWorld
     {
         private bool running = true;
-        private readonly Entity coreCommandEntity = new Entity("Command Entity");
-        private readonly List<Entity> roomEntites = new List<Entity>();
+        private readonly Entity MOTDEntity = new Entity("MOTD Entity");
         private readonly Entity playerEntity = new Entity("Player Entity");
+        private readonly Entity commandEntity = new Entity("Command Entity");
+        private readonly List<Entity> roomEntites = new List<Entity>();
 
         public TextWorld()
         {
             var stream = new Entity("Room Entity");
             var openField = new Entity("Room Entity");
 
+            MOTDEntity.AddComponent(new DescriptionComponent("description", "Welcome to this fantastic not finished ECS based text adventure game..."));
+
             playerEntity.AddComponent(new IdComponent("current room", openField.Id));
+            playerEntity.AddComponent(new RoomChangedComponent());
 
             stream.AddComponent(new DisplayNameComponent("display name", "Shallow Stream"));
             stream.AddComponent(new DescriptionComponent("description", "A shallow rocky stream is swifty flowing from your west to east. The water looks approximately one foot deep."));
@@ -133,25 +37,35 @@ namespace TextWorldCore
             roomEntites.Add(stream);
         }
 
+        private void Quit()
+        {
+            Console.WriteLine("Goodbye...");
+            running = false;
+        }
+
         private void CommandSystem()
         {
             var processedComponents = new List<CommandComponent>();
 
-            foreach (var commandComponent in coreCommandEntity.Components.Where(x => x.GetType() == typeof(CommandComponent)))
+            foreach (var commandComponent in commandEntity.Components.Where(x => x.GetType() == typeof(CommandComponent)))
             {
                 CommandComponent c = commandComponent as CommandComponent;
 
                 if (c.Command == "quit")
                 {
                     processedComponents.Add(c);
-                    Console.WriteLine("Goodbye...");
-                    running = false;
+                    Quit();
+                }
+                else if (c.Command == "look" || c.Command == "show")
+                {
+                    processedComponents.Add(c);
+                    playerEntity.AddComponent(new ShowRoomDescriptionComponent());
                 }
             }
 
             foreach (var commandComponent in processedComponents)
             {
-                coreCommandEntity.RemoveComponent(commandComponent);
+                commandEntity.RemoveComponent(commandComponent);
             }
         }
 
@@ -159,19 +73,23 @@ namespace TextWorldCore
         {
             var processedComponents = new List<CommandComponent>();
 
-            foreach (var commandComponent in coreCommandEntity.Components.Where(x => x.GetType() == typeof(CommandComponent)))
+            foreach (var commandComponent in commandEntity.Components.Where(x => x.GetType() == typeof(CommandComponent)))
             {
                 CommandComponent c = commandComponent as CommandComponent;
 
-                var movementCommand = c.Command switch
+                CommandComponent movementCommand = null;
+
+                if (c.Command == "north" ||
+                   c.Command == "south" ||
+                   c.Command == "east" ||
+                   c.Command == "west")
                 {
-                    "north" or "south" or "east" or "west" => c,
-                    _ => null
-                };
+                    movementCommand = c;
+                }
 
                 if (movementCommand?.Command != null)
                 {
-                    processedComponents.Add(c);                    
+                    processedComponents.Add(c);
 
                     // get the component called "current room" on the player entity
                     var currentRoomComponent = playerEntity.Components.FirstOrDefault(x => x.Name == "current room") as IdComponent;
@@ -191,7 +109,7 @@ namespace TextWorldCore
                             foreach (var exit in currentRoomExits)
                             {
 
-                                if((exit as ExitComponent).Direction.ToString() == myTI.ToTitleCase(movementCommand.Command))
+                                if ((exit as ExitComponent).Direction.ToString() == myTI.ToTitleCase(movementCommand.Command))
                                 {
                                     // get new room entity based on exit component room id
                                     var newRoomEntity = roomEntites.FirstOrDefault(x => x.Id == (exit as ExitComponent).RoomId);
@@ -205,7 +123,7 @@ namespace TextWorldCore
                                         playerEntity.AddComponent(new RoomChangedComponent());
                                     }
                                 }
-                            }                            
+                            }
                         }
                     }
                 }
@@ -213,22 +131,23 @@ namespace TextWorldCore
 
             foreach (var commandComponent in processedComponents)
             {
-                coreCommandEntity.RemoveComponent(commandComponent);
+                commandEntity.RemoveComponent(commandComponent);
             }
         }
 
-        private void RoomChangedSystem() 
+        private void RoomDescriptionSystem()
         {
-            var processedComponents = new List<RoomChangedComponent>();
+            var processedComponents = new List<Component>();
 
-            foreach (var roomChangedComponent in playerEntity.Components.Where(x => x.GetType() == typeof(RoomChangedComponent)))
+            foreach (var component in playerEntity.Components
+                .Where(x => x.GetType() == typeof(RoomChangedComponent) ||
+                            x.GetType() == typeof(ShowRoomDescriptionComponent)))
             {
-                RoomChangedComponent c = roomChangedComponent as RoomChangedComponent;
-                processedComponents.Add(c);
+                processedComponents.Add(component);
 
                 var descriptionComponent = GetPlayersCurrentRoomDescriptionComponent();
 
-                if(descriptionComponent != null)
+                if (descriptionComponent != null)
                 {
                     Console.WriteLine(descriptionComponent.Description);
                 }
@@ -237,6 +156,18 @@ namespace TextWorldCore
             foreach (var component in processedComponents)
             {
                 playerEntity.RemoveComponent(component);
+            }
+        }
+
+        private void MOTDSystem()
+        {
+            var motdDescriptionComponent = (DescriptionComponent)MOTDEntity.Components.FirstOrDefault(x => x.Name == "description");
+
+            if (motdDescriptionComponent != null)
+            {
+                Console.WriteLine(motdDescriptionComponent.Description);
+                Console.WriteLine();
+                Console.WriteLine();
             }
         }
 
@@ -249,7 +180,7 @@ namespace TextWorldCore
 
                 if (currentRoomEntity != null)
                 {
-                    // get description component 
+                    // get description component
                     if (currentRoomEntity.Components.FirstOrDefault(x => x.Name == "description") is DescriptionComponent description)
                     {
                         return description;
@@ -262,8 +193,8 @@ namespace TextWorldCore
 
         public void Run()
         {
-            Console.WriteLine("Welcome to Text World!");
-            Console.WriteLine();
+            MOTDSystem();
+            RoomDescriptionSystem();
 
             while (running)
             {
@@ -272,19 +203,19 @@ namespace TextWorldCore
 
                 if (!string.IsNullOrEmpty(command))
                 {
-                    coreCommandEntity.AddComponent(new CommandComponent("command", command.ToLower()));
+                    commandEntity.AddComponent(new CommandComponent("command", command.ToLower()));
                 }
 
                 CommandSystem();
                 RoomMovementSystem();
-                RoomChangedSystem();
+                RoomDescriptionSystem();
             }
         }
     }
 
-    static class Program
+    class Program
     {
-        static void Main()
+        static void Main(string[] args)
         {
             var tw = new TextWorld();
             tw.Run();
