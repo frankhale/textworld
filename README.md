@@ -1,13 +1,16 @@
 # TextWorld
 
-An experiment in creating a text based role playing adventure game
+An experiment in creating a text based role playing adventure game using an
+Entity Component System.
 
 ## Status
 
-Nothing really substantial here yet. I'm going to be dumping a bunch of code in
-the `misc` folder for now that is basically unfinished experiments that deal
-with the text based game subject. The code is only pieces of other larger
-codebases that were never finished.
+The beginnings of a .NET Core C# project has been started and I'm iterating on
+it at a pretty decent rate now. There is still a long way to go and I am still
+thinking of this as a prototype because I don't even know if I really want to
+use C# as the primary language. I'm experimenting to figure out the details of
+how to write an ECS to do this sort of game. The current project is single
+player focused whereas the ultimate end goal is to have a MUD*like game.
 
 ## Game Entities
 
@@ -244,4 +247,4 @@ Frank Hale &lt;frankhale AT gmail.com&gt;
 
 ## Date
 
-8 July 2020
+17 July 2020
