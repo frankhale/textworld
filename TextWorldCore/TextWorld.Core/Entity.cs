@@ -1,12 +1,11 @@
 using System;
 using System.Collections.Generic;
-using TextWorld.Core.Components;
 
-namespace TextWorld.Core.Misc
+namespace TextWorld.Core
 {
     public class Entity
     {
-        public System.Guid Id { get; } = Guid.NewGuid();
+        public Guid Id { get; } = Guid.NewGuid();
         public string Name { get; private set; }
         public List<Component> Components { get; private set; } = new List<Component>();
 
