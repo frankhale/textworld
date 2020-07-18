@@ -28,7 +28,7 @@ namespace TextWorld.Game
         private readonly UnknownCommandSystem unknownCommandSystem = new UnknownCommandSystem();
         private readonly RoomDescriptionSystem roomDescriptionSystem = new RoomDescriptionSystem();
         private readonly RoomMovementSystem roomMovementSystem = new RoomMovementSystem();
-        private readonly RoomItemsSystem roomItemsSystem = new RoomItemsSystem();
+        private readonly ItemsSystem itemsSystem = new ItemsSystem();
 
         public TextWorldGame()
         {
@@ -79,7 +79,7 @@ namespace TextWorld.Game
                 consoleInputSystem.Run(commandEntity);
                 commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
                 roomMovementSystem.Run(commandEntity, playerEntity, roomEntities, outputEntity);
-                roomItemsSystem.Run(playerEntity, roomEntities, outputEntity);
+                itemsSystem.Run(playerEntity, roomEntities, outputEntity);
                 unknownCommandSystem.Run(commandEntity, outputEntity);
                 quitSystem.Run(playerEntity, () => running = false);
             }

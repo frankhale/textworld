@@ -5,7 +5,7 @@ using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Systems
 {
-    public class RoomItemsSystem : System
+    public class ItemsSystem : System
     {
         public override void Run(Entity playerEntity, List<Entity> roomEntities, Entity outputEntity)
         {

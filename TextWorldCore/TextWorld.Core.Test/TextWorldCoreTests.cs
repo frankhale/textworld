@@ -1,6 +1,8 @@
 using FluentAssertions;
 using System;
+using System.Collections.Generic;
 using TextWorld.Core.Components;
+using TextWorld.Core.Items;
 using TextWorld.Core.Misc;
 using TextWorld.Core.Systems;
 using Xunit;
@@ -118,9 +120,9 @@ namespace TextWorld.Core.Test
 
             // Assert
             outputComponent.Should().NotBeNull();
-            outputComponent.Value.Should().Be(motd);            
+            outputComponent.Value.Should().Be(motd);
         }
-    
+
         [Fact]
         public void CanGetCommandWithArgs()
         {
@@ -137,6 +139,34 @@ namespace TextWorld.Core.Test
             commandComponent.Command.Should().Be(command);
             commandComponent.Args.Should().HaveCount(1);
             commandComponent.Args[0].Should().Be(arg);
+        }
+
+        [Fact]
+        public void CanShowItemsOnEntity()
+        {
+            // Arrange
+            var itemsSystem = new ItemsSystem();
+            var playerEntity = new Entity("player");
+            var roomEntities = new List<Entity>();
+            var outputEntity = new Entity("output");
+
+            var roomId = Guid.NewGuid();
+            var room = new Entity(roomId, "New Room", new List<Component>()
+                {
+                    new ItemComponent("item", new CoinPurse("leather coin purse", 64)),
+                });
+
+            playerEntity.AddComponent(new IdComponent("current room", roomId));
+            playerEntity.AddComponent(new ShowItemsComponent("show room items"));
+            roomEntities.Add(room);
+
+            // Act
+            itemsSystem.Run(playerEntity, roomEntities, outputEntity);
+            var outputComponent = outputEntity.GetFirstComponentByType<OutputComponent>();
+
+            // Assert
+            outputComponent.Should().NotBeNull();
+            outputComponent.Value.Should().NotBeEmpty();
         }
     }
 }
