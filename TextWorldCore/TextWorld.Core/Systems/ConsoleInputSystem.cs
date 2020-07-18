@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using TextWorld.Core.Components;
 
 namespace TextWorld.Core.Systems
@@ -12,7 +13,17 @@ namespace TextWorld.Core.Systems
 
             if (!string.IsNullOrEmpty(command))
             {
-                commandEntity.AddComponent(new CommandComponent("command", command.ToLower()));
+                var commandParts = command.ToLower().Split(" ");
+
+                if (commandParts.Length > 1)
+                {
+                    commandEntity.AddComponent(new CommandComponent("command", commandParts[0],
+                        commandParts.Skip(1).Take(commandParts.Length).ToArray()));
+                }
+                else
+                {
+                    commandEntity.AddComponent(new CommandComponent("command", command.ToLower()));
+                }
             }
         }
     }

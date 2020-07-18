@@ -11,15 +11,17 @@ namespace TextWorld.Core.Systems
 
             foreach (var commandComponent in commandEntity.GetComponentsByType<CommandComponent>())
             {
-                if (commandComponent.Command == "quit")
+                switch(commandComponent.Command)
                 {
-                    processedComponents.Add(commandComponent);
-                    outputEntity.AddComponent(new QuitComponent("quit game"));
-                }
-                else if (commandComponent.Command == "look" || commandComponent.Command == "show")
-                {
-                    processedComponents.Add(commandComponent);
-                    outputEntity.AddComponent(new ShowRoomDescriptionComponent());
+                    case "quit":
+                        processedComponents.Add(commandComponent);
+                        outputEntity.AddComponent(new QuitComponent("quit game"));
+                        break;
+                    case "look":
+                    case "show":
+                        processedComponents.Add(commandComponent);
+                        outputEntity.AddComponent(new ShowRoomDescriptionComponent());
+                        break;                    
                 }
             }
 

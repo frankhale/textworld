@@ -119,5 +119,16 @@ namespace TextWorld.Core.Test
             outputComponent.Should().NotBeNull();
             outputComponent.Value.Should().Be(motd);            
         }
+    
+        [Fact]
+        public void CanGetCommandAndArgs()
+        {
+            // We need to refactor the ConsoleInputSystem to extract the Entity/Component
+            // bits from the actual Console.Readline stuff. We need to be able to test this
+            // independently of any actual input system by injecting commands and processing
+            // them through tests.
+
+            throw new NotImplementedException();
+        }
     }
 }
