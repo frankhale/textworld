@@ -1,12 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\TextWorld.Game\TextWorld.Game.csproj" />
+    <ProjectReference Include="..\TextWorld.Core\TextWorld.Core.csproj" />
   </ItemGroup>
 
 </Project>

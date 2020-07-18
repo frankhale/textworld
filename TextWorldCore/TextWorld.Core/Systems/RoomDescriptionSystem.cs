@@ -28,25 +28,6 @@ namespace TextWorld.Core.Systems
                 }
             }
 
-            //if (processedComponents.Count() > 0)
-            //{                
-            //DescriptionComponent descriptionComponent;
-            //var currentRoomComponent = playerEntity.GetFirstComponentByName<IdComponent>("current room");
-            //if (currentRoomComponent != null)
-            //{
-            //    var currentRoomEntity = roomEntities.FirstOrDefault(x => x.Id == currentRoomComponent.Id);
-
-            //    if (currentRoomEntity != null)
-            //    {
-            //        descriptionComponent = currentRoomEntity.GetFirstComponentByName<DescriptionComponent>("description");
-            //        if (descriptionComponent != null)
-            //        {
-            //            outputEntity.AddComponent(new OutputComponent("output", descriptionComponent.Description));
-            //        }
-            //    }
-            //}
-            //}
-
             playerEntity.RemoveComponents(processedComponents);
         }
     }

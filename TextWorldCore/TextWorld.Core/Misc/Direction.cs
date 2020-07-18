@@ -3,8 +3,14 @@ namespace TextWorld.Core.Misc
     public enum Direction
     {
         North,
+        NorthEast,
+        NorthWest,
         South,
+        SouthEast,
+        SouthWest,
         East,
-        West
+        West,
+        Up,
+        Down
     }
 }

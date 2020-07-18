@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using TextWorld.Core.Components;
+using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Systems
 {
@@ -12,14 +13,16 @@ namespace TextWorld.Core.Systems
 
             foreach (var commandComponent in commandEntity.GetComponentsByType<CommandComponent>())
             {
-                switch(commandComponent.Command)
+                var roomEntity = Helper.GetPlayersCurrentRoom(playerEntity, roomEntities);
+
+                switch (commandComponent.Command)
                 {
                     case "quit":
                         processedComponents.Add(commandComponent);
                         outputEntity.AddComponent(new QuitComponent("quit game"));
                         break;
                     case "look":
-                    case "show":                        
+                    case "show":
                         if (commandComponent.Args.Length > 0 && commandComponent.Args[0] == "self")
                         {
                             processedComponents.Add(commandComponent);
@@ -28,18 +31,21 @@ namespace TextWorld.Core.Systems
                         else
                         {
                             processedComponents.Add(commandComponent);
-                            var roomIdComponent = playerEntity.GetFirstComponentByName<IdComponent>("current room");
 
-                            if (roomIdComponent != null)
+                            if (roomEntity != null)
                             {
-                                var roomEntity = roomEntities.FirstOrDefault(x => x.Id == roomIdComponent.Id);
-                                if (roomEntity != null) 
-                                {
-                                    outputEntity.AddComponent(new ShowDescriptionComponent("show room description", roomEntity));
-                                }
+                                outputEntity.AddComponent(new ShowDescriptionComponent("show room description", roomEntity));
                             }
                         }
-                        break;                    
+                        break;
+                    case "inspect":
+                        processedComponents.Add(commandComponent);
+
+                        if (roomEntity != null)
+                        {
+                            outputEntity.AddComponent(new ShowItemsComponent("show room items"));
+                        }
+                        break;
                 }
             }
 

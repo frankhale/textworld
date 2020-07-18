@@ -1,8 +1,8 @@
-﻿using TextWorld.Core;
+﻿using TextWorld.Game;
 
 namespace TextWorld.ConsoleDriver
 {
-    class Program
+    static class Program
     {
         static void Main()
         {
