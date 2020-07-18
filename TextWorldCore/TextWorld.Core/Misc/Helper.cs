@@ -18,5 +18,23 @@ namespace TextWorld.Core.Misc
 
             return result;
         }
+
+        public static void AddCommandComponentToEntity(Entity commandEntity, string command)
+        {
+            if (!string.IsNullOrEmpty(command))
+            {
+                var commandParts = command.ToLower().Split(" ");
+
+                if (commandParts.Length > 1)
+                {
+                    commandEntity.AddComponent(new CommandComponent("command", commandParts[0],
+                        commandParts.Skip(1).Take(commandParts.Length).ToArray()));
+                }
+                else
+                {
+                    commandEntity.AddComponent(new CommandComponent("command", command.ToLower()));
+                }
+            }
+        }
     }
 }

@@ -1,6 +1,5 @@
 ﻿using System;
-using System.Linq;
-using TextWorld.Core.Components;
+using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Systems
 {
@@ -8,23 +7,8 @@ namespace TextWorld.Core.Systems
     {
         public override void Run(Entity commandEntity)
         {
-            Console.Write("> ");
-            var command = Console.ReadLine() ?? "";
-
-            if (!string.IsNullOrEmpty(command))
-            {
-                var commandParts = command.ToLower().Split(" ");
-
-                if (commandParts.Length > 1)
-                {
-                    commandEntity.AddComponent(new CommandComponent("command", commandParts[0],
-                        commandParts.Skip(1).Take(commandParts.Length).ToArray()));
-                }
-                else
-                {
-                    commandEntity.AddComponent(new CommandComponent("command", command.ToLower()));
-                }
-            }
+            Console.Write("> ");            
+            Helper.AddCommandComponentToEntity(commandEntity, Console.ReadLine() ?? "");            
         }
     }
 }

@@ -1,6 +1,7 @@
 using FluentAssertions;
 using System;
 using TextWorld.Core.Components;
+using TextWorld.Core.Misc;
 using TextWorld.Core.Systems;
 using Xunit;
 
@@ -121,14 +122,21 @@ namespace TextWorld.Core.Test
         }
     
         [Fact]
-        public void CanGetCommandAndArgs()
+        public void CanGetCommandWithArgs()
         {
-            // We need to refactor the ConsoleInputSystem to extract the Entity/Component
-            // bits from the actual Console.Readline stuff. We need to be able to test this
-            // independently of any actual input system by injecting commands and processing
-            // them through tests.
+            // Arrange
+            var commandEntity = new Entity("commands");
+            var command = "get";
+            var arg = "lamp";
 
-            throw new NotImplementedException();
+            // Act
+            Helper.AddCommandComponentToEntity(commandEntity, $"{command} {arg}");
+            var commandComponent = commandEntity.GetFirstComponentByType<CommandComponent>();
+
+            // Assert
+            commandComponent.Command.Should().Be(command);
+            commandComponent.Args.Should().HaveCount(1);
+            commandComponent.Args[0].Should().Be(arg);
         }
     }
 }

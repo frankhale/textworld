@@ -18,7 +18,7 @@ namespace TextWorld.Core.Systems
 
                 var roomEntity = Helper.GetPlayersCurrentRoom(playerEntity, roomEntities);
 
-                if(roomEntity != null)
+                if (roomEntity != null)
                 {
                     var itemComponents = roomEntity.GetComponentsByType<ItemComponent>();
 
@@ -26,7 +26,14 @@ namespace TextWorld.Core.Systems
 
                     itemComponents.ForEach(item => items.Add(item.Item.Name));
 
-                    outputEntity.AddComponent(new OutputComponent("output", $"The following items are here: {string.Join(", ", items.ToArray())}"));
+                    if (items.Count() > 0)
+                    {
+                        outputEntity.AddComponent(new OutputComponent("output", $"The following items are here: {string.Join(", ", items.ToArray())}"));
+                    }
+                    else
+                    {
+                        outputEntity.AddComponent(new OutputComponent("output", $"There are no items here."));
+                    }
                 }
             }
 
