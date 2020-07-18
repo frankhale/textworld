@@ -3,7 +3,7 @@ using TextWorld.Core.Components;
 
 namespace TextWorld.Core.Systems
 {
-    class ConsoleOutputSystem : System
+    public class ConsoleOutputSystem : System
     {
         public override void Run(Entity outputEntity)
         {

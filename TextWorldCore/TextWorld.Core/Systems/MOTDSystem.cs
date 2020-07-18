@@ -5,7 +5,7 @@ using TextWorld.Core.Components;
 
 namespace TextWorld.Core.Systems
 {
-    class MOTDSystem : System
+    public class MOTDSystem : System
     {
         public override void Run(Entity motdEntity, Entity outputEntity)
         {

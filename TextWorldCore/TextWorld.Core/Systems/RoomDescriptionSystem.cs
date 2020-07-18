@@ -4,7 +4,7 @@ using TextWorld.Core.Components;
 
 namespace TextWorld.Core.Systems
 {
-    class RoomDescriptionSystem : System
+    public class RoomDescriptionSystem : System
     {
         public override void Run(Entity playerEntity, List<Entity> roomEntities, Entity outputEntity)
         {

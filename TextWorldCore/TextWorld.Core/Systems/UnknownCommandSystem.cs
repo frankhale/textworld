@@ -4,7 +4,7 @@ using TextWorld.Core.Components;
 
 namespace TextWorld.Core.Systems
 {
-    class UnknownCommandSystem : System
+    public class UnknownCommandSystem : System
     {
         public override void Run(Entity commandEntity, Entity outputEntity)
         {

@@ -7,7 +7,7 @@ using TextWorld.Core.Components;
 
 namespace TextWorld.Core.Systems
 {
-    class RoomMovementSystem : System
+    public class RoomMovementSystem : System
     {
         public override void Run(Entity commandEntity, Entity playerEntity, List<Entity> roomEntities, Entity outputEntity)
         {

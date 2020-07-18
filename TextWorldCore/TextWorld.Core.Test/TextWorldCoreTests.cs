@@ -1,6 +1,7 @@
 using FluentAssertions;
 using System;
 using TextWorld.Core.Components;
+using TextWorld.Core.Systems;
 using Xunit;
 
 namespace TextWorld.Core.Test
@@ -55,7 +56,7 @@ namespace TextWorld.Core.Test
             // Assert
             components.Should().HaveCount(2);
         }
-    
+
         [Fact]
         public void CanGetEntityComponentByName()
         {
@@ -97,6 +98,26 @@ namespace TextWorld.Core.Test
             entity.RemoveComponentsByType<TestComponent>();
             // Assert
             entity.Components.Should().BeEmpty();
+        }
+
+        [Fact]
+        public void MOTDSystemOutputsMOTD()
+        {
+            // Arrange
+            var outputEntity = new Entity("Output Entity");
+            var motdEntity = new Entity("MOTD Entity");
+            var motdSystem = new MOTDSystem();
+            var motd = "This is the message of the day.";
+            motdEntity.AddComponent(new DescriptionComponent("description", motd));
+
+            // Act
+            motdSystem.Run(motdEntity, outputEntity);
+
+            var outputComponent = outputEntity.GetFirstComponentByType<OutputComponent>();
+
+            // Assert
+            outputComponent.Should().NotBeNull();
+            outputComponent.Value.Should().Be(motd);            
         }
     }
 }

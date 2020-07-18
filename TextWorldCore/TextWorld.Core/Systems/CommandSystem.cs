@@ -3,7 +3,7 @@ using TextWorld.Core.Components;
 
 namespace TextWorld.Core.Systems
 {
-    class CommandSystem : System
+    public class CommandSystem : System
     {
         public override void Run(Entity commandEntity, Entity outputEntity)
         {
