@@ -10,20 +10,21 @@ namespace TextWorld.Core.Systems
         {
             var unknownCommandComponents = new List<UnknownCommandComponent>();
 
-            foreach (CommandComponent commandComponent in commandEntity.GetComponentsByType<CommandComponent>())
+            commandEntity.GetComponentsByType<CommandComponent>().ForEach(x =>
             {
-                unknownCommandComponents.Add(new UnknownCommandComponent("unknown command", commandComponent.Command));
-            }
-
-            commandEntity.Components.AddRange(unknownCommandComponents);
-
-            var unknownCommandComponentsCount = commandEntity.GetComponentsByType<UnknownCommandComponent>().Count();
+                unknownCommandComponents.Add(new UnknownCommandComponent("unknown command", x.Command));
+            });
 
             commandEntity.Components.Clear();
 
-            if (unknownCommandComponentsCount > 0)
+            if (unknownCommandComponents.Count() > 0)
             {
-                outputEntity.AddComponent(new OutputComponent("output", "I don't know how to do that."));
+                commandEntity.Components.AddRange(unknownCommandComponents);
+
+                unknownCommandComponents.ForEach(x =>
+                {
+                    outputEntity.AddComponent(new OutputComponent("output", $"I don't know how to do: {x.Command}"));
+                });
             }
         }
     }
