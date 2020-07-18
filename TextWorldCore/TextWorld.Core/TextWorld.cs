@@ -1,20 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 using TextWorld.Core.Components;
 using TextWorld.Core.Misc;
 using TextWorld.Core.Systems;
-
-// NOTE: We are not really there yet. This is an experiment in learning and the code is pretty bad in places.
-// The entities are kind of hard to work with, components probably don't need names (only types). There is a 
-// lot of collection iteration going on. There is still much to be learned here by playing with this concept.
-//
-// The current game loop doesn't have any other concept other than getting input from STDIN and sending output
-// to STDOUT. That's not good as I'd rather have this take in strings and output strings so that I can use it
-// in a server based app which can have a web frontend.
-//
-// Systems should return a string instead of calling Console.WriteLine directly
 
 namespace TextWorld.Core
 {
