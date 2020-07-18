@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using TextWorld.Core.Components;
 using TextWorld.Core.Misc;
+using TextWorld.Core.Systems;
 
 // NOTE: We are not really there yet. This is an experiment in learning and the code is pretty bad in places.
 // The entities are kind of hard to work with, components probably don't need names (only types). There is a 
@@ -26,13 +27,20 @@ namespace TextWorld.Core
         private readonly Entity outputEntity = new Entity("Output Entity");
         private readonly List<Entity> roomEntites = new List<Entity>();
 
+        private readonly MOTDSystem motdSystem = new MOTDSystem();
+        private readonly ConsoleOutputSystem consoleOutputSystem = new ConsoleOutputSystem();
+        private readonly ConsoleInputSystem consoleInputSystem = new ConsoleInputSystem();
+        private readonly CommandSystem commandSystem = new CommandSystem();
+        private readonly QuitSystem quitSystem = new QuitSystem();
+        private readonly UnknownCommandSystem unknownCommandSystem = new UnknownCommandSystem();
+
         public TextWorldGame()
         {
             var stream = new Entity("Room Entity");
             var openField = new Entity("Room Entity");
             var rock = new Entity("Room Entity");
 
-            motdEntity.AddComponent(new DescriptionComponent("description", "Welcome to this fantastic not finished ECS based text adventure game..."));
+            motdEntity.AddComponent(new DescriptionComponent("description", "Welcome to this fantastic not finished ECS based text adventure game that doesn't do much but is attempting to work at some point, LOL!..."));
 
             playerEntity.AddComponent(new IdComponent("current room", openField.Id));
             playerEntity.AddComponent(new ShowRoomDescriptionComponent());
@@ -55,56 +63,7 @@ namespace TextWorld.Core
             roomEntites.Add(rock);
         }
 
-        private DescriptionComponent GetPlayersCurrentRoomDescriptionComponent(Entity playerEntity)
-        {
-            var currentRoomComponent = playerEntity.GetFirstComponentByName<IdComponent>("current room");
-
-            if (currentRoomComponent != null)
-            {                
-                var currentRoomEntity = roomEntites.FirstOrDefault(x => x.Id == currentRoomComponent.Id);
-
-                if (currentRoomEntity != null)
-                {
-                    var description = currentRoomEntity.GetFirstComponentByName<DescriptionComponent>("description");
-
-                    if (description != null)
-                    {
-                        return description;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        private void Quit()
-        {
-            Console.WriteLine("Goodbye...");
-            running = false;
-        }
-
-        private void CommandSystem(Entity commandEntity, Entity playerEntity)
-        {
-            var processedComponents = new List<CommandComponent>();
-            
-            foreach (var commandComponent in commandEntity.GetComponentsByType<CommandComponent>())
-            {
-                if (commandComponent.Command == "quit")
-                {
-                    processedComponents.Add(commandComponent);
-                    Quit();
-                }
-                else if (commandComponent.Command == "look" || commandComponent.Command == "show")
-                {
-                    processedComponents.Add(commandComponent);
-                    playerEntity.AddComponent(new ShowRoomDescriptionComponent());
-                }
-            }
-
-            commandEntity.RemoveComponents(processedComponents);
-        }
-
-        private void RoomMovementSystem(Entity commandEntity, Entity outputEntity)
+        private void RoomMovementSystem(Entity commandEntity, Entity playerEntity, Entity outputEntity)
         {
             var processedComponents = new List<CommandComponent>();
             var directionCommandComponents = new List<CommandComponent>();
@@ -120,7 +79,7 @@ namespace TextWorld.Core
                     directionCommandComponents.Add(commandComponent);
                 }
             }
-            
+
             var currentRoomComponent = playerEntity.GetFirstComponentByName<IdComponent>("current room");
 
             if (currentRoomComponent != null)
@@ -156,7 +115,7 @@ namespace TextWorld.Core
                     }
                 }
             }
-                        
+
             commandEntity.RemoveComponents(processedComponents);
 
             if (directionCommandComponents.Count() > 0)
@@ -166,94 +125,56 @@ namespace TextWorld.Core
         }
 
         private void RoomDescriptionSystem(Entity playerEntity, Entity outputEntity)
-        {            
+        {
             var processedComponents = new List<Component>();
 
             foreach (var component in playerEntity.Components
                 .Where(x => x.GetType() == typeof(RoomChangedComponent) ||
                             x.GetType() == typeof(ShowRoomDescriptionComponent)))
             {
-                processedComponents.Add(component);                
+                processedComponents.Add(component);
             }
 
-            if(processedComponents.Count() > 0)
+            if (processedComponents.Count() > 0)
             {
-                var descriptionComponent = GetPlayersCurrentRoomDescriptionComponent(playerEntity);
-
-                if (descriptionComponent != null)
+                //var descriptionComponent = GetPlayersCurrentRoomDescriptionComponent(playerEntity);
+                DescriptionComponent descriptionComponent;
+                var currentRoomComponent = playerEntity.GetFirstComponentByName<IdComponent>("current room");
+                if (currentRoomComponent != null)
                 {
-                    outputEntity.AddComponent(new OutputComponent("output", descriptionComponent.Description));
+                    var currentRoomEntity = roomEntites.FirstOrDefault(x => x.Id == currentRoomComponent.Id);
+
+                    if (currentRoomEntity != null)
+                    {
+                        descriptionComponent = currentRoomEntity.GetFirstComponentByName<DescriptionComponent>("description");
+                        if (descriptionComponent != null)
+                        {
+                            outputEntity.AddComponent(new OutputComponent("output", descriptionComponent.Description));
+                        }
+                    }
                 }
             }
 
             playerEntity.RemoveComponents(processedComponents);
         }
 
-        private void MOTDSystem(Entity motdEntity, Entity outputEntity)
-        {
-            var motdDescriptionComponent = (DescriptionComponent)motdEntity.Components.FirstOrDefault(x => x.Name == "description");
-
-            if (motdDescriptionComponent != null)
-            {
-                outputEntity.AddComponent(new OutputComponent("output", motdDescriptionComponent.Description));
-            }
-        }
-
-        private void UnknownCommandSystem(Entity commandEntity, Entity outputEntity)
-        {
-            var unknownCommandComponents = new List<UnknownCommandComponent>();
-
-            foreach (CommandComponent commandComponent in commandEntity.Components.Where(x => x.GetType() == typeof(CommandComponent)))
-            {
-                unknownCommandComponents.Add(new UnknownCommandComponent("unknown command", commandComponent.Command));
-            }
-
-            commandEntity.Components.AddRange(unknownCommandComponents);
-
-            var unknownCommandComponentsCount = commandEntity.Components.Where(x => x.GetType() == typeof(UnknownCommandComponent)).Count();
-
-            commandEntity.Components.Clear();
-
-            if (unknownCommandComponentsCount > 0)
-            {
-                outputEntity.AddComponent(new OutputComponent("output", "I don't know how to do that."));
-            }
-        }
-
-        private void TextInputSystem(Entity commandEntity)
-        {
-            Console.Write("> ");
-            var command = Console.ReadLine() ?? "";
-
-            if (!string.IsNullOrEmpty(command))
-            {
-                commandEntity.AddComponent(new CommandComponent("command", command.ToLower()));
-            }
-        }
-
-        private void TextOuputSystem(Entity outputEntity)
-        {
-            foreach (var outputComponent in outputEntity.GetComponentsByType<OutputComponent>())
-            {
-                Console.WriteLine(outputComponent.Value);
-                Console.WriteLine();
-            }
-
-            outputEntity.Components.Clear();
-        }
-
         public void Run()
-        {
-            MOTDSystem(motdEntity, outputEntity);
+        {            
+            motdSystem.Run(motdEntity, outputEntity);
 
             while (running)
             {
                 RoomDescriptionSystem(playerEntity, outputEntity);
-                TextOuputSystem(outputEntity);                                
-                TextInputSystem(commandEntity);
-                CommandSystem(commandEntity, playerEntity);
-                RoomMovementSystem(commandEntity, outputEntity);
-                UnknownCommandSystem(commandEntity, outputEntity);                
+                consoleOutputSystem.Run(outputEntity);
+                consoleInputSystem.Run(commandEntity);
+                commandSystem.Run(commandEntity, playerEntity);
+                quitSystem.Run(playerEntity, () =>
+                {
+                    Console.WriteLine("Goodbye...");
+                    running = false;
+                });                
+                RoomMovementSystem(commandEntity, playerEntity, outputEntity);                
+                unknownCommandSystem.Run(commandEntity, outputEntity);
             }
         }
     }
