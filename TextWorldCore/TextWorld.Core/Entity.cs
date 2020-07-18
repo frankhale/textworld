@@ -15,6 +15,12 @@ namespace TextWorld.Core
             Name = name;
         }
 
+        public Entity(Guid id, string name, List<Component> components) : this(name)
+        {
+            Id = id;
+            Components = components;
+        }
+
         public void AddComponent<T>(T component) where T : Component
         {
             Components.Add(component);
