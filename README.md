@@ -12,6 +12,11 @@ use C# as the primary language. I'm experimenting to figure out the details of
 how to write an ECS to do this sort of game. The current project is single
 player focused whereas the ultimate end goal is to have a MUD*like game.
 
+## LONG TERM IDEAS ABOUT GAME ENTITIES/SYSTEMS BELOWS
+
+The long term goal would be to make this thing into a MUD*like game
+(eg. multiplayer).
+
 ## Game Entities
 
 These are aspects of an engine that you'll likely want to have. Some things
@@ -247,4 +252,4 @@ Frank Hale &lt;frankhale AT gmail.com&gt;
 
 ## Date
 
-17 July 2020
+18 July 2020
