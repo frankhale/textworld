@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Reflection.Metadata;
 using TextWorld.Core.Components;
 using TextWorld.Core.Misc;
 
@@ -58,15 +57,17 @@ namespace TextWorld.Core
 
         private DescriptionComponent GetPlayersCurrentRoomDescriptionComponent(Entity playerEntity)
         {
-            if (playerEntity.Components.FirstOrDefault(x => x.Name == "current room") is IdComponent currentRoomComponent)
-            {
-                // find the room entity with that Id
+            var currentRoomComponent = playerEntity.GetFirstComponentByName<IdComponent>("current room");
+
+            if (currentRoomComponent != null)
+            {                
                 var currentRoomEntity = roomEntites.FirstOrDefault(x => x.Id == currentRoomComponent.Id);
 
                 if (currentRoomEntity != null)
                 {
-                    // get description component
-                    if (currentRoomEntity.Components.FirstOrDefault(x => x.Name == "description") is DescriptionComponent description)
+                    var description = currentRoomEntity.GetFirstComponentByName<DescriptionComponent>("description");
+
+                    if (description != null)
                     {
                         return description;
                     }
@@ -85,27 +86,22 @@ namespace TextWorld.Core
         private void CommandSystem(Entity commandEntity, Entity playerEntity)
         {
             var processedComponents = new List<CommandComponent>();
-
-            foreach (var commandComponent in commandEntity.Components.Where(x => x.GetType() == typeof(CommandComponent)))
+            
+            foreach (var commandComponent in commandEntity.GetComponentsByType<CommandComponent>())
             {
-                CommandComponent c = commandComponent as CommandComponent;
-
-                if (c.Command == "quit")
+                if (commandComponent.Command == "quit")
                 {
-                    processedComponents.Add(c);
+                    processedComponents.Add(commandComponent);
                     Quit();
                 }
-                else if (c.Command == "look" || c.Command == "show")
+                else if (commandComponent.Command == "look" || commandComponent.Command == "show")
                 {
-                    processedComponents.Add(c);
+                    processedComponents.Add(commandComponent);
                     playerEntity.AddComponent(new ShowRoomDescriptionComponent());
                 }
             }
 
-            foreach (var commandComponent in processedComponents)
-            {
-                commandEntity.RemoveComponent(commandComponent);
-            }
+            commandEntity.RemoveComponents(processedComponents);
         }
 
         private void RoomMovementSystem(Entity commandEntity, Entity outputEntity)
@@ -113,7 +109,7 @@ namespace TextWorld.Core
             var processedComponents = new List<CommandComponent>();
             var directionCommandComponents = new List<CommandComponent>();
 
-            foreach (CommandComponent commandComponent in commandEntity.Components.Where(x => x.GetType() == typeof(CommandComponent)))
+            foreach (var commandComponent in commandEntity.GetComponentsByType<CommandComponent>())
             {
                 if (commandComponent.Command == "north" ||
                    commandComponent.Command == "south" ||
@@ -124,19 +120,16 @@ namespace TextWorld.Core
                     directionCommandComponents.Add(commandComponent);
                 }
             }
-
-            // get the component called "current room" on the player entity
-            var currentRoomComponent = (IdComponent)playerEntity.Components.FirstOrDefault(x => x.Name == "current room");
+            
+            var currentRoomComponent = playerEntity.GetFirstComponentByName<IdComponent>("current room");
 
             if (currentRoomComponent != null)
             {
-                // find the room entity with that Id
                 var currentRoomEntity = roomEntites.FirstOrDefault(x => x.Id == currentRoomComponent.Id);
 
                 if (currentRoomEntity != null)
                 {
-                    // get the exit components and compare the movement command with the exits for the room
-                    var currentRoomExits = currentRoomEntity.Components.Where(x => x.Name == "exit");
+                    var currentRoomExits = currentRoomEntity.GetComponentsByType<ExitComponent>();
 
                     TextInfo myTI = new CultureInfo("en-US", false).TextInfo;
 
@@ -163,11 +156,8 @@ namespace TextWorld.Core
                     }
                 }
             }
-            
-            foreach (var commandComponent in processedComponents)
-            {
-                commandEntity.RemoveComponent(commandComponent);
-            }
+                        
+            commandEntity.RemoveComponents(processedComponents);
 
             if (directionCommandComponents.Count() > 0)
             {
@@ -196,10 +186,7 @@ namespace TextWorld.Core
                 }
             }
 
-            foreach (var component in processedComponents)
-            {
-                playerEntity.RemoveComponent(component);
-            }
+            playerEntity.RemoveComponents(processedComponents);
         }
 
         private void MOTDSystem(Entity motdEntity, Entity outputEntity)
@@ -246,9 +233,10 @@ namespace TextWorld.Core
 
         private void TextOuputSystem(Entity outputEntity)
         {
-            foreach (OutputComponent outputComponent in outputEntity.Components.Where(x => x.GetType() == typeof(OutputComponent)))
+            foreach (var outputComponent in outputEntity.GetComponentsByType<OutputComponent>())
             {
                 Console.WriteLine(outputComponent.Value);
+                Console.WriteLine();
             }
 
             outputEntity.Components.Clear();
