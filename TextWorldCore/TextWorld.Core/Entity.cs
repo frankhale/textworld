@@ -47,5 +47,10 @@ namespace TextWorld.Core
         {
             return Components.FirstOrDefault(x => x.GetType() == typeof(T) && x.Name == name) as T;
         }
+
+        public T GetFirstComponentByType<T>() where T: Component
+        {
+            return Components.FirstOrDefault(x => x.GetType() == typeof(T)) as T;
+        }
     }
 }
