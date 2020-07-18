@@ -11,30 +11,41 @@ namespace TextWorld.Core.Systems
             var processedComponents = new List<Component>();
 
             foreach (var component in playerEntity.Components
-                .Where(x => x.GetType() == typeof(RoomChangedComponent) ||
-                            x.GetType() == typeof(ShowRoomDescriptionComponent)))
+                .Where(x => x.GetType() == typeof(ShowDescriptionComponent)))
             {
                 processedComponents.Add(component);
-            }
 
-            if (processedComponents.Count() > 0)
-            {                
-                DescriptionComponent descriptionComponent;
-                var currentRoomComponent = playerEntity.GetFirstComponentByName<IdComponent>("current room");
-                if (currentRoomComponent != null)
+                var entity = (component as ShowDescriptionComponent).Entity;
+
+                if (entity != null)
                 {
-                    var currentRoomEntity = roomEntities.FirstOrDefault(x => x.Id == currentRoomComponent.Id);
+                    var descriptionComponent = entity.GetFirstComponentByType<DescriptionComponent>();
 
-                    if (currentRoomEntity != null)
+                    if (descriptionComponent != null)
                     {
-                        descriptionComponent = currentRoomEntity.GetFirstComponentByName<DescriptionComponent>("description");
-                        if (descriptionComponent != null)
-                        {
-                            outputEntity.AddComponent(new OutputComponent("output", descriptionComponent.Description));
-                        }
+                        outputEntity.AddComponent(new OutputComponent("output", descriptionComponent.Description));
                     }
                 }
             }
+
+            //if (processedComponents.Count() > 0)
+            //{                
+            //DescriptionComponent descriptionComponent;
+            //var currentRoomComponent = playerEntity.GetFirstComponentByName<IdComponent>("current room");
+            //if (currentRoomComponent != null)
+            //{
+            //    var currentRoomEntity = roomEntities.FirstOrDefault(x => x.Id == currentRoomComponent.Id);
+
+            //    if (currentRoomEntity != null)
+            //    {
+            //        descriptionComponent = currentRoomEntity.GetFirstComponentByName<DescriptionComponent>("description");
+            //        if (descriptionComponent != null)
+            //        {
+            //            outputEntity.AddComponent(new OutputComponent("output", descriptionComponent.Description));
+            //        }
+            //    }
+            //}
+            //}
 
             playerEntity.RemoveComponents(processedComponents);
         }

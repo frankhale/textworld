@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using TextWorld.Core.Components;
 using TextWorld.Core.Misc;
 using TextWorld.Core.Systems;
@@ -56,8 +57,9 @@ namespace TextWorld.Core
                 })
             };
 
+            playerEntity.AddComponent(new DescriptionComponent("player description", "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!"));
             playerEntity.AddComponent(new IdComponent("current room", openFieldId));
-            playerEntity.AddComponent(new ShowRoomDescriptionComponent());
+            playerEntity.AddComponent(new ShowDescriptionComponent("show current room description", roomEntities.FirstOrDefault(x => x.Id == openFieldId)));
         }
 
         public void Run()
@@ -69,15 +71,13 @@ namespace TextWorld.Core
                 roomDescriptionSystem.Run(playerEntity, roomEntities, outputEntity);
                 consoleOutputSystem.Run(outputEntity);
                 consoleInputSystem.Run(commandEntity);
-                commandSystem.Run(commandEntity, playerEntity);
-                quitSystem.Run(playerEntity, () =>
-                {
-                    Console.WriteLine("Goodbye...");
-                    running = false;
-                });
+                commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
                 roomMovementSystem.Run(commandEntity, playerEntity, roomEntities, outputEntity);
                 unknownCommandSystem.Run(commandEntity, outputEntity);
+                quitSystem.Run(playerEntity, () => running = false);
             }
+
+            Console.WriteLine("Goodbye...");
         }
     }
 }

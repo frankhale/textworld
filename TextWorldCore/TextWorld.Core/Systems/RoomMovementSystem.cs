@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Text;
 using TextWorld.Core.Components;
 
 namespace TextWorld.Core.Systems
@@ -55,7 +53,7 @@ namespace TextWorld.Core.Systems
                                 currentRoomComponent.SetId(newRoomEntity.Id);
 
                                 // Add a room changed component to the player entity
-                                playerEntity.AddComponent(new RoomChangedComponent());
+                                playerEntity.AddComponent(new ShowDescriptionComponent("new room", newRoomEntity));
                             }
                         }
                     }
