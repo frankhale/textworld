@@ -7,15 +7,15 @@ namespace TextWorld.Core.Systems
 {
     public class QuitSystem : System
     {
-        public override void Run(Entity input, Action action)
+        public override void Run(Entity playerEntity, Action action)
         {
-            var component = input.GetFirstComponentByType<QuitComponent>();
+            var component = playerEntity.GetFirstComponentByType<QuitComponent>();
 
             if (component != null)
             {
                 action();
 
-                input.RemoveComponent(component);
+                playerEntity.RemoveComponent(component);
             }
         }
     }

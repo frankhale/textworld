@@ -6,24 +6,24 @@ namespace TextWorld.Core.Systems
 {
     class UnknownCommandSystem : System
     {
-        public override void Run(Entity input, Entity output)
+        public override void Run(Entity commandEntity, Entity outputEntity)
         {
             var unknownCommandComponents = new List<UnknownCommandComponent>();
 
-            foreach (CommandComponent commandComponent in input.GetComponentsByType<CommandComponent>())
+            foreach (CommandComponent commandComponent in commandEntity.GetComponentsByType<CommandComponent>())
             {
                 unknownCommandComponents.Add(new UnknownCommandComponent("unknown command", commandComponent.Command));
             }
 
-            input.Components.AddRange(unknownCommandComponents);
+            commandEntity.Components.AddRange(unknownCommandComponents);
 
-            var unknownCommandComponentsCount = input.GetComponentsByType<UnknownCommandComponent>().Count();
+            var unknownCommandComponentsCount = commandEntity.GetComponentsByType<UnknownCommandComponent>().Count();
 
-            input.Components.Clear();
+            commandEntity.Components.Clear();
 
             if (unknownCommandComponentsCount > 0)
             {
-                output.AddComponent(new OutputComponent("output", "I don't know how to do that."));
+                outputEntity.AddComponent(new OutputComponent("output", "I don't know how to do that."));
             }
         }
     }

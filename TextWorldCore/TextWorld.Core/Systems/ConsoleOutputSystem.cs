@@ -5,15 +5,15 @@ namespace TextWorld.Core.Systems
 {
     class ConsoleOutputSystem : System
     {
-        public override void Run(Entity input)
+        public override void Run(Entity outputEntity)
         {
-            foreach (var component in input.GetComponentsByType<OutputComponent>())
+            foreach (var component in outputEntity.GetComponentsByType<OutputComponent>())
             {
                 Console.WriteLine(component.Value);
                 Console.WriteLine();
             }
 
-            input.Components.Clear();
+            outputEntity.Components.Clear();
         }
     }
 }

@@ -7,13 +7,13 @@ namespace TextWorld.Core.Systems
 {
     class MOTDSystem : System
     {
-        public override void Run(Entity input, Entity output)
+        public override void Run(Entity motdEntity, Entity outputEntity)
         {
-            var motdDescriptionComponent = input.GetFirstComponentByType<DescriptionComponent>();
+            var motdDescriptionComponent = motdEntity.GetFirstComponentByType<DescriptionComponent>();
 
             if (motdDescriptionComponent != null)
             {
-                output.AddComponent(new OutputComponent("output", motdDescriptionComponent.Description));
+                outputEntity.AddComponent(new OutputComponent("output", motdDescriptionComponent.Description));
             }
         }
     }

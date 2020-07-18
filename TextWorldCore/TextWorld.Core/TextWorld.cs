@@ -25,7 +25,7 @@ namespace TextWorld.Core
         private readonly Entity playerEntity = new Entity("Player Entity");
         private readonly Entity commandEntity = new Entity("Command Entity");
         private readonly Entity outputEntity = new Entity("Output Entity");
-        private readonly List<Entity> roomEntites = new List<Entity>();
+        private readonly List<Entity> roomEntities = new List<Entity>();
 
         private readonly MOTDSystem motdSystem = new MOTDSystem();
         private readonly ConsoleOutputSystem consoleOutputSystem = new ConsoleOutputSystem();
@@ -33,6 +33,8 @@ namespace TextWorld.Core
         private readonly CommandSystem commandSystem = new CommandSystem();
         private readonly QuitSystem quitSystem = new QuitSystem();
         private readonly UnknownCommandSystem unknownCommandSystem = new UnknownCommandSystem();
+        private readonly RoomDescriptionSystem roomDescriptionSystem = new RoomDescriptionSystem();
+        private readonly RoomMovementSystem roomMovementSystem = new RoomMovementSystem();
 
         public TextWorldGame()
         {
@@ -58,104 +60,9 @@ namespace TextWorld.Core
             rock.AddComponent(new DescriptionComponent("description", "You are standing beside a large rock. The rock looks out of place with respect to the rest of your surroundings."));
             rock.AddComponent(new ExitComponent("exit", Direction.West, stream.Id));
 
-            roomEntites.Add(openField);
-            roomEntites.Add(stream);
-            roomEntites.Add(rock);
-        }
-
-        private void RoomMovementSystem(Entity commandEntity, Entity playerEntity, Entity outputEntity)
-        {
-            var processedComponents = new List<CommandComponent>();
-            var directionCommandComponents = new List<CommandComponent>();
-
-            foreach (var commandComponent in commandEntity.GetComponentsByType<CommandComponent>())
-            {
-                if (commandComponent.Command == "north" ||
-                   commandComponent.Command == "south" ||
-                   commandComponent.Command == "east" ||
-                   commandComponent.Command == "west")
-                {
-                    processedComponents.Add(commandComponent);
-                    directionCommandComponents.Add(commandComponent);
-                }
-            }
-
-            var currentRoomComponent = playerEntity.GetFirstComponentByName<IdComponent>("current room");
-
-            if (currentRoomComponent != null)
-            {
-                var currentRoomEntity = roomEntites.FirstOrDefault(x => x.Id == currentRoomComponent.Id);
-
-                if (currentRoomEntity != null)
-                {
-                    var currentRoomExits = currentRoomEntity.GetComponentsByType<ExitComponent>();
-
-                    TextInfo myTI = new CultureInfo("en-US", false).TextInfo;
-
-                    foreach (var exit in currentRoomExits)
-                    {
-                        var exitCommand = directionCommandComponents.FirstOrDefault(x => (exit as ExitComponent).Direction.ToString() == myTI.ToTitleCase(x.Command));
-
-                        if (exitCommand != null)
-                        {
-                            directionCommandComponents.Remove(exitCommand);
-
-                            // get new room entity based on exit component room id
-                            var newRoomEntity = roomEntites.FirstOrDefault(x => x.Id == (exit as ExitComponent).RoomId);
-
-                            if (newRoomEntity != null)
-                            {
-                                // if we find a match set the players current room component to a new Id
-                                currentRoomComponent.SetId(newRoomEntity.Id);
-
-                                // Add a room changed component to the player entity
-                                playerEntity.AddComponent(new RoomChangedComponent());
-                            }
-                        }
-                    }
-                }
-            }
-
-            commandEntity.RemoveComponents(processedComponents);
-
-            if (directionCommandComponents.Count() > 0)
-            {
-                outputEntity.AddComponent(new OutputComponent("output", $"I cannot go in that direction"));
-            }
-        }
-
-        private void RoomDescriptionSystem(Entity playerEntity, Entity outputEntity)
-        {
-            var processedComponents = new List<Component>();
-
-            foreach (var component in playerEntity.Components
-                .Where(x => x.GetType() == typeof(RoomChangedComponent) ||
-                            x.GetType() == typeof(ShowRoomDescriptionComponent)))
-            {
-                processedComponents.Add(component);
-            }
-
-            if (processedComponents.Count() > 0)
-            {
-                //var descriptionComponent = GetPlayersCurrentRoomDescriptionComponent(playerEntity);
-                DescriptionComponent descriptionComponent;
-                var currentRoomComponent = playerEntity.GetFirstComponentByName<IdComponent>("current room");
-                if (currentRoomComponent != null)
-                {
-                    var currentRoomEntity = roomEntites.FirstOrDefault(x => x.Id == currentRoomComponent.Id);
-
-                    if (currentRoomEntity != null)
-                    {
-                        descriptionComponent = currentRoomEntity.GetFirstComponentByName<DescriptionComponent>("description");
-                        if (descriptionComponent != null)
-                        {
-                            outputEntity.AddComponent(new OutputComponent("output", descriptionComponent.Description));
-                        }
-                    }
-                }
-            }
-
-            playerEntity.RemoveComponents(processedComponents);
+            roomEntities.Add(openField);
+            roomEntities.Add(stream);
+            roomEntities.Add(rock);
         }
 
         public void Run()
@@ -163,8 +70,8 @@ namespace TextWorld.Core
             motdSystem.Run(motdEntity, outputEntity);
 
             while (running)
-            {
-                RoomDescriptionSystem(playerEntity, outputEntity);
+            {                
+                roomDescriptionSystem.Run(playerEntity, roomEntities, outputEntity);
                 consoleOutputSystem.Run(outputEntity);
                 consoleInputSystem.Run(commandEntity);
                 commandSystem.Run(commandEntity, playerEntity);
@@ -173,7 +80,7 @@ namespace TextWorld.Core
                     Console.WriteLine("Goodbye...");
                     running = false;
                 });                
-                RoomMovementSystem(commandEntity, playerEntity, outputEntity);                
+                roomMovementSystem.Run(commandEntity, playerEntity, roomEntities, outputEntity);
                 unknownCommandSystem.Run(commandEntity, outputEntity);
             }
         }
