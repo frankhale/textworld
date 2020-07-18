@@ -38,6 +38,16 @@ namespace TextWorld.Core
             Components.RemoveAll(x => x.GetType() == componentType && x.Name == name);
         }
 
+        public void RemoveComponentsByType<T>()
+        {
+            var components = Components.Where(x => x.GetType() == typeof(T)).ToList();
+
+            foreach (var component in components) 
+            {
+                Components.Remove(component);
+            }
+        }
+
         public List<T> GetComponentsByType<T>() where T: Component
         {
             return Components.Where(x => x.GetType() == typeof(T)).Cast<T>().ToList();
