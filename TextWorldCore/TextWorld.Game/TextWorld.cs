@@ -28,7 +28,7 @@ namespace TextWorld.Game
         private readonly UnknownCommandSystem unknownCommandSystem = new UnknownCommandSystem();
         private readonly RoomDescriptionSystem roomDescriptionSystem = new RoomDescriptionSystem();
         private readonly RoomMovementSystem roomMovementSystem = new RoomMovementSystem();
-        private readonly ItemsSystem itemsSystem = new ItemsSystem();
+        private readonly ItemSystem itemsSystem = new ItemSystem();
 
         public TextWorldGame()
         {

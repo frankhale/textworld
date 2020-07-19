@@ -145,7 +145,7 @@ namespace TextWorld.Core.Test
         public void CanShowItemsOnEntity()
         {
             // Arrange
-            var itemsSystem = new ItemsSystem();
+            var itemsSystem = new ItemSystem();
             var playerEntity = new Entity("player");
             var roomEntities = new List<Entity>();
             var outputEntity = new Entity("output");
@@ -157,7 +157,7 @@ namespace TextWorld.Core.Test
                 });
 
             playerEntity.AddComponent(new IdComponent("current room", roomId));
-            playerEntity.AddComponent(new ShowItemsComponent("show room items"));
+            playerEntity.AddComponent(new ItemActionComponent("show room items", ItemAction.ShowAll));
             roomEntities.Add(room);
 
             // Act
