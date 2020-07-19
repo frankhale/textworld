@@ -1,7 +1,8 @@
 # TextWorld
 
-An experiment in creating a text based role playing adventure game using an
-Entity Component System.
+An experiment in creating a text based role playing adventure game using a
+custom Entity Component System (from my current evolving understanding of what
+an ECS is).
 
 ## Status
 
@@ -12,10 +13,21 @@ use C# as the primary language. I'm experimenting to figure out the details of
 how to write an ECS to do this sort of game. The current project is single
 player focused whereas the ultimate end goal is to have a MUD*like game.
 
+As the ideas are flowing it's becoming more and more apparent that ideas need
+to be fleshed out more because the code is starting to get a little reactionary
+as the ideas are attempted to be added.
+
+Right now we have a mixture of the ECS and actual game objects mixed. There is
+a slight separation but it's starting to blur. Additionally I have not been TDD
+focused enough. My feeling is that every aspect of the library/game should be
+testable since the input and output are just text.
+
 ## LONG TERM IDEAS ABOUT GAME ENTITIES/SYSTEMS BELOWS
 
 The long term goal would be to make this thing into a MUD*like game
-(eg. multiplayer).
+(eg. multiplayer). The stuff listed below is what I ultimately want in my
+game/engine. The stuff listed below differs from the experiment talked about
+above.
 
 ## Game Entities
 
@@ -252,4 +264,4 @@ Frank Hale &lt;frankhale AT gmail.com&gt;
 
 ## Date
 
-18 July 2020
+19 July 2020
