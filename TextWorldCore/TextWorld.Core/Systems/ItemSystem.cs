@@ -38,11 +38,13 @@ namespace TextWorld.Core.Systems
                     }
                     else if (component.Action == ItemAction.Take)
                     {
-                        var takeItem = Helper.GetItemComponentInPlayersCurrentRoom(playerEntity, roomEntities, component.ItemName);
+                        var takeItem = Helper.GetItemComponentFromEntity(roomEntity, component.ItemName);
 
                         if (takeItem != null)
                         {
-                            outputEntity.AddComponent(new OutputComponent("output", $"TODO: add {component.ItemName} to player inventory."));
+                            Helper.AddItemToPlayersInventory(playerEntity, roomEntity, takeItem);
+
+                            outputEntity.AddComponent(new OutputComponent("output", $"You've taken {component.ItemName}"));
                         }
                         else
                         {

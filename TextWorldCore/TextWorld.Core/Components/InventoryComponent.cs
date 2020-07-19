@@ -7,7 +7,7 @@ namespace TextWorld.Core.Components
 {
     public class InventoryComponent : Component
     {
-        public List<InventoryItem> Items { get; private set; }
+        public List<InventoryItem> Items { get; private set; } = new List<InventoryItem>();
 
         public InventoryComponent(string name) : base(name) { }
 

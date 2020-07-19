@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using TextWorld.Core.Components;
 
@@ -20,38 +19,55 @@ namespace TextWorld.Core.Misc
             return result;
         }
 
-        public static ItemComponent GetItemComponentInPlayersCurrentRoom(Entity playerEntity, List<Entity> roomEntities, string itemName)
+        public static ItemComponent GetItemComponentFromEntity(Entity currentRoom, string itemName)
         {
-            var playerCurrentRoom = Helper.GetPlayersCurrentRoom(playerEntity, roomEntities);
+            var roomItems = currentRoom.GetComponentsByType<ItemComponent>();
 
-            if (playerCurrentRoom != null)
+            if (roomItems.Count() > 0)
             {
-                var roomItems = playerCurrentRoom.GetComponentsByType<ItemComponent>();
+                var takeItem = roomItems.FirstOrDefault(x => x.Item.Name == itemName);
 
-                if (roomItems.Count() > 0)
+                if (takeItem != null)
                 {
-                    var takeItem = roomItems.FirstOrDefault(x => x.Item.Name == itemName);
-
-                    if (takeItem != null)
-                    {
-                        return takeItem;
-                    }
+                    return takeItem;
                 }
             }
 
             return null;
         }
 
-        public static void AddItemToPlayersInventory(Entity playerEntity, ItemComponent itemComponent)
+        public static ItemComponent GetItemComponentOnEntity(Entity entity, ItemComponent itemComponent)
+        {
+            return entity.GetComponentsByType<ItemComponent>().FirstOrDefault(x => x.Item.Id == itemComponent.Item.Id);
+        }
+
+        public static void AddItemToPlayersInventory(Entity playerEntity, Entity itemOnEntity, ItemComponent itemComponent)
         {
             var inventoryComponent = playerEntity.GetFirstComponentByType<InventoryComponent>();
 
-            if(inventoryComponent != null)
+            if (inventoryComponent != null)
             {
-                // look at the players inventory and see if the item is already in there
-                // if item is already in there increment the item quanity
+                var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Id == itemComponent.Item.Id);
 
-                throw new NotImplementedException();
+                if (itemInInventory != null)
+                {
+                    itemInInventory.Quantity += itemComponent.Item.Quantity;
+                }
+                else
+                {
+                    inventoryComponent.AddItem(new InventoryItem()
+                    {
+                        Id = itemComponent.Item.Id,
+                        Quantity = itemComponent.Item.Quantity
+                    });
+                }
+
+                var itemToRemove = GetItemComponentOnEntity(itemOnEntity, itemComponent);
+
+                if (itemToRemove != null)
+                {
+                    itemOnEntity.RemoveComponent(itemToRemove);
+                }
             }
         }
 
