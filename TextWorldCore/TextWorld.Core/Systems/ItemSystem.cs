@@ -37,9 +37,17 @@ namespace TextWorld.Core.Systems
                         }
                     }
                     else if (component.Action == ItemAction.Take)
-                    {                        
-                        // FIXME: Need to check the players current room, check items that correspond to the component.ItemName
-                        outputEntity.AddComponent(new OutputComponent("output", $"TODO: add {component.ItemName} to player inventory unless they are trolling with a nonexistant item, LOL!"));
+                    {
+                        var takeItem = Helper.GetItemComponentInPlayersCurrentRoom(playerEntity, roomEntities, component.ItemName);
+
+                        if (takeItem != null)
+                        {
+                            outputEntity.AddComponent(new OutputComponent("output", $"TODO: add {component.ItemName} to player inventory unless they are trolling with a nonexistant item, LOL!"));
+                        }
+                        else
+                        {
+                            outputEntity.AddComponent(new OutputComponent("output", $"{component.ItemName} does not exist here."));
+                        }
                     }
                 }
             }

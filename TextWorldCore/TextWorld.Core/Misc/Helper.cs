@@ -19,6 +19,28 @@ namespace TextWorld.Core.Misc
             return result;
         }
 
+        public static ItemComponent GetItemComponentInPlayersCurrentRoom(Entity playerEntity, List<Entity> roomEntities, string itemName)
+        {
+            var playerCurrentRoom = Helper.GetPlayersCurrentRoom(playerEntity, roomEntities);
+
+            if (playerCurrentRoom != null)
+            {
+                var roomItems = playerCurrentRoom.GetComponentsByType<ItemComponent>();
+
+                if (roomItems.Count() > 0)
+                {
+                    var takeItem = roomItems.FirstOrDefault(x => x.Item.Name == itemName);
+
+                    if (takeItem != null)
+                    {
+                        return takeItem;
+                    }
+                }
+            }
+
+            return null;
+        }
+
         public static void AddCommandComponentToEntity(Entity commandEntity, string command)
         {
             if (!string.IsNullOrEmpty(command))
