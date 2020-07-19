@@ -1,6 +1,7 @@
 using FluentAssertions;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using TextWorld.Core.Components;
 using TextWorld.Core.Items;
 using TextWorld.Core.Misc;
@@ -165,8 +166,40 @@ namespace TextWorld.Core.Test
             var outputComponent = outputEntity.GetFirstComponentByType<OutputComponent>();
 
             // Assert
+            outputComponent.Should().NotBeNull();            
+            outputComponent.Value.Should().Contain("The following items are here:");
+        }
+    
+        [Fact]
+        public void CanTakeItemOnEntity()
+        {
+            // Arrange
+            var itemsSystem = new ItemSystem();
+            var playerEntity = new Entity("player");
+            var roomEntities = new List<Entity>();
+            var outputEntity = new Entity("output");
+
+            var roomId = Guid.NewGuid();
+            var room = new Entity(roomId, "New Room", new List<Component>()
+                {
+                    new ItemComponent("item", new CoinPurse("leather coin purse", 64, 1)),
+                });
+
+            playerEntity.AddComponent(new InventoryComponent("player inventory"));
+            playerEntity.AddComponent(new IdComponent("current room", roomId));
+            playerEntity.AddComponent(new ItemActionComponent("take item from room", "leather coin purse", ItemAction.Take));
+            roomEntities.Add(room);
+
+            // Act
+            itemsSystem.Run(playerEntity, roomEntities, outputEntity);
+            var outputComponent = outputEntity.GetFirstComponentByType<OutputComponent>();
+            var playerCurrentRoom = Helper.GetPlayersCurrentRoom(playerEntity, roomEntities);
+            var takenItemComponent = playerCurrentRoom.GetComponentsByType<ItemComponent>().FirstOrDefault(x => x.Item.Name == "leather coin purse");
+
+            // Assert
             outputComponent.Should().NotBeNull();
-            outputComponent.Value.Should().NotBeEmpty();
+            outputComponent.Value.Should().Contain("You've taken leather coin purse");
+            takenItemComponent.Should().BeNull();            
         }
     }
 }
