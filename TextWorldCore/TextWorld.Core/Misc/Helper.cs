@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using TextWorld.Core.Components;
 
@@ -6,12 +7,12 @@ namespace TextWorld.Core.Misc
 {
     public static class Helper
     {
-        public static Entity GetPlayersCurrentRoom(Entity playerEntity, List<Entity> roomEntities) 
+        public static Entity GetPlayersCurrentRoom(Entity playerEntity, List<Entity> roomEntities)
         {
             Entity result = null;
             var roomIdComponent = playerEntity.GetFirstComponentByName<IdComponent>("current room");
 
-            if(roomIdComponent != null)
+            if (roomIdComponent != null)
             {
                 result = roomEntities.FirstOrDefault(x => x.Id == roomIdComponent.Id);
             }
@@ -39,6 +40,19 @@ namespace TextWorld.Core.Misc
             }
 
             return null;
+        }
+
+        public static void AddItemToPlayersInventory(Entity playerEntity, ItemComponent itemComponent)
+        {
+            var inventoryComponent = playerEntity.GetFirstComponentByType<InventoryComponent>();
+
+            if(inventoryComponent != null)
+            {
+                // look at the players inventory and see if the item is already in there
+                // if item is already in there increment the item quanity
+
+                throw new NotImplementedException();
+            }
         }
 
         public static void AddCommandComponentToEntity(Entity commandEntity, string command)

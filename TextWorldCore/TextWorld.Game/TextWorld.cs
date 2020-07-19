@@ -49,7 +49,8 @@ namespace TextWorld.Game
                 }),
                 new Entity(openFieldId, "Open Field", new List<Component>()
                 {
-                    new ItemComponent("item", new CoinPurse("leather coin purse", 32)),
+                    new ItemComponent("item", new CoinPurse("leather coin purse", 32, 1)),
+                    new ItemComponent("item", new CoinPurse("health potion", 50, 10)),
                     new DisplayNameComponent("display name", "Open Field"),
                     new DescriptionComponent("description", "You are standing in an open field. All around you stands vibrant green grass. You can hear a running water to your north which you suspect is a small stream."),
                     new ExitComponent("exit", Direction.North, streamId)

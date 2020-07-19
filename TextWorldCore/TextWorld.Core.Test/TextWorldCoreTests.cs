@@ -153,7 +153,7 @@ namespace TextWorld.Core.Test
             var roomId = Guid.NewGuid();
             var room = new Entity(roomId, "New Room", new List<Component>()
                 {
-                    new ItemComponent("item", new CoinPurse("leather coin purse", 64)),
+                    new ItemComponent("item", new CoinPurse("leather coin purse", 64, 1)),
                 });
 
             playerEntity.AddComponent(new IdComponent("current room", roomId));

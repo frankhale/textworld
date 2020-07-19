@@ -25,7 +25,7 @@ namespace TextWorld.Core.Systems
 
                         var items = new List<string>();
 
-                        itemComponents.ForEach(item => items.Add(item.Item.Name));
+                        itemComponents.ForEach(item => items.Add($"{item.Item.Name} ({item.Item.Quantity})"));
 
                         if (items.Count() > 0)
                         {
@@ -42,7 +42,7 @@ namespace TextWorld.Core.Systems
 
                         if (takeItem != null)
                         {
-                            outputEntity.AddComponent(new OutputComponent("output", $"TODO: add {component.ItemName} to player inventory unless they are trolling with a nonexistant item, LOL!"));
+                            outputEntity.AddComponent(new OutputComponent("output", $"TODO: add {component.ItemName} to player inventory."));
                         }
                         else
                         {
