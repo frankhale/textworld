@@ -10,6 +10,7 @@ namespace TextWorld.Core.Items
         public CoinPurse(string name, int numberOfCoins) : base(name)
         {
             NumberOfCoins = numberOfCoins;
+            Synonyms = new string[] { "purse", "coin purse", "coins" };
         }
 
         public override void Use(Entity entity)

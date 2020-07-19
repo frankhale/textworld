@@ -38,7 +38,8 @@ namespace TextWorld.Core.Systems
                     }
                     else if (component.Action == ItemAction.Take)
                     {                        
-                        outputEntity.AddComponent(new OutputComponent("output", $"TODO: The {component.ItemName} would be added to your inventory."));
+                        // FIXME: Need to check the players current room, check items that correspond to the component.ItemName
+                        outputEntity.AddComponent(new OutputComponent("output", $"TODO: add {component.ItemName} to player inventory unless they are trolling with a nonexistant item, LOL!"));
                     }
                 }
             }
