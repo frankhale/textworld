@@ -1,4 +1,4 @@
-﻿namespace TextWorld.Core
+﻿namespace TextWorld.Core.ECS
 {
     public abstract class Component
     {

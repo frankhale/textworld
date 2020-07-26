@@ -1,4 +1,5 @@
 ﻿using TextWorld.Core.Components;
+using TextWorld.Core.ECS;
 using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Items
@@ -15,7 +16,7 @@ namespace TextWorld.Core.Items
 
         public override void Use(Entity entity)
         {
-            var currencyComponent = entity.GetFirstComponentByType<CurrencyComponent>();
+            var currencyComponent = entity.GetComponentByType<CurrencyComponent>();
 
             if(currencyComponent != null)
             {

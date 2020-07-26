@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using TextWorld.Core.Misc;
+using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Components
 {

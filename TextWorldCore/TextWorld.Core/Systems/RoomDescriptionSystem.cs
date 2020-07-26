@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using TextWorld.Core.Components;
+using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Systems
 {
-    public class RoomDescriptionSystem : System
+    public class RoomDescriptionSystem : ECS.System
     {
         public override void Run(Entity playerEntity, List<Entity> roomEntities, Entity outputEntity)
         {
@@ -19,11 +20,11 @@ namespace TextWorld.Core.Systems
 
                 if (entity != null)
                 {
-                    var descriptionComponent = entity.GetFirstComponentByType<DescriptionComponent>();
+                    var descriptionComponent = entity.GetComponentByType<DescriptionComponent>();
 
                     if (descriptionComponent != null)
                     {
-                        outputEntity.AddComponent(new OutputComponent("output", descriptionComponent.Description));
+                        outputEntity.AddComponent(new OutputComponent("room output for description", descriptionComponent.Description));
                     }
                 }
             }

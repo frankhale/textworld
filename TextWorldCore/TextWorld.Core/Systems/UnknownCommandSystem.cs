@@ -1,10 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using TextWorld.Core.Components;
+using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Systems
 {
-    public class UnknownCommandSystem : System
+    public class UnknownCommandSystem : ECS.System
     {
         public override void Run(Entity commandEntity, Entity outputEntity)
         {
@@ -23,7 +24,7 @@ namespace TextWorld.Core.Systems
 
                 unknownCommandComponents.ForEach(x =>
                 {
-                    outputEntity.AddComponent(new OutputComponent("output", $"I don't know how to do: {x.Command}"));
+                    outputEntity.AddComponent(new OutputComponent("output for unknown command", $"I don't know how to do: {x.Command}"));
                 });
             }
         }

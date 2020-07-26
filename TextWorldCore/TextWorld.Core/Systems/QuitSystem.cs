@@ -1,15 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using TextWorld.Core.Components;
+using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Systems
 {
-    public class QuitSystem : System
+    public class QuitSystem : ECS.System
     {
         public override void Run(Entity playerEntity, Action action)
         {
-            var component = playerEntity.GetFirstComponentByType<QuitComponent>();
+            var component = playerEntity.GetComponentByType<QuitComponent>();
 
             if (component != null)
             {

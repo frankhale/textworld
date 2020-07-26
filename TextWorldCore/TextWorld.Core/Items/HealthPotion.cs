@@ -1,4 +1,5 @@
 ﻿using System;
+using TextWorld.Core.ECS;
 using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Items

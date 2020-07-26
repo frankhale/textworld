@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace TextWorld.Core
+namespace TextWorld.Core.ECS
 {
     public abstract class System
     {

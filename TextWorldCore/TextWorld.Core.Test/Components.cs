@@ -1,4 +1,6 @@
-﻿namespace TextWorld.Core.Test
+﻿using TextWorld.Core.ECS;
+
+namespace TextWorld.Core.Test
 {
     public class TestComponent : Component
     {

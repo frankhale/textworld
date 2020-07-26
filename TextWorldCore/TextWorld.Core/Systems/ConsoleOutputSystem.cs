@@ -1,9 +1,10 @@
 ﻿using System;
 using TextWorld.Core.Components;
+using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Systems
 {
-    public class ConsoleOutputSystem : System
+    public class ConsoleOutputSystem : ECS.System
     {
         public override void Run(Entity outputEntity)
         {

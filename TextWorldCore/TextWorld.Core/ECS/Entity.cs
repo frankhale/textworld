@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace TextWorld.Core
+namespace TextWorld.Core.ECS
 {
     public class Entity
     {
@@ -15,9 +15,13 @@ namespace TextWorld.Core
             Name = name;
         }
 
-        public Entity(Guid id, string name, List<Component> components) : this(name)
+        public Entity(Guid id, string name) : this(name)
         {
             Id = id;
+        }
+
+        public Entity(Guid id, string name, List<Component> components) : this(id, name)
+        {                    
             Components = components;
         }
 
@@ -59,12 +63,12 @@ namespace TextWorld.Core
             return Components.Where(x => x.GetType() == typeof(T)).Cast<T>().ToList();
         }
 
-        public T GetFirstComponentByName<T>(string name) where T: Component
+        public T GetComponentByName<T>(string name) where T: Component
         {
             return Components.FirstOrDefault(x => x.GetType() == typeof(T) && x.Name == name) as T;
         }
 
-        public T GetFirstComponentByType<T>() where T: Component
+        public T GetComponentByType<T>() where T: Component
         {
             return Components.FirstOrDefault(x => x.GetType() == typeof(T)) as T;
         }

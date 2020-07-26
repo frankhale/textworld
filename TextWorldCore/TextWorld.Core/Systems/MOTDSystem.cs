@@ -1,19 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using TextWorld.Core.Components;
+﻿using TextWorld.Core.Components;
+using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Systems
 {
-    public class MOTDSystem : System
+    public class MOTDSystem : ECS.System
     {
         public override void Run(Entity motdEntity, Entity outputEntity)
         {
-            var motdDescriptionComponent = motdEntity.GetFirstComponentByType<DescriptionComponent>();
+            var motdDescriptionComponent = motdEntity.GetComponentByType<DescriptionComponent>();
 
             if (motdDescriptionComponent != null)
             {
-                outputEntity.AddComponent(new OutputComponent("output", motdDescriptionComponent.Description));
+                outputEntity.AddComponent(new OutputComponent("motd output for description", motdDescriptionComponent.Description));
             }
         }
     }

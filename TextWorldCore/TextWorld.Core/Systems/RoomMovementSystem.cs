@@ -2,10 +2,11 @@
 using System.Globalization;
 using System.Linq;
 using TextWorld.Core.Components;
+using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Systems
 {
-    public class RoomMovementSystem : System
+    public class RoomMovementSystem : ECS.System
     {
         public override void Run(Entity commandEntity, Entity playerEntity, List<Entity> roomEntities, Entity outputEntity)
         {
@@ -24,7 +25,7 @@ namespace TextWorld.Core.Systems
                 }
             }
 
-            var currentRoomComponent = playerEntity.GetFirstComponentByName<IdComponent>("current room");
+            var currentRoomComponent = playerEntity.GetComponentByName<IdComponent>("player current room");
 
             if (currentRoomComponent != null)
             {
@@ -53,7 +54,7 @@ namespace TextWorld.Core.Systems
                                 currentRoomComponent.SetId(newRoomEntity.Id);
 
                                 // Add a room changed component to the player entity
-                                playerEntity.AddComponent(new ShowDescriptionComponent("new room", newRoomEntity));
+                                playerEntity.AddComponent(new ShowDescriptionComponent("player new room", newRoomEntity));
                             }
                         }
                     }
@@ -64,7 +65,7 @@ namespace TextWorld.Core.Systems
 
             if (directionCommandComponents.Count() > 0)
             {
-                outputEntity.AddComponent(new OutputComponent("output", $"I cannot go in that direction"));
+                outputEntity.AddComponent(new OutputComponent("output for inaccessible direction", $"I cannot go in that direction"));
             }
         }
     }

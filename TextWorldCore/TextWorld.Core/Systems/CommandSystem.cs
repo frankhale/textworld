@@ -1,11 +1,11 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using TextWorld.Core.Components;
+using TextWorld.Core.ECS;
 using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Systems
 {
-    public class CommandSystem : System
+    public class CommandSystem : ECS.System
     {
         public override void Run(Entity commandEntity, Entity playerEntity, List<Entity> roomEntities, Entity outputEntity)
         {

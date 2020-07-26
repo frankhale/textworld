@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using TextWorld.Core.Components;
+using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Misc
 {
@@ -9,7 +10,7 @@ namespace TextWorld.Core.Misc
         public static Entity GetPlayersCurrentRoom(Entity playerEntity, List<Entity> roomEntities)
         {
             Entity result = null;
-            var roomIdComponent = playerEntity.GetFirstComponentByName<IdComponent>("current room");
+            var roomIdComponent = playerEntity.GetComponentByName<IdComponent>("player current room");
 
             if (roomIdComponent != null)
             {
@@ -43,7 +44,7 @@ namespace TextWorld.Core.Misc
 
         public static void AddItemToPlayersInventory(Entity playerEntity, Entity itemOnEntity, ItemComponent itemComponent)
         {
-            var inventoryComponent = playerEntity.GetFirstComponentByType<InventoryComponent>();
+            var inventoryComponent = playerEntity.GetComponentByType<InventoryComponent>();
 
             if (inventoryComponent != null)
             {
@@ -79,12 +80,12 @@ namespace TextWorld.Core.Misc
 
                 if (commandParts.Length > 1)
                 {
-                    commandEntity.AddComponent(new CommandComponent("command", commandParts[0],
+                    commandEntity.AddComponent(new CommandComponent("add command with args", commandParts[0],
                         commandParts.Skip(1).Take(commandParts.Length).ToArray()));
                 }
                 else
                 {
-                    commandEntity.AddComponent(new CommandComponent("command", command.ToLower()));
+                    commandEntity.AddComponent(new CommandComponent("add command with no args", command.ToLower()));
                 }
             }
         }
