@@ -208,7 +208,7 @@ namespace TextWorld.Core.Test
         {
             // Arrange
             var playerEntity = new Entity("player");
-            var roomEntities = new List<Entity>();           
+            var roomEntities = new List<Entity>();
             var commandEntity = new Entity("Command Entity");
             var commandSystem = new CommandSystem();
 
@@ -229,6 +229,96 @@ namespace TextWorld.Core.Test
             // Assert
             quitComponent.Should().NotBeNull();
             quitComponent.Name.Should().Be("quit game");
+        }
+
+        [Fact]
+        public void CanProcessLookCommand()
+        {
+            // Arrange
+            var playerEntity = new Entity("player");
+            var roomEntities = new List<Entity>();
+            var commandEntity = new Entity("Command Entity");
+            var commandSystem = new CommandSystem();
+
+            var roomId = Guid.NewGuid();
+            var room = new Entity(roomId, "Test Room", new List<Component>()
+            {
+                new DescriptionComponent("Test", "This is a test room."),
+            });
+
+            playerEntity.AddComponent(new InventoryComponent("player inventory"));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            playerEntity.AddComponent(new ItemActionComponent("take item from room", "leather coin purse", ItemAction.Take));
+            roomEntities.Add(room);
+
+            Helper.AddCommandComponentToEntity(commandEntity, "look");
+
+            // Act
+            commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
+            var showRoomDescriptionComponent = playerEntity.GetComponentByType<ShowDescriptionComponent>();
+
+            // Assert
+            showRoomDescriptionComponent.Should().NotBeNull();
+            showRoomDescriptionComponent.Entity.Should().Be(room);
+        }
+
+        [Fact]
+        public void CanProcessLookSelfCommand()
+        {
+            // Arrange
+            var playerEntity = new Entity("player");
+            var roomEntities = new List<Entity>();
+            var commandEntity = new Entity("Command Entity");
+            var commandSystem = new CommandSystem();
+
+            var roomId = Guid.NewGuid();
+            var room = new Entity(roomId, "Test Room");
+
+            playerEntity.AddComponent(new InventoryComponent("player inventory"));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            playerEntity.AddComponent(new ItemActionComponent("take item from room", "leather coin purse", ItemAction.Take));
+            roomEntities.Add(room);
+
+            Helper.AddCommandComponentToEntity(commandEntity, "look self");
+
+            // Act
+            commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
+            var showRoomDescriptionComponent = playerEntity.GetComponentByType<ShowDescriptionComponent>();
+
+            // Assert
+            showRoomDescriptionComponent.Should().NotBeNull();
+            showRoomDescriptionComponent.Entity.Should().Be(playerEntity);
+        }
+
+        [Fact]
+        public void CanProcessInspectCommand()
+        {
+            // Arrange
+            var playerEntity = new Entity("player");
+            var roomEntities = new List<Entity>();
+            var commandEntity = new Entity("Command Entity");
+            var commandSystem = new CommandSystem();
+
+            var roomId = Guid.NewGuid();
+            var room = new Entity(roomId, "Test Room", new List<Component>()
+            {
+                new ItemComponent("leather coin purse item", new CoinPurse("leather coin purse", 32, 1)),
+                new ItemComponent("health potion item", new HealthPotion("health potion", 50, 10))
+            });
+
+            playerEntity.AddComponent(new InventoryComponent("player inventory"));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId));            
+            roomEntities.Add(room);
+
+            Helper.AddCommandComponentToEntity(commandEntity, "inspect");
+
+            // Act
+            commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
+            var itemActionComponent = playerEntity.GetComponentByType<ItemActionComponent>();
+
+            // Assert            
+            itemActionComponent.Should().NotBeNull();
+            itemActionComponent.Action.Should().Be(ItemAction.ShowAll);
         }
     }
 }
