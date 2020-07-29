@@ -1,19 +1,17 @@
 html, body {
     padding: 0;
     margin-left: 10px;
-    margin-right: 15px;
-    
+    margin-right: 15px;       
 }
 
 * {
+    font-size: 18pt;
     background-color: #000;
     color: #fff;
     font-family: 'Share Tech Mono', monospace;
 }
 
-.command-input {
-    
-    font-size: 14pt;
+.command-input {       
     width: 90%;
     padding: 0;
     margin-left: 5px;
