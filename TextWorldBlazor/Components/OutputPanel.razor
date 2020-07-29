@@ -1,0 +1,13 @@
+﻿<div>
+    @foreach (var output in Output)
+    {
+        <div class="output-item">
+            @output
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<string> Output { get; set; }
+}

@@ -1,0 +1,13 @@
+﻿@page "/"
+
+<OutputPanel Output=@outputData />
+<CommandInput OnEnter=@OnEnter />
+
+@code {
+    private List<string> outputData = new List<string>();
+
+    private void OnEnter(string command)
+    {
+        outputData.Add(command);
+    }
+}
