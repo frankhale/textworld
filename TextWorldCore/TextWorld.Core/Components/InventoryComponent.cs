@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using TextWorld.Core.Misc;
 using TextWorld.Core.ECS;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
 
 namespace TextWorld.Core.Components
 {
@@ -38,6 +40,18 @@ namespace TextWorld.Core.Components
             {
                 item.Quantity -= count;
             }
+        }
+    
+        public string GetItemsAsString()
+        {
+            var items = new List<string>();
+
+            foreach(var item in Items)
+            {
+                items.Add(item.Name);
+            }
+
+            return string.Join(", ", items.ToArray());
         }
     }
 }

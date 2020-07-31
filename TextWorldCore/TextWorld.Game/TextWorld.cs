@@ -24,6 +24,7 @@ namespace TextWorld.Game
         public RoomDescriptionSystem RoomDescriptionSystem = new RoomDescriptionSystem();
         public RoomMovementSystem RoomMovementSystem = new RoomMovementSystem();
         public ItemSystem ItemsSystem = new ItemSystem();
+        public InventorySystem InventorySystem = new InventorySystem();
 
         public TextWorldGame()
         {
@@ -76,6 +77,7 @@ namespace TextWorld.Game
             RoomMovementSystem.Run(CommandEntity, PlayerEntity, RoomEntities, OutputEntity);
             RoomDescriptionSystem.Run(PlayerEntity, RoomEntities, OutputEntity);
             ItemsSystem.Run(PlayerEntity, RoomEntities, OutputEntity);
+            InventorySystem.Run(CommandEntity, PlayerEntity, OutputEntity);
             UnknownCommandSystem.Run(CommandEntity, OutputEntity);
         }
     }

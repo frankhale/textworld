@@ -6,7 +6,7 @@ using TextWorld.Core.ECS;
 namespace TextWorld.Core.Misc
 {
     public static class Helper
-    {
+    {        
         public static TWEntity GetPlayersCurrentRoom(TWEntity playerEntity, List<TWEntity> roomEntities)
         {
             TWEntity result = null;
@@ -59,6 +59,7 @@ namespace TextWorld.Core.Misc
                     inventoryComponent.AddItem(new InventoryItem()
                     {
                         Id = itemComponent.Item.Id,
+                        Name = itemComponent.Item.Name,
                         Quantity = itemComponent.Item.Quantity
                     });
                 }
