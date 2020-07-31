@@ -15,8 +15,7 @@
     {
         base.OnInitialized();
 
-        textWorldGame.MOTDSystem.Run(textWorldGame.MOTDEntity, textWorldGame.OutputEntity);
-        textWorldGame.RoomDescriptionSystem.Run(textWorldGame.PlayerEntity, textWorldGame.RoomEntities, textWorldGame.OutputEntity);
+        textWorldGame.RunPreSystems();
         RunOutputSystem();
     }
 
@@ -49,13 +48,7 @@
         {
             textWorldGame.OutputEntity.Components.Clear();
             Helper.AddCommandComponentToEntity(textWorldGame.CommandEntity, command);
-            textWorldGame.CommandSystem.Run(textWorldGame.CommandEntity, textWorldGame.PlayerEntity, textWorldGame.RoomEntities, textWorldGame.PlayerEntity);
-
-            textWorldGame.RoomMovementSystem.Run(textWorldGame.CommandEntity, textWorldGame.PlayerEntity, textWorldGame.RoomEntities, textWorldGame.OutputEntity);
-            textWorldGame.RoomDescriptionSystem.Run(textWorldGame.PlayerEntity, textWorldGame.RoomEntities, textWorldGame.OutputEntity);
-            textWorldGame.ItemsSystem.Run(textWorldGame.PlayerEntity, textWorldGame.RoomEntities, textWorldGame.OutputEntity);
-            textWorldGame.UnknownCommandSystem.Run(textWorldGame.CommandEntity, textWorldGame.OutputEntity);
-
+            textWorldGame.RunCoreSystems();
             RunOutputSystem();
         }
     }

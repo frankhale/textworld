@@ -11,8 +11,6 @@ namespace TextWorld.Game
 {
     public class TextWorldGame
     {
-        private bool running = true;
-
         // Entities
         public TWEntity MOTDEntity { get; private set; } = new TWEntity("MOTD Entity");
         public TWEntity PlayerEntity { get; private set; } = new TWEntity("Player Entity");
@@ -21,15 +19,11 @@ namespace TextWorld.Game
         public List<TWEntity> RoomEntities { get; private set; } = new List<TWEntity>();
         // Systems
         public MOTDSystem MOTDSystem = new MOTDSystem();
-        public CommandSystem CommandSystem = new CommandSystem();        
+        public CommandSystem CommandSystem = new CommandSystem();
         public UnknownCommandSystem UnknownCommandSystem = new UnknownCommandSystem();
         public RoomDescriptionSystem RoomDescriptionSystem = new RoomDescriptionSystem();
         public RoomMovementSystem RoomMovementSystem = new RoomMovementSystem();
         public ItemSystem ItemsSystem = new ItemSystem();
-
-        private readonly ConsoleOutputSystem consoleOutputSystem = new ConsoleOutputSystem();
-        private readonly ConsoleInputSystem consoleInputSystem = new ConsoleInputSystem();
-        private readonly QuitSystem quitSystem = new QuitSystem();
 
         public TextWorldGame()
         {
@@ -70,23 +64,19 @@ namespace TextWorld.Game
             PlayerEntity.AddComponent(new ShowDescriptionComponent("show current room description", RoomEntities.FirstOrDefault(x => x.Id == openFieldId)));
         }
 
-        public void RunOnConsole()
+        public void RunPreSystems()
         {
             MOTDSystem.Run(MOTDEntity, OutputEntity);
+            RoomDescriptionSystem.Run(PlayerEntity, RoomEntities, OutputEntity);
+        }
 
-            while (running)
-            {
-                RoomDescriptionSystem.Run(PlayerEntity, RoomEntities, OutputEntity);
-                consoleOutputSystem.Run(OutputEntity);
-                consoleInputSystem.Run(CommandEntity);
-                CommandSystem.Run(CommandEntity, PlayerEntity, RoomEntities, PlayerEntity);
-                RoomMovementSystem.Run(CommandEntity, PlayerEntity, RoomEntities, OutputEntity);
-                ItemsSystem.Run(PlayerEntity, RoomEntities, OutputEntity);
-                UnknownCommandSystem.Run(CommandEntity, OutputEntity);
-                quitSystem.Run(PlayerEntity, () => running = false);
-            }
-
-            Console.WriteLine("Goodbye...");
+        public void RunCoreSystems()
+        {
+            CommandSystem.Run(CommandEntity, PlayerEntity, RoomEntities, PlayerEntity);
+            RoomMovementSystem.Run(CommandEntity, PlayerEntity, RoomEntities, OutputEntity);
+            RoomDescriptionSystem.Run(PlayerEntity, RoomEntities, OutputEntity);
+            ItemsSystem.Run(PlayerEntity, RoomEntities, OutputEntity);
+            UnknownCommandSystem.Run(CommandEntity, OutputEntity);
         }
     }
 }

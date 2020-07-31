@@ -5,8 +5,6 @@ VisualStudioVersion = 16.0.30309.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TextWorld.Core", "TextWorld.Core\TextWorld.Core.csproj", "{DF2E8702-BFD1-422D-9FF7-E5C742F3A86E}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TextWorld.ConsoleDriver", "TextWorld.ConsoleDriver\TextWorld.ConsoleDriver.csproj", "{E6CD290F-30BB-46E8-B95E-35B90107F149}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TextWorld.Core.Test", "TextWorld.Core.Test\TextWorld.Core.Test.csproj", "{8C36A0A4-6C12-439C-B8A4-D456EBACDE7D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TextWorld.Game", "TextWorld.Game\TextWorld.Game.csproj", "{73813CEC-AEC0-4033-A43C-F7CFFDD64C33}"
@@ -23,10 +21,6 @@ Global
 		{DF2E8702-BFD1-422D-9FF7-E5C742F3A86E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DF2E8702-BFD1-422D-9FF7-E5C742F3A86E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DF2E8702-BFD1-422D-9FF7-E5C742F3A86E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{E6CD290F-30BB-46E8-B95E-35B90107F149}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{E6CD290F-30BB-46E8-B95E-35B90107F149}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{E6CD290F-30BB-46E8-B95E-35B90107F149}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{E6CD290F-30BB-46E8-B95E-35B90107F149}.Release|Any CPU.Build.0 = Release|Any CPU
 		{8C36A0A4-6C12-439C-B8A4-D456EBACDE7D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8C36A0A4-6C12-439C-B8A4-D456EBACDE7D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8C36A0A4-6C12-439C-B8A4-D456EBACDE7D}.Release|Any CPU.ActiveCfg = Release|Any CPU
