@@ -1,7 +1,7 @@
 html, body {
     padding: 0;
     margin-left: 10px;
-    margin-right: 15px;       
+    margin-right: 15px;
 }
 
 * {
@@ -11,7 +11,7 @@ html, body {
     font-family: 'Share Tech Mono', monospace;
 }
 
-.command-input {       
+.command-input {
     width: 90%;
     padding: 0;
     margin-left: 5px;
@@ -23,6 +23,17 @@ html, body {
 
 .output-item {
     padding-top: 15px;
+}
+
+.output-motd {
+    padding: 10px;
+    color: black;
+    background-color: white;
+}
+
+.output-command {
+    padding-top: 15px;
+    font-style: italic;
 }
 
 #blazor-error-ui {

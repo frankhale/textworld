@@ -33,7 +33,7 @@ namespace TextWorld.Game
 
         public TextWorldGame()
         {
-            MOTDEntity.AddComponent(new DescriptionComponent("motd description", "Welcome to this fantastic not finished ECS based text adventure game that doesn't do much but is attempting to work at some point, LOL!..."));
+            MOTDEntity.AddComponent(new DescriptionComponent("motd description", "This is the very beginning of a text adventure game based on a custom entity component system. There isn't a whole lot here just yet. LOL!!!"));
 
             var streamId = Guid.NewGuid();
             var openFieldId = Guid.NewGuid();

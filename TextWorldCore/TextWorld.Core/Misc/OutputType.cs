@@ -3,6 +3,7 @@
     public enum OutputType
     {
         MessageOfTheDay,
-        Regular
+        Regular,
+        Command
     }
 }

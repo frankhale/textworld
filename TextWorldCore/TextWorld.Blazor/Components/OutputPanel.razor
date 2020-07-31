@@ -1,13 +1,22 @@
 ﻿<div>
     @foreach (var output in Output)
     {
-        <div class="output-item">
-            @output
-        </div>
+        if (output.Type == OutputType.Command)
+        {            
+            <div class="output-command">command: @output.Value</div>
+        }
+        else if (output.Type == OutputType.MessageOfTheDay)
+        {
+            <div class="output-motd">@output.Value</div>
+        }
+        else if (output.Type == OutputType.Regular)
+        {
+            <div class="output-item">@output.Value</div>
+        }
     }
 </div>
 
 @code {
     [Parameter]
-    public List<string> Output { get; set; }
+    public List<OutputItem> Output { get; set; }
 }

@@ -1,6 +1,7 @@
 ﻿@page "/"
 
 @using TextWorld.Game
+@using TextWorld.Blazor.Helper
 
 @inject TextWorldGame textWorldGame
 
@@ -8,7 +9,7 @@
 <CommandInput OnEnter=@OnEnter />
 
 @code {
-    private List<string> outputData = new List<string>();
+    private List<OutputItem> outputData = new List<OutputItem>();
 
     protected override void OnInitialized()
     {
@@ -21,25 +22,41 @@
 
     private void RunOutputSystem()
     {
-        var temp = new List<string>();
+        var temp = new List<OutputItem>();
         foreach (var component in textWorldGame.OutputEntity.GetComponentsByType<OutputComponent>())
         {
-            temp.Add(component.Value);
+            temp.Add(new OutputItem {
+                Value = component.Value,
+                Type = component.OutputType
+            });
         }
         outputData.AddRange(temp);
     }
 
     private void OnEnter(string command)
     {
-        textWorldGame.OutputEntity.Components.Clear();
-        Helper.AddCommandComponentToEntity(textWorldGame.CommandEntity, command);
-        textWorldGame.CommandSystem.Run(textWorldGame.CommandEntity, textWorldGame.PlayerEntity, textWorldGame.RoomEntities, textWorldGame.PlayerEntity);
+        outputData.Add(new OutputItem
+        {
+            Value = command,
+            Type = OutputType.Command
+        });
 
-        textWorldGame.RoomMovementSystem.Run(textWorldGame.CommandEntity, textWorldGame.PlayerEntity, textWorldGame.RoomEntities, textWorldGame.OutputEntity);
-        textWorldGame.RoomDescriptionSystem.Run(textWorldGame.PlayerEntity, textWorldGame.RoomEntities, textWorldGame.OutputEntity);
-        textWorldGame.ItemsSystem.Run(textWorldGame.PlayerEntity, textWorldGame.RoomEntities, textWorldGame.OutputEntity);
-        textWorldGame.UnknownCommandSystem.Run(textWorldGame.CommandEntity, textWorldGame.OutputEntity);
+        if (command == "/clear")
+        {
+            outputData.Clear();
+        }
+        else
+        {
+            textWorldGame.OutputEntity.Components.Clear();
+            Helper.AddCommandComponentToEntity(textWorldGame.CommandEntity, command);
+            textWorldGame.CommandSystem.Run(textWorldGame.CommandEntity, textWorldGame.PlayerEntity, textWorldGame.RoomEntities, textWorldGame.PlayerEntity);
 
-        RunOutputSystem();
+            textWorldGame.RoomMovementSystem.Run(textWorldGame.CommandEntity, textWorldGame.PlayerEntity, textWorldGame.RoomEntities, textWorldGame.OutputEntity);
+            textWorldGame.RoomDescriptionSystem.Run(textWorldGame.PlayerEntity, textWorldGame.RoomEntities, textWorldGame.OutputEntity);
+            textWorldGame.ItemsSystem.Run(textWorldGame.PlayerEntity, textWorldGame.RoomEntities, textWorldGame.OutputEntity);
+            textWorldGame.UnknownCommandSystem.Run(textWorldGame.CommandEntity, textWorldGame.OutputEntity);
+
+            RunOutputSystem();
+        }
     }
 }
