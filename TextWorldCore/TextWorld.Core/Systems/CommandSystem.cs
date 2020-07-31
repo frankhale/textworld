@@ -5,9 +5,9 @@ using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Systems
 {
-    public class CommandSystem : ECS.System
+    public class CommandSystem : ECS.TWSystem
     {
-        public override void Run(Entity commandEntity, Entity playerEntity, List<Entity> roomEntities, Entity outputEntity)
+        public override void Run(TWEntity commandEntity, TWEntity playerEntity, List<TWEntity> roomEntities, TWEntity outputEntity)
         {
             var processedComponents = new List<CommandComponent>();
 

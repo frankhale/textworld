@@ -6,11 +6,11 @@ using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Systems
 {
-    public class ItemSystem : ECS.System
+    public class ItemSystem : ECS.TWSystem
     {
-        public override void Run(Entity playerEntity, List<Entity> roomEntities, Entity outputEntity)
+        public override void Run(TWEntity playerEntity, List<TWEntity> roomEntities, TWEntity outputEntity)
         {
-            var processedComponents = new List<Component>();
+            var processedComponents = new List<TWComponent>();
 
             foreach (var component in playerEntity.GetComponentsByType<ItemActionComponent>())
             {
@@ -30,11 +30,11 @@ namespace TextWorld.Core.Systems
 
                         if (items.Count() > 0)
                         {
-                            outputEntity.AddComponent(new OutputComponent("output for items in room", $"The following items are here: {string.Join(", ", items.ToArray())}"));
+                            outputEntity.AddComponent(new OutputComponent("output for items in room", $"The following items are here: {string.Join(", ", items.ToArray())}", OutputType.Regular));
                         }
                         else
                         {
-                            outputEntity.AddComponent(new OutputComponent("output for no items in room", "There are no items here."));
+                            outputEntity.AddComponent(new OutputComponent("output for no items in room", "There are no items here.", OutputType.Regular));
                         }
                     }
                     else if (component.Action == ItemAction.Take)
@@ -45,11 +45,11 @@ namespace TextWorld.Core.Systems
                         {
                             Helper.AddItemToPlayersInventory(playerEntity, roomEntity, takeItem);
 
-                            outputEntity.AddComponent(new OutputComponent("output for item taken", $"You've taken {component.ItemName}"));
+                            outputEntity.AddComponent(new OutputComponent("output for item taken", $"You've taken {component.ItemName}", OutputType.Regular));
                         }
                         else
                         {
-                            outputEntity.AddComponent(new OutputComponent("output for non existant item", $"{component.ItemName} does not exist here."));
+                            outputEntity.AddComponent(new OutputComponent("output for non existant item", $"{component.ItemName} does not exist here.", OutputType.Regular));
                         }
                     }
                 }

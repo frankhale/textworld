@@ -2,7 +2,7 @@
 
 namespace TextWorld.Core.Components
 {
-    public class CurrencyComponent : Component
+    public class CurrencyComponent : TWComponent
     {
         public int Gold { get; set; }
 

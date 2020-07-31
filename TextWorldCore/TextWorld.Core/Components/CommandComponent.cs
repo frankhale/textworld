@@ -3,7 +3,7 @@ using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Components
 {
-    public class CommandComponent : Component
+    public class CommandComponent : TWComponent
     {
         public string Command { get; private set; }
         public string[] Args { get; private set; }

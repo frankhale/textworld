@@ -3,7 +3,7 @@ using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Components
 {
-    public class IdComponent : Component
+    public class IdComponent : TWComponent
     {
         public Guid Id { get; private set; }
 

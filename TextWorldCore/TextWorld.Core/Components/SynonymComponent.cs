@@ -2,7 +2,7 @@
 
 namespace TextWorld.Core.Components
 {
-    public class SynonymComponent : Component
+    public class SynonymComponent : TWComponent
     {
         public string[] Synonyms { get; private set; }
 

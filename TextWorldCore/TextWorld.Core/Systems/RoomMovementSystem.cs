@@ -3,12 +3,13 @@ using System.Globalization;
 using System.Linq;
 using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
+using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Systems
 {
-    public class RoomMovementSystem : ECS.System
+    public class RoomMovementSystem : ECS.TWSystem
     {
-        public override void Run(Entity commandEntity, Entity playerEntity, List<Entity> roomEntities, Entity outputEntity)
+        public override void Run(TWEntity commandEntity, TWEntity playerEntity, List<TWEntity> roomEntities, TWEntity outputEntity)
         {
             var processedComponents = new List<CommandComponent>();
             var directionCommandComponents = new List<CommandComponent>();
@@ -65,7 +66,7 @@ namespace TextWorld.Core.Systems
 
             if (directionCommandComponents.Count() > 0)
             {
-                outputEntity.AddComponent(new OutputComponent("output for inaccessible direction", $"I cannot go in that direction"));
+                outputEntity.AddComponent(new OutputComponent("output for inaccessible direction", $"I cannot go in that direction", OutputType.Regular));
             }
         }
     }

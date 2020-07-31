@@ -22,7 +22,7 @@ html, body {
 }
 
 .output-item {
-    padding-top: 5px;
+    padding-top: 15px;
 }
 
 #blazor-error-ui {

@@ -4,4 +4,9 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\TextWorld.Core\TextWorld.Core.csproj" />
+    <ProjectReference Include="..\TextWorld.Game\TextWorld.Game.csproj" />
+  </ItemGroup>
+
 </Project>

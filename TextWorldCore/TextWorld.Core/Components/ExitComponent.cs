@@ -4,7 +4,7 @@ using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Components
 {
-    public class ExitComponent : Component
+    public class ExitComponent : TWComponent
     {
         public Direction Direction { get; private set; }
         public Guid RoomId { get; private set; }

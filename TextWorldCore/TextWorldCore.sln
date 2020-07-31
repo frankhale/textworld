@@ -9,7 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TextWorld.ConsoleDriver", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TextWorld.Core.Test", "TextWorld.Core.Test\TextWorld.Core.Test.csproj", "{8C36A0A4-6C12-439C-B8A4-D456EBACDE7D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TextWorld.Game", "TextWorld.Game\TextWorld.Game.csproj", "{73813CEC-AEC0-4033-A43C-F7CFFDD64C33}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TextWorld.Game", "TextWorld.Game\TextWorld.Game.csproj", "{73813CEC-AEC0-4033-A43C-F7CFFDD64C33}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TextWorld.Blazor", "TextWorld.Blazor\TextWorld.Blazor.csproj", "{02F9CEBE-F9FF-4FD7-BF91-B99D456E6EF7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{73813CEC-AEC0-4033-A43C-F7CFFDD64C33}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{73813CEC-AEC0-4033-A43C-F7CFFDD64C33}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{73813CEC-AEC0-4033-A43C-F7CFFDD64C33}.Release|Any CPU.Build.0 = Release|Any CPU
+		{02F9CEBE-F9FF-4FD7-BF91-B99D456E6EF7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{02F9CEBE-F9FF-4FD7-BF91-B99D456E6EF7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{02F9CEBE-F9FF-4FD7-BF91-B99D456E6EF7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{02F9CEBE-F9FF-4FD7-BF91-B99D456E6EF7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

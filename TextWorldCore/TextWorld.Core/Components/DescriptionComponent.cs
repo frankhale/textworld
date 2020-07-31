@@ -2,7 +2,7 @@
 
 namespace TextWorld.Core.Components
 {
-    public class DescriptionComponent : Component
+    public class DescriptionComponent : TWComponent
     {
         public string Description { get; private set; }
 

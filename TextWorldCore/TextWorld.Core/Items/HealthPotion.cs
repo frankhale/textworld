@@ -13,7 +13,7 @@ namespace TextWorld.Core.Items
             HealthImmediately = healthImmediately;
         }
 
-        public override void Use(Entity entity)
+        public override void Use(TWEntity entity)
         {
             throw new NotImplementedException();
         }

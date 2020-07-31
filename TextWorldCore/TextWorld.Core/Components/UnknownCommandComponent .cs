@@ -2,7 +2,7 @@
 
 namespace TextWorld.Core.Components
 {
-    public class UnknownCommandComponent : Component
+    public class UnknownCommandComponent : TWComponent
     {
         public string Command { get; private set; }
 

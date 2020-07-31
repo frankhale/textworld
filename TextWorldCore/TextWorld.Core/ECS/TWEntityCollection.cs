@@ -3,27 +3,27 @@ using System.Linq;
 
 namespace TextWorld.Core.ECS
 {
-    public class EntityCollection
+    public class TWEntityCollection
     {
-        public List<Entity> Entities { get; private set; } = new List<Entity>();
+        public List<TWEntity> Entities { get; private set; } = new List<TWEntity>();
         public string Name { get; private set; }
 
-        public EntityCollection(string name)
+        public TWEntityCollection(string name)
         {
             Name = name;
         }
 
-        public void AddEntity(Entity entity)
+        public void AddEntity(TWEntity entity)
         {
             Entities.Add(entity);
         }
 
-        public void RemoveEntity(Entity entity)
+        public void RemoveEntity(TWEntity entity)
         {
             Entities.Remove(entity);
         }
 
-        public Entity GetEntityByName(string name)
+        public TWEntity GetEntityByName(string name)
         {
             return Entities.FirstOrDefault(x => x.Name == name);
         }

@@ -2,7 +2,7 @@
 
 namespace TextWorld.Core.Components
 {
-    public class QuitComponent : Component
+    public class QuitComponent : TWComponent
     {
         public QuitComponent(string name) : base(name) { }
     }

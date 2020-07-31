@@ -2,12 +2,13 @@
 using System.Linq;
 using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
+using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Systems
 {
-    public class UnknownCommandSystem : ECS.System
+    public class UnknownCommandSystem : ECS.TWSystem
     {
-        public override void Run(Entity commandEntity, Entity outputEntity)
+        public override void Run(TWEntity commandEntity, TWEntity outputEntity)
         {
             var unknownCommandComponents = new List<UnknownCommandComponent>();
 
@@ -24,7 +25,7 @@ namespace TextWorld.Core.Systems
 
                 unknownCommandComponents.ForEach(x =>
                 {
-                    outputEntity.AddComponent(new OutputComponent("output for unknown command", $"I don't know how to do: {x.Command}"));
+                    outputEntity.AddComponent(new OutputComponent("output for unknown command", $"I don't know how to do: {x.Command}", OutputType.Regular));
                 });
             }
         }

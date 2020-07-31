@@ -2,7 +2,7 @@
 
 namespace TextWorld.Core.Components
 {
-    public class StatsComponent : Component
+    public class StatsComponent : TWComponent
     {
         public int Health { get; set; }
         public int Magicka { get; set; }

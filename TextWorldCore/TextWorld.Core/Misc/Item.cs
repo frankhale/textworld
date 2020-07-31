@@ -21,6 +21,6 @@ namespace TextWorld.Core.Misc
             Synonyms = synonyms;
         }
 
-        public abstract void Use(Entity entity);
+        public abstract void Use(TWEntity entity);
     }
 }

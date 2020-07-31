@@ -4,9 +4,9 @@ using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Systems
 {
-    public class ConsoleOutputSystem : ECS.System
+    public class ConsoleOutputSystem : ECS.TWSystem
     {
-        public override void Run(Entity outputEntity)
+        public override void Run(TWEntity outputEntity)
         {
             foreach (var component in outputEntity.GetComponentsByType<OutputComponent>())
             {

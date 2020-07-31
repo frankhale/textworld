@@ -6,7 +6,7 @@ using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Components
 {
-    public class InventoryComponent : Component
+    public class InventoryComponent : TWComponent
     {
         public List<InventoryItem> Items { get; private set; } = new List<InventoryItem>();
 

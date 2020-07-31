@@ -14,40 +14,41 @@ namespace TextWorld.Game
         private bool running = true;
 
         // Entities
-        private readonly Entity motdEntity = new Entity("MOTD Entity");
-        private readonly Entity playerEntity = new Entity("Player Entity");
-        private readonly Entity commandEntity = new Entity("Command Entity");
-        private readonly Entity outputEntity = new Entity("Output Entity");
-        private readonly List<Entity> roomEntities;
+        public TWEntity MOTDEntity { get; private set; } = new TWEntity("MOTD Entity");
+        public TWEntity PlayerEntity { get; private set; } = new TWEntity("Player Entity");
+        public TWEntity CommandEntity { get; private set; } = new TWEntity("Command Entity");
+        public TWEntity OutputEntity { get; private set; } = new TWEntity("Output Entity");
+        public List<TWEntity> RoomEntities { get; private set; } = new List<TWEntity>();
         // Systems
-        private readonly MOTDSystem motdSystem = new MOTDSystem();
+        public MOTDSystem MOTDSystem = new MOTDSystem();
+        public CommandSystem CommandSystem = new CommandSystem();        
+        public UnknownCommandSystem UnknownCommandSystem = new UnknownCommandSystem();
+        public RoomDescriptionSystem RoomDescriptionSystem = new RoomDescriptionSystem();
+        public RoomMovementSystem RoomMovementSystem = new RoomMovementSystem();
+        public ItemSystem ItemsSystem = new ItemSystem();
+
         private readonly ConsoleOutputSystem consoleOutputSystem = new ConsoleOutputSystem();
         private readonly ConsoleInputSystem consoleInputSystem = new ConsoleInputSystem();
-        private readonly CommandSystem commandSystem = new CommandSystem();
         private readonly QuitSystem quitSystem = new QuitSystem();
-        private readonly UnknownCommandSystem unknownCommandSystem = new UnknownCommandSystem();
-        private readonly RoomDescriptionSystem roomDescriptionSystem = new RoomDescriptionSystem();
-        private readonly RoomMovementSystem roomMovementSystem = new RoomMovementSystem();
-        private readonly ItemSystem itemsSystem = new ItemSystem();
 
         public TextWorldGame()
         {
-            motdEntity.AddComponent(new DescriptionComponent("motd description", "Welcome to this fantastic not finished ECS based text adventure game that doesn't do much but is attempting to work at some point, LOL!..."));
+            MOTDEntity.AddComponent(new DescriptionComponent("motd description", "Welcome to this fantastic not finished ECS based text adventure game that doesn't do much but is attempting to work at some point, LOL!..."));
 
             var streamId = Guid.NewGuid();
             var openFieldId = Guid.NewGuid();
-            var largeRockId = Guid.NewGuid();            
+            var largeRockId = Guid.NewGuid();
 
-            roomEntities = new List<Entity>()
+            RoomEntities = new List<TWEntity>()
             {
-                new Entity(streamId, "Stream", new List<Component>()
+                new TWEntity(streamId, "Stream", new List<TWComponent>()
                 {
                     new DisplayNameComponent("shallow stream display name", "Shallow Stream"),
                     new DescriptionComponent("shallow stream description", "A shallow rocky stream is swifty flowing from your west to east. The water looks approximately one foot deep. There is quite a large rock to your east."),
                     new ExitComponent("shallow stream exit south", Direction.South, openFieldId),
                     new ExitComponent("shallow stream exit east", Direction.East, largeRockId)
                 }),
-                new Entity(openFieldId, "Open Field", new List<Component>()
+                new TWEntity(openFieldId, "Open Field", new List<TWComponent>()
                 {
                     new ItemComponent("leather coin purse item", new CoinPurse("leather coin purse", 32, 1)),
                     new ItemComponent("health potion item", new HealthPotion("health potion", 50, 10)),
@@ -55,34 +56,34 @@ namespace TextWorld.Game
                     new DescriptionComponent("open field description", "You are standing in an open field. All around you stands vibrant green grass. You can hear a running water to your north which you suspect is a small stream."),
                     new ExitComponent("open field exit", Direction.North, streamId)
                 }),
-                new Entity(largeRockId, "Large Rock", new List<Component>() {
+                new TWEntity(largeRockId, "Large Rock", new List<TWComponent>() {
                     new DisplayNameComponent("large rock display name", "Large Rock"),
-                    new DescriptionComponent("large rock description", "You are standing beside a large rock. The rock looks out of place with respect to the rest of your surroundings."),                    
+                    new DescriptionComponent("large rock description", "You are standing beside a large rock. The rock looks out of place with respect to the rest of your surroundings."),
                     new ExitComponent("large rock exit", Direction.West, streamId)
                 })
             };
 
-            playerEntity.AddComponent(new DescriptionComponent("player description", "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!"));
-            playerEntity.AddComponent(new InventoryComponent("player inventory"));
-            playerEntity.AddComponent(new CurrencyComponent("player currency"));
-            playerEntity.AddComponent(new IdComponent("player current room", openFieldId));
-            playerEntity.AddComponent(new ShowDescriptionComponent("show current room description", roomEntities.FirstOrDefault(x => x.Id == openFieldId)));
+            PlayerEntity.AddComponent(new DescriptionComponent("player description", "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!"));
+            PlayerEntity.AddComponent(new InventoryComponent("player inventory"));
+            PlayerEntity.AddComponent(new CurrencyComponent("player currency"));
+            PlayerEntity.AddComponent(new IdComponent("player current room", openFieldId));
+            PlayerEntity.AddComponent(new ShowDescriptionComponent("show current room description", RoomEntities.FirstOrDefault(x => x.Id == openFieldId)));
         }
 
-        public void Run()
+        public void RunOnConsole()
         {
-            motdSystem.Run(motdEntity, outputEntity);
+            MOTDSystem.Run(MOTDEntity, OutputEntity);
 
             while (running)
             {
-                roomDescriptionSystem.Run(playerEntity, roomEntities, outputEntity);
-                consoleOutputSystem.Run(outputEntity);
-                consoleInputSystem.Run(commandEntity);
-                commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
-                roomMovementSystem.Run(commandEntity, playerEntity, roomEntities, outputEntity);
-                itemsSystem.Run(playerEntity, roomEntities, outputEntity);
-                unknownCommandSystem.Run(commandEntity, outputEntity);
-                quitSystem.Run(playerEntity, () => running = false);
+                RoomDescriptionSystem.Run(PlayerEntity, RoomEntities, OutputEntity);
+                consoleOutputSystem.Run(OutputEntity);
+                consoleInputSystem.Run(CommandEntity);
+                CommandSystem.Run(CommandEntity, PlayerEntity, RoomEntities, PlayerEntity);
+                RoomMovementSystem.Run(CommandEntity, PlayerEntity, RoomEntities, OutputEntity);
+                ItemsSystem.Run(PlayerEntity, RoomEntities, OutputEntity);
+                UnknownCommandSystem.Run(CommandEntity, OutputEntity);
+                quitSystem.Run(PlayerEntity, () => running = false);
             }
 
             Console.WriteLine("Goodbye...");

@@ -7,9 +7,9 @@ namespace TextWorld.Core.Misc
 {
     public static class Helper
     {
-        public static Entity GetPlayersCurrentRoom(Entity playerEntity, List<Entity> roomEntities)
+        public static TWEntity GetPlayersCurrentRoom(TWEntity playerEntity, List<TWEntity> roomEntities)
         {
-            Entity result = null;
+            TWEntity result = null;
             var roomIdComponent = playerEntity.GetComponentByName<IdComponent>("player current room");
 
             if (roomIdComponent != null)
@@ -20,7 +20,7 @@ namespace TextWorld.Core.Misc
             return result;
         }
 
-        public static ItemComponent GetItemComponentFromEntity(Entity currentRoom, string itemName)
+        public static ItemComponent GetItemComponentFromEntity(TWEntity currentRoom, string itemName)
         {
             var roomItems = currentRoom.GetComponentsByType<ItemComponent>();
 
@@ -37,12 +37,12 @@ namespace TextWorld.Core.Misc
             return null;
         }
 
-        public static ItemComponent GetItemComponentOnEntity(Entity entity, ItemComponent itemComponent)
+        public static ItemComponent GetItemComponentOnEntity(TWEntity entity, ItemComponent itemComponent)
         {
             return entity.GetComponentsByType<ItemComponent>().FirstOrDefault(x => x.Item.Id == itemComponent.Item.Id);
         }
 
-        public static void AddItemToPlayersInventory(Entity playerEntity, Entity itemOnEntity, ItemComponent itemComponent)
+        public static void AddItemToPlayersInventory(TWEntity playerEntity, TWEntity itemOnEntity, ItemComponent itemComponent)
         {
             var inventoryComponent = playerEntity.GetComponentByType<InventoryComponent>();
 
@@ -72,7 +72,7 @@ namespace TextWorld.Core.Misc
             }
         }
 
-        public static void AddCommandComponentToEntity(Entity commandEntity, string command)
+        public static void AddCommandComponentToEntity(TWEntity commandEntity, string command)
         {
             if (!string.IsNullOrEmpty(command))
             {

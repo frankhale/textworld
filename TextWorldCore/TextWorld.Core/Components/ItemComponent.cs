@@ -3,7 +3,7 @@ using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Components
 {
-    public class ItemComponent : Component
+    public class ItemComponent : TWComponent
     {
         public Item Item { get; private set; }
 

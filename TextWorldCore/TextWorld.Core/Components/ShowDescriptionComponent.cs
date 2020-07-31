@@ -2,11 +2,11 @@
 
 namespace TextWorld.Core.Components
 {
-    public class ShowDescriptionComponent : Component
+    public class ShowDescriptionComponent : TWComponent
     {
-        public Entity Entity { get; private set; }
+        public TWEntity Entity { get; private set; }
 
-        public ShowDescriptionComponent(string name, Entity entity) : base(name) 
+        public ShowDescriptionComponent(string name, TWEntity entity) : base(name) 
         {
             Entity = entity;
         }

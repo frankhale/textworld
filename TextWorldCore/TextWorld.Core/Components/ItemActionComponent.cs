@@ -4,7 +4,7 @@ using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Components
 {
-    public class ItemActionComponent : Component
+    public class ItemActionComponent : TWComponent
     {
         public Guid ItemId { get; private set; }
         public ItemAction Action { get; private set; }

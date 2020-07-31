@@ -2,14 +2,15 @@
 using System.Linq;
 using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
+using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Systems
 {
-    public class RoomDescriptionSystem : ECS.System
+    public class RoomDescriptionSystem : ECS.TWSystem
     {
-        public override void Run(Entity playerEntity, List<Entity> roomEntities, Entity outputEntity)
+        public override void Run(TWEntity playerEntity, List<TWEntity> roomEntities, TWEntity outputEntity)
         {
-            var processedComponents = new List<Component>();
+            var processedComponents = new List<TWComponent>();
 
             foreach (var component in playerEntity.Components
                 .Where(x => x.GetType() == typeof(ShowDescriptionComponent)))
@@ -24,7 +25,7 @@ namespace TextWorld.Core.Systems
 
                     if (descriptionComponent != null)
                     {
-                        outputEntity.AddComponent(new OutputComponent("room output for description", descriptionComponent.Description));
+                        outputEntity.AddComponent(new OutputComponent("room output for description", descriptionComponent.Description, OutputType.Regular));
                     }
                 }
             }

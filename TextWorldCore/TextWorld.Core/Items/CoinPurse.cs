@@ -14,7 +14,7 @@ namespace TextWorld.Core.Items
             Synonyms = new string[] { "purse", "coin purse", "coins" };
         }
 
-        public override void Use(Entity entity)
+        public override void Use(TWEntity entity)
         {
             var currencyComponent = entity.GetComponentByType<CurrencyComponent>();
 

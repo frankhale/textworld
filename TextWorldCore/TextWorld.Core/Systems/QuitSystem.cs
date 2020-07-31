@@ -4,9 +4,9 @@ using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Systems
 {
-    public class QuitSystem : ECS.System
+    public class QuitSystem : ECS.TWSystem
     {
-        public override void Run(Entity playerEntity, Action action)
+        public override void Run(TWEntity playerEntity, Action action)
         {
             var component = playerEntity.GetComponentByType<QuitComponent>();
 

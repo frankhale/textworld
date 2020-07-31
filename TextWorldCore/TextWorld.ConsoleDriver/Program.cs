@@ -7,7 +7,7 @@ namespace TextWorld.ConsoleDriver
         static void Main()
         {
             var tw = new TextWorldGame();
-            tw.Run();
+            tw.RunOnConsole();
         }
     }
 }

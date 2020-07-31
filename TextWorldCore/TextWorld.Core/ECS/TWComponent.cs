@@ -1,10 +1,10 @@
 ﻿namespace TextWorld.Core.ECS
 {
-    public abstract class Component
+    public abstract class TWComponent
     {
         public string Name { get; private set; }
 
-        protected Component(string name)
+        protected TWComponent(string name)
         {
             Name = name;
         }
