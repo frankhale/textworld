@@ -21,6 +21,25 @@ I started fiddling with the idea to create an entity component system and this
 is what I'm currently experimenting on. Everything listed below is for my vision
 of a MUD*like game (eg. multiplayer text RPG).
 
+## System Architecture idea
+
+The way I'm thinking of making this thing multiplayer is to use a combination of
+a web front end, RabbitMQ, an external app that is the "Game". The player enters
+a command, the web UI does puts a message on the RabbitMQ bus, a consumer
+(eg. the game) listens for the messages and consumes them and then produces a
+response that the web UI consumes then a response is sent to the player.
+**This could be a terrible idea**; Player data could be stored in MongoDB or
+Redis Cache. Scaling could be done by adding more instances of the "game" that
+listen for messages from the RabbitMQ bus. This is an idea, it's not been vetted
+and it could be seriously naive.
+
+## Game data format notes
+
+We need a way to express game data that can be used to create entities so that
+they are not hard coded like they are now. Either that or we should have a way
+to seed a database (MongoDB, Redis Cache, something else?) and then read game
+data from a DB.
+
 ## Game Entities
 
 These are aspects of an engine that you'll likely want to have. Some things
