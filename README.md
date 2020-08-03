@@ -2,32 +2,24 @@
 
 An experiment in creating a text based role playing adventure game using a
 custom Entity Component System (from my current evolving understanding of what
-an ECS is).
+an ECS is). The code is still very rough.
 
 ## Status
 
-The beginnings of a .NET Core C# project has been started and I'm iterating on
-it at a pretty decent rate now. There is still a long way to go and I am still
-thinking of this as a prototype because I don't even know if I really want to
-use C# as the primary language. I'm experimenting to figure out the details of
-how to write an ECS to do this sort of game. The current project is single
-player focused whereas the ultimate end goal is to have a MUD*like game.
+I'm experimenting to figure out the details of how to write an ECS to do this
+sort of game. The current project is single player focused whereas the ultimate
+end goal is to have a MUD*like game.
 
-As the ideas are flowing it's becoming more and more apparent that ideas need
-to be fleshed out more because the code is starting to get a little reactionary
-as the ideas are attempted to be added.
-
-Right now we have a mixture of the ECS and actual game objects mixed. There is
-a slight separation but it's starting to blur. Additionally I have not been TDD
-focused enough. My feeling is that every aspect of the library/game should be
-testable since the input and output are just text.
+I've replaced the command line interface with a pseudo command like interface
+using Blazor. This is going to open things up so that we can retain an old
+school look and feel but also mix in some modern UI to assist in some areas.
 
 ## LONG TERM IDEAS ABOUT GAME ENTITIES/SYSTEMS BELOWS
 
-The long term goal would be to make this thing into a MUD*like game
-(eg. multiplayer). The stuff listed below is what I ultimately want in my
-game/engine. The stuff listed below differs from the experiment talked about
-above.
+The stuff listed below does not correspond to what is currently being developed.
+I started fiddling with the idea to create an entity component system and this
+is what I'm currently experimenting on. Everything listed below is for my vision
+of a MUD*like game (eg. multiplayer text RPG).
 
 ## Game Entities
 
@@ -264,4 +256,4 @@ Frank Hale &lt;frankhale AT gmail.com&gt;
 
 ## Date
 
-19 July 2020
+2 August 2020

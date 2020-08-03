@@ -18,13 +18,13 @@ namespace TextWorld.Game
         public TWEntity OutputEntity { get; private set; } = new TWEntity("Output Entity");
         public List<TWEntity> RoomEntities { get; private set; } = new List<TWEntity>();
         // Systems
-        public MOTDSystem MOTDSystem = new MOTDSystem();
-        public CommandSystem CommandSystem = new CommandSystem();
-        public UnknownCommandSystem UnknownCommandSystem = new UnknownCommandSystem();
-        public RoomDescriptionSystem RoomDescriptionSystem = new RoomDescriptionSystem();
-        public RoomMovementSystem RoomMovementSystem = new RoomMovementSystem();
-        public ItemSystem ItemsSystem = new ItemSystem();
-        public InventorySystem InventorySystem = new InventorySystem();
+        public MOTDSystem MOTDSystem { get; private set; } = new MOTDSystem();
+        public CommandSystem CommandSystem { get; private set; } = new CommandSystem();
+        public UnknownCommandSystem UnknownCommandSystem { get; private set; } = new UnknownCommandSystem();
+        public RoomDescriptionSystem RoomDescriptionSystem { get; private set; } = new RoomDescriptionSystem();
+        public RoomMovementSystem RoomMovementSystem { get; private set; } = new RoomMovementSystem();
+        public ItemSystem ItemsSystem { get; private set; } = new ItemSystem();
+        public InventorySystem InventorySystem { get; private set; } = new InventorySystem();
 
         public TextWorldGame()
         {
