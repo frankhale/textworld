@@ -1,8 +1,8 @@
 # TextWorld
 
 An experiment in creating a text based role playing adventure game using a
-custom Entity Component System (from my current evolving understanding of what
-an ECS is). The code is still very rough.
+custom Entity Component System. The code is still very early on and lots of
+stuff has not been implemented yet.
 
 ## Status
 
@@ -10,9 +10,8 @@ I'm experimenting to figure out the details of how to write an ECS to do this
 sort of game. The current project is single player focused whereas the ultimate
 end goal is to have a MUD*like game.
 
-I've replaced the command line interface with a pseudo command like interface
-using Blazor. This is going to open things up so that we can retain an old
-school look and feel but also mix in some modern UI to assist in some areas.
+The current user interface is console based. There was a Blazor app here but I
+have removed that for now and will add that back in later.
 
 ## LONG TERM IDEAS ABOUT GAME ENTITIES/SYSTEMS BELOWS
 
@@ -275,4 +274,4 @@ Frank Hale &lt;frankhale AT gmail.com&gt;
 
 ## Date
 
-2 August 2020
+16 June 2022
