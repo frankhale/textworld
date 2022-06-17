@@ -5,6 +5,18 @@ namespace TextWorld.Core.Misc
 {
     public static class Helper
     {
+        public static Guid FindGuidForEntity(List<TWEntity> entities, string entityName)
+        {
+            var entity = entities.FirstOrDefault(x => x.Name == entityName);
+            
+            if (entity != null)
+            {
+                return entity.Id;
+            }
+            
+            return Guid.Empty;
+        }
+
         public static TWEntity? GetPlayersCurrentRoom(TWEntity playerEntity, List<TWEntity> roomEntities)
         {
             TWEntity? result = null;
@@ -60,6 +72,28 @@ namespace TextWorld.Core.Misc
                         Name = itemComponent.Item.Name,
                         Quantity = itemComponent.Item.Quantity
                     });
+                }
+
+                var itemToRemove = GetItemComponentOnEntity(itemOnEntity, itemComponent);
+
+                if (itemToRemove != null)
+                {
+                    itemOnEntity.RemoveComponent(itemToRemove);
+                }
+            }
+        }
+
+        public static void DeleteItemFromPlayersInventory(TWEntity playerEntity, TWEntity itemOnEntity, ItemComponent itemComponent)
+        {
+            var inventoryComponent = playerEntity.GetComponentByType<InventoryComponent>();
+
+            if (inventoryComponent != null)
+            {
+                var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Id == itemComponent.Item.Id);
+
+                if (itemInInventory != null)
+                {
+                    itemInInventory.Quantity -= itemComponent.Item.Quantity;
                 }
 
                 var itemToRemove = GetItemComponentOnEntity(itemOnEntity, itemComponent);

@@ -38,14 +38,14 @@ namespace TextWorld.Core.Systems
 
                     foreach (var exit in currentRoomExits)
                     {
-                        var exitCommand = directionCommandComponents.FirstOrDefault(x => (exit as ExitComponent).Direction.ToString() == myTI.ToTitleCase(x.Command));
+                        var exitCommand = directionCommandComponents.FirstOrDefault(x => exit.Direction.ToString() == myTI.ToTitleCase(x.Command));
 
                         if (exitCommand != null)
                         {
                             directionCommandComponents.Remove(exitCommand);
 
                             // get new room entity based on exit component room id
-                            var newRoomEntity = roomEntities.FirstOrDefault(x => x.Id == (exit as ExitComponent).RoomId);
+                            var newRoomEntity = roomEntities.FirstOrDefault(x => x.Id == exit.RoomId);
 
                             if (newRoomEntity != null)
                             {
