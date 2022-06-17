@@ -18,7 +18,22 @@ namespace TextWorld.Core.Systems
 
                 if (roomEntity != null)
                 {
-                    if (component.Action == ItemAction.ShowAll)
+                    if (component.ActionType == ItemActionType.Show)
+                    {
+                        if (string.IsNullOrEmpty(component.ItemName)) return;
+
+                        var showItem = Helper.GetItemComponentFromEntity(roomEntity, component.ItemName);
+
+                        if (showItem != null)
+                        {
+                            outputEntity.AddComponent(new OutputComponent("output for item in room", $"{showItem.Item.Name} ({showItem.Item.Quantity})", OutputType.Regular));
+                        }
+                        else
+                        {
+                            outputEntity.AddComponent(new OutputComponent("output for item in room", "That item does not exist here", OutputType.Regular));
+                        }
+                    }
+                    else if (component.ActionType == ItemActionType.ShowAll)
                     {
                         var itemComponents = roomEntity.GetComponentsByType<ItemComponent>();
 
@@ -35,7 +50,7 @@ namespace TextWorld.Core.Systems
                             outputEntity.AddComponent(new OutputComponent("output for no items in room", "There are no items here.", OutputType.Regular));
                         }
                     }
-                    else if (component.Action == ItemAction.Take)
+                    else if (component.ActionType == ItemActionType.Take)
                     {
                         if (string.IsNullOrEmpty(component.ItemName)) return;
 
@@ -52,6 +67,10 @@ namespace TextWorld.Core.Systems
                             outputEntity.AddComponent(new OutputComponent("output for non existant item", $"{component.ItemName} does not exist here.", OutputType.Regular));
                         }
                     }
+                    else if (component.ActionType == ItemActionType.Drop)
+                    { }
+                    else if (component.ActionType == ItemActionType.Use)
+                    { }
                 }
             }
 

@@ -25,7 +25,6 @@ namespace TextWorld.Core.Systems
                             outputEntity.AddComponent(new QuitComponent("quit game"));
                             break;
                         case "look":
-                        case "show":
                             if (commandComponent.Args.Length > 0 && commandComponent.Args[0] == "self")
                             {
                                 processedComponents.Add(commandComponent);
@@ -37,13 +36,17 @@ namespace TextWorld.Core.Systems
                                 outputEntity.AddComponent(new ShowDescriptionComponent("show room description", roomEntity));
                             }
                             break;
+                        case "show":
+                            processedComponents.Add(commandComponent);
+                            outputEntity.AddComponent(new ItemActionComponent("show an item action", string.Join(" ", commandComponent.Args), ItemActionType.Show));                            
+                            break;
                         case "inspect":
                             processedComponents.Add(commandComponent);
-                            outputEntity.AddComponent(new ItemActionComponent("show all items action", ItemAction.ShowAll));
+                            outputEntity.AddComponent(new ItemActionComponent("show all items action", ItemActionType.ShowAll));
                             break;
                         case "take":
                             processedComponents.Add(commandComponent);
-                            outputEntity.AddComponent(new ItemActionComponent("take item action", string.Join(" ", commandComponent.Args), ItemAction.Take));
+                            outputEntity.AddComponent(new ItemActionComponent("take item action", string.Join(" ", commandComponent.Args), ItemActionType.Take));
                             break;
                     }
                 }

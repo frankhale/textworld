@@ -1,6 +1,6 @@
 ﻿namespace TextWorld.Core.Misc
 {
-    public enum ItemAction
+    public enum ItemActionType
     {
         Show,
         ShowAll,
