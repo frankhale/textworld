@@ -26,7 +26,8 @@ MOTDEntity.AddComponent(new DescriptionComponent("motd description", "This is th
 
 Guid streamId = Guid.NewGuid(),
     openFieldId = Guid.NewGuid(),
-    largeRockId = Guid.NewGuid();
+    largeRockId = Guid.NewGuid(),
+    oldForestId = Guid.NewGuid();
 
 RoomEntities = new List<TWEntity>()
 {
@@ -48,9 +49,15 @@ RoomEntities = new List<TWEntity>()
     new (largeRockId, "Large Rock", new() {
         new ItemComponent("health potion item", new HealthPotion("health potion", 50, 3)),
         new DisplayNameComponent("large rock display name", "Large Rock"),
-        new DescriptionComponent("large rock description", "You are standing beside a large rock. The rock looks out of place with respect to the rest of your surroundings."),
-        new ExitComponent("large rock exit", Direction.West, streamId)
-    })
+        new DescriptionComponent("large rock description", "You are standing beside a large rock. The rock looks out of place with respect to the rest of your surroundings. You see an ominous forest to the east."),
+        new ExitComponent("large rock exit west", Direction.West, streamId),
+        new ExitComponent("large rock exit east", Direction.East, oldForestId)
+    }),
+    new (oldForestId, "Old Forest", new() {        
+        new DisplayNameComponent("The old and wise forest", "Old Forest"),
+        new DescriptionComponent("The old and wise forest description", "Thick tall trees block your way but seem to have allowed the stream safe passage. It doesn't appear as though you can travel any further in this direction."),
+        new ExitComponent("large rock exit", Direction.West, largeRockId)
+    }),
 };
 
 PlayerEntity.AddComponent(new DescriptionComponent("player description", "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!"));

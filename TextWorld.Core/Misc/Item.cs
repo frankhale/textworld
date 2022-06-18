@@ -20,6 +20,9 @@ namespace TextWorld.Core.Misc
             Synonyms = synonyms;
         }
 
+        //TODO: We are going to need a way to define multiple Use functions.
+        // probably using a dictionary of "name" and "Actions"
+
         public abstract void Use(TWEntity entity);
     }
 }
