@@ -179,10 +179,10 @@ namespace TextWorld.Core.Test
                 {
                     new ItemComponent("item", new CoinPurse("leather coin purse", 64, 1)),
                 });
+            roomEntities.Add(room);
 
             playerEntity.AddComponent(new IdComponent("player current room", roomId));
-            playerEntity.AddComponent(new ItemActionComponent("show room items", ItemActionType.ShowAll));
-            roomEntities.Add(room);
+            playerEntity.AddComponent(new ItemActionComponent("show room items", ItemActionType.ShowAll, Helper.ShowAllItemAction));
 
             // Act
             itemsSystem.Run(playerEntity, roomEntities, outputEntity);
@@ -194,6 +194,38 @@ namespace TextWorld.Core.Test
             if (outputComponent != null)
             {
                 outputComponent.Value.Should().Contain("The following items are here:");
+            }
+        }
+
+        [Fact]
+        public void CanShowItemOnEntity()
+        {
+            // Arrange
+            var itemsSystem = new ItemSystem();
+            var playerEntity = new TWEntity("player");
+            var roomEntities = new List<TWEntity>();
+            var outputEntity = new TWEntity("output");
+
+            var roomId = Guid.NewGuid();
+            var room = new TWEntity(roomId, "New Room", new List<TWComponent>()
+                {
+                    new ItemComponent("item", new CoinPurse("leather coin purse", 64, 1)),
+                });
+            roomEntities.Add(room);
+
+            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            playerEntity.AddComponent(new ItemActionComponent("show room items", "leather coin purse", ItemActionType.Show, Helper.ShowItemAction));
+
+            // Act
+            itemsSystem.Run(playerEntity, roomEntities, outputEntity);
+            var outputComponent = outputEntity.GetComponentByType<OutputComponent>();
+
+            // Assert
+            outputComponent.Should().NotBeNull();
+
+            if (outputComponent != null)
+            {
+                outputComponent.Value.Should().Contain("leather coin purse");
             }
         }
 
@@ -214,7 +246,7 @@ namespace TextWorld.Core.Test
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));
             playerEntity.AddComponent(new IdComponent("player current room", roomId));
-            playerEntity.AddComponent(new ItemActionComponent("take item from room", "leather coin purse", ItemActionType.Take));
+            playerEntity.AddComponent(new ItemActionComponent("take item from room", "leather coin purse", ItemActionType.Take, Helper.TakeItemAction));
             roomEntities.Add(room);
 
             // Act

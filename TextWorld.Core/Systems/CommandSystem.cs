@@ -1,4 +1,5 @@
-﻿using TextWorld.Core.Components;
+﻿using System.ComponentModel;
+using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
 using TextWorld.Core.Misc;
 
@@ -19,7 +20,7 @@ namespace TextWorld.Core.Systems
                 if (roomEntity != null)
                 {
                     switch (commandComponent.Command)
-                    {
+                    {                        
                         case "quit":
                             processedComponents.Add(commandComponent);
                             outputEntity.AddComponent(new QuitComponent("quit game"));
@@ -38,15 +39,15 @@ namespace TextWorld.Core.Systems
                             break;
                         case "show":
                             processedComponents.Add(commandComponent);
-                            outputEntity.AddComponent(new ItemActionComponent("show an item action", string.Join(" ", commandComponent.Args), ItemActionType.Show));                            
+                            outputEntity.AddComponent(new ItemActionComponent("show an item action", string.Join(" ", commandComponent.Args), ItemActionType.Show, Helper.ShowItemAction));
                             break;
                         case "inspect":
                             processedComponents.Add(commandComponent);
-                            outputEntity.AddComponent(new ItemActionComponent("show all items action", ItemActionType.ShowAll));
+                            outputEntity.AddComponent(new ItemActionComponent("show all items action", ItemActionType.ShowAll, Helper.ShowAllItemAction));
                             break;
                         case "take":
                             processedComponents.Add(commandComponent);
-                            outputEntity.AddComponent(new ItemActionComponent("take item action", string.Join(" ", commandComponent.Args), ItemActionType.Take));
+                            outputEntity.AddComponent(new ItemActionComponent("take item action", string.Join(" ", commandComponent.Args), ItemActionType.Take, Helper.TakeItemAction));
                             break;
                     }
                 }

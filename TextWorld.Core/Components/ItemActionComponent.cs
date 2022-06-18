@@ -7,7 +7,7 @@ namespace TextWorld.Core.Components
     {
         public Guid ItemId { get; private set; }
         public ItemActionType ActionType { get; private set; }
-        public Action? Action { get; private set; }
+        public Action<List<TWEntity>, TWEntity, TWEntity, ItemActionComponent>? Action { get; private set; }
 
         public string? ItemName { get; private set; }
 
@@ -17,12 +17,18 @@ namespace TextWorld.Core.Components
             ActionType = actionType;
         }
 
+        public ItemActionComponent(string name, ItemActionType actionType, Action<List<TWEntity>, TWEntity, TWEntity, ItemActionComponent> action) : this(name, actionType)
+        {
+            ItemId = Guid.NewGuid();
+            Action = action;
+        }
+
         public ItemActionComponent(string name, Guid itemId, ItemActionType actionType) : this(name, actionType)
         {
             ItemId = itemId;
         }
 
-        public ItemActionComponent(string name, Guid itemId, ItemActionType actionType, Action action) : this(name, itemId, actionType)
+        public ItemActionComponent(string name, Guid itemId, ItemActionType actionType, Action<List<TWEntity>, TWEntity, TWEntity, ItemActionComponent> action) : this(name, itemId, actionType)
         {
             Action = action;
         }
@@ -30,6 +36,11 @@ namespace TextWorld.Core.Components
         public ItemActionComponent(string name, string itemName, ItemActionType actionType) : this(name, actionType)
         {
             ItemName = itemName;
+        }
+
+        public ItemActionComponent(string name, string itemName, ItemActionType actionType, Action<List<TWEntity>, TWEntity, TWEntity, ItemActionComponent> action) : this(name, itemName, actionType)
+        {
+            Action = action;
         }
     }
 }

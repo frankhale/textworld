@@ -24,9 +24,9 @@ QuitSystem ConsoleQuitSystem = new();
 
 MOTDEntity.AddComponent(new DescriptionComponent("motd description", "This is the very beginning of a text adventure game based on a custom entity component system. There isn't a whole lot here just yet. Sit back, buckle your seat belt folks. The ride is just beginning!!!"));
 
-var streamId = Guid.NewGuid();
-var openFieldId = Guid.NewGuid();
-var largeRockId = Guid.NewGuid();
+Guid streamId = Guid.NewGuid(),
+    openFieldId = Guid.NewGuid(),
+    largeRockId = Guid.NewGuid();
 
 RoomEntities = new List<TWEntity>()
 {
@@ -46,6 +46,7 @@ RoomEntities = new List<TWEntity>()
         new ExitComponent("open field exit", Direction.North, streamId)
     }),
     new (largeRockId, "Large Rock", new() {
+        new ItemComponent("health potion item", new HealthPotion("health potion", 50, 3)),
         new DisplayNameComponent("large rock display name", "Large Rock"),
         new DescriptionComponent("large rock description", "You are standing beside a large rock. The rock looks out of place with respect to the rest of your surroundings."),
         new ExitComponent("large rock exit", Direction.West, streamId)
@@ -58,21 +59,15 @@ PlayerEntity.AddComponent(new CurrencyComponent("player currency"));
 PlayerEntity.AddComponent(new IdComponent("player current room", openFieldId));
 
 var firstRoom = RoomEntities.FirstOrDefault(room => room.Id == openFieldId);
-if (firstRoom != null)
-{
-    PlayerEntity.AddComponent(new ShowDescriptionComponent("show current room description", firstRoom));
-}
+PlayerEntity.AddComponent(new ShowDescriptionComponent("show current room description", firstRoom!));
 
+// Run systems
 MOTDSystem.Run(MOTDEntity, OutputEntity);
 
 while (true)
 {
     CommandSystem.Run(CommandEntity, PlayerEntity, RoomEntities, PlayerEntity);
-    ConsoleQuitSystem.Run(PlayerEntity, () =>
-    {
-        Console.WriteLine("Goodbye!");
-        Environment.Exit(0);
-    });
+    ConsoleQuitSystem.Run(PlayerEntity, () => { Console.WriteLine("Goodbye!"); Environment.Exit(0); });
     RoomMovementSystem.Run(CommandEntity, PlayerEntity, RoomEntities, OutputEntity);
     RoomDescriptionSystem.Run(PlayerEntity, RoomEntities, OutputEntity);
     ItemsSystem.Run(PlayerEntity, RoomEntities, OutputEntity);

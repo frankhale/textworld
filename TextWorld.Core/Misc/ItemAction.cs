@@ -5,7 +5,9 @@
         Show,
         ShowAll,
         Take,
+        TakeAll,
         Drop,
+        DropAll,
         Use
     }
 }
