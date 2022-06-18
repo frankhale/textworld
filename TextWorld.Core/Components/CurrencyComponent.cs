@@ -6,6 +6,9 @@ namespace TextWorld.Core.Components
     {
         public int Gold { get; set; }
 
-        public CurrencyComponent(string name) : base(name) { }
+        public CurrencyComponent(string name, int gold) : base(name) 
+        {
+            Gold = gold;
+        }
     }
 }

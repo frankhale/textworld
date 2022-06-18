@@ -1,5 +1,6 @@
 ﻿using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
+using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Systems
 {
@@ -9,8 +10,20 @@ namespace TextWorld.Core.Systems
         {
             foreach (var component in outputEntity.GetComponentsByType<OutputComponent>())
             {
-                Console.WriteLine(component.Value);
-                Console.WriteLine();
+                if (component.OutputType == OutputType.Regular)
+                {
+                    Console.WriteLine(component.Value);
+                    Console.WriteLine();
+                }
+                else if (component.OutputType == OutputType.Command)
+                {
+                    Console.WriteLine($"command: {component.Value}");
+                    Console.WriteLine();
+                }
+                else if (component.OutputType == OutputType.Separator)
+                {
+                    Console.WriteLine();
+                }
             }
 
             outputEntity.Components.Clear();

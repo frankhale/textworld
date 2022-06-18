@@ -4,6 +4,7 @@
     {
         MessageOfTheDay,
         Regular,
-        Command
+        Command,
+        Separator
     }
 }

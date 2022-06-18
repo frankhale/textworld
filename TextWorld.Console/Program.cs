@@ -62,7 +62,8 @@ RoomEntities = new List<TWEntity>()
 
 PlayerEntity.AddComponent(new DescriptionComponent("player description", "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!"));
 PlayerEntity.AddComponent(new InventoryComponent("player inventory"));
-PlayerEntity.AddComponent(new CurrencyComponent("player currency"));
+PlayerEntity.AddComponent(new HealthComponent("player health", 100, 100));
+PlayerEntity.AddComponent(new CurrencyComponent("player currency", 30));
 PlayerEntity.AddComponent(new IdComponent("player current room", openFieldId));
 
 var firstRoom = RoomEntities.FirstOrDefault(room => room.Id == openFieldId);
@@ -81,5 +82,5 @@ while (true)
     InventorySystem.Run(CommandEntity, PlayerEntity, OutputEntity);
     UnknownCommandSystem.Run(CommandEntity, OutputEntity);
     ConsoleOutputSystem.Run(OutputEntity);
-    ConsoleInputSystem.Run(CommandEntity);
+    ConsoleInputSystem.Run(CommandEntity, OutputEntity);
 }

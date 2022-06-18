@@ -8,8 +8,6 @@ namespace TextWorld.Core.Systems
     {
         public override void Run(TWEntity playerEntity, List<TWEntity> roomEntities, TWEntity outputEntity)
         {
-            if (playerEntity.Components == null) return;
-
             var processedComponents = new List<TWComponent>();
 
             foreach (var component in playerEntity.Components
@@ -25,7 +23,7 @@ namespace TextWorld.Core.Systems
 
                     if (descriptionComponent != null)
                     {
-                        outputEntity.AddComponent(new OutputComponent("room output for description", descriptionComponent.Description, OutputType.Regular));
+                        outputEntity.AddComponent(new OutputComponent("description output", descriptionComponent.Description, OutputType.Regular));
                     }
                 }
             }

@@ -43,7 +43,7 @@ namespace TextWorld.Core.Components
 
             foreach (var item in Items)
             {
-                items.Add(item.Name ?? "No Name");
+                items.Add($"{item.Name} ({item.Quantity})" ?? "No Name");
             }
 
             return string.Join(", ", items.ToArray());
