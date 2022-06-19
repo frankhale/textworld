@@ -175,7 +175,26 @@ namespace TextWorld.Core.Misc
                 outputEntity.AddComponent(new OutputComponent("output for non existant item", $"{itemName} does not exist here.", OutputType.Regular));
             }
         }
-    
+
+        public static void TakeAllItemsAction(List<TWEntity> roomEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
+        {
+            var roomEntity = GetPlayersCurrentRoom(playerEntity, roomEntities);
+            var roomItems = roomEntity!.GetComponentsByType<ItemComponent>();
+
+            if(roomItems.Count > 0)
+            {
+                roomItems.ForEach(item =>
+                {
+                    Helper.AddItemToPlayersInventory(playerEntity, roomEntity!, item);
+                    outputEntity.AddComponent(new OutputComponent("output for item taken", $"You've taken {item.Item.Name}", OutputType.Regular));
+                });
+            }
+            else
+            {            
+                outputEntity.AddComponent(new OutputComponent("output for non existant item", $"Can't find any items here.", OutputType.Regular));
+            }
+        }
+
         public static ShowDescriptionComponent GetRoomExitInfoForRoom(TWEntity playerEntity, List<TWEntity> roomEntities, TWEntity roomEntity)
         {
             var newRoomExits = roomEntity!.GetComponentsByType<ExitComponent>();

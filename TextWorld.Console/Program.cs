@@ -22,7 +22,7 @@ ConsoleInputSystem ConsoleInputSystem = new();
 ConsoleOutputSystem ConsoleOutputSystem = new();
 QuitSystem ConsoleQuitSystem = new();
 
-MOTDEntity.AddComponent(new DescriptionComponent("motd description", "This is the very beginning of a text adventure game based on a custom entity component system. There isn't a whole lot here just yet. Sit back, buckle your seat belt folks. The ride is just beginning!!!"));
+MOTDEntity.AddComponent(new DescriptionComponent("motd description", "Welcome to a text adventure written using an entity component system based engine called TextWorld. Look around, have fun!"));
 
 Guid streamId = Guid.NewGuid(),
     openFieldId = Guid.NewGuid(),

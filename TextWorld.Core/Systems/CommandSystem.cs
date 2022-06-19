@@ -38,7 +38,8 @@ namespace TextWorld.Core.Systems
                 outputEntity.AddComponent(new ItemActionComponent("take item action", string.Join(" ", commandComponent.Args), ItemActionType.Take, Helper.TakeItemAction));
             } },
             { "take all",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
-                // TODO: Implement take all
+                processedComponents.Add(commandComponent);
+                outputEntity.AddComponent(new ItemActionComponent("take all items action", string.Join(" ", commandComponent.Args), ItemActionType.TakeAll, Helper.TakeAllItemsAction));
             } }
         };
 
@@ -51,12 +52,11 @@ namespace TextWorld.Core.Systems
             {
                 var commandPlusArgs = $"{commandComponent.Command} {string.Join(" ", commandComponent.Args)}".Trim();
 
-                Action<TWEntity, List<TWEntity>, CommandComponent, List<CommandComponent>, TWEntity>? action;
-                var foundAction = CommandActions.TryGetValue(commandComponent.Command, out action);
+                var foundAction = CommandActions.TryGetValue(commandPlusArgs, out Action<TWEntity, List<TWEntity>, CommandComponent, List<CommandComponent>, TWEntity>? action);
 
                 if (!foundAction)
                 {
-                    foundAction = CommandActions.TryGetValue(commandPlusArgs, out action);
+                    foundAction = CommandActions.TryGetValue(commandComponent.Command, out action);
                 }
 
                 action?.Invoke(playerEntity, roomEntities, commandComponent, processedComponents, outputEntity);
