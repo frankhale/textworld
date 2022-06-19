@@ -1,14 +1,11 @@
 ﻿using System.Globalization;
+using System.Xml.Linq;
 using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
 using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Systems
 {
-    // TODO: We don't want to explicitly put exit locations in the description of a room. 
-    // We can use the exit components to describe the exits and leave the description for 
-    // a detailed description of the room.
-
     public class RoomMovementSystem : TWSystem
     {
         public override void Run(TWEntity commandEntity, TWEntity playerEntity, List<TWEntity> roomEntities, TWEntity outputEntity)
@@ -31,7 +28,7 @@ namespace TextWorld.Core.Systems
                     TextInfo myTI = new CultureInfo("en-US", false).TextInfo;
 
                     var exit = currentRoomExits.FirstOrDefault(x => x.Direction.ToString() == myTI.ToTitleCase(commandComponent.Command));
-                    
+
                     if (exit != null)
                     {
                         var newRoomEntity = roomEntities.FirstOrDefault(x => x.Id == exit.RoomId);
@@ -39,7 +36,14 @@ namespace TextWorld.Core.Systems
                         if (newRoomEntity != null)
                         {
                             currentRoomComponent!.SetId(newRoomEntity.Id);
-                            playerEntity.AddComponent(new ShowDescriptionComponent("player new room", newRoomEntity, DescriptionType.Room));                            
+                            playerEntity.AddComponent(new ShowDescriptionComponent("player new room", newRoomEntity, DescriptionType.Room));
+                            playerEntity.AddComponent(Helper.GetRoomExitInfoForRoom(playerEntity, roomEntities, newRoomEntity));
+
+                            //var newRoomExits = newRoomEntity.GetComponentsByType<ExitComponent>();
+                            //var exitDictionary = newRoomExits.ToDictionary(x => x.RoomId);
+                            //var exitRooms = roomEntities.Where(x => exitDictionary.TryGetValue(x.Id, out var e) /*&& x.Id != currentRoomEntity.Id*/).ToList();
+                            //var exitInfo = exitRooms.Select(x => $"{exitDictionary[x.Id].Direction} -> {x.Name}".ToString()).ToList();
+                            //playerEntity.AddComponent(new ShowDescriptionComponent(string.Join(", ", exitInfo), exitRooms, DescriptionType.Exit));
                         }
                     }
                     else

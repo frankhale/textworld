@@ -174,5 +174,14 @@ namespace TextWorld.Core.Misc
                 outputEntity.AddComponent(new OutputComponent("output for non existant item", $"{component.ItemName} does not exist here.", OutputType.Regular));
             }
         }
+    
+        public static ShowDescriptionComponent GetRoomExitInfoForRoom(TWEntity playerEntity, List<TWEntity> roomEntities, TWEntity roomEntity)
+        {
+            var newRoomExits = roomEntity!.GetComponentsByType<ExitComponent>();
+            var exitDictionary = newRoomExits.ToDictionary(x => x.RoomId);
+            var exitRooms = roomEntities.Where(x => exitDictionary.TryGetValue(x.Id, out var e)).ToList();
+            var exitInfo = exitRooms.Select(x => $"{exitDictionary[x.Id].Direction} -> {x.Name}".ToString()).ToList();            
+            return new ShowDescriptionComponent($"Exits: {string.Join(", ", exitInfo)}", exitRooms, DescriptionType.Exit);
+        }
     }
 }
