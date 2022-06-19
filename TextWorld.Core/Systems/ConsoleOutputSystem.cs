@@ -9,7 +9,7 @@ namespace TextWorld.Core.Systems
         public override void Run(TWEntity outputEntity)
         {
             foreach (var component in outputEntity.GetComponentsByType<OutputComponent>())
-            {
+            {                
                 if (component.OutputType == OutputType.Regular)
                 {
                     Console.WriteLine(component.Value);
@@ -22,6 +22,11 @@ namespace TextWorld.Core.Systems
                 }
                 else if (component.OutputType == OutputType.Separator)
                 {
+                    Console.WriteLine();
+                }
+                else if (component.OutputType == OutputType.MessageOfTheDay)
+                {
+                    Console.WriteLine($"-[ {component.Value} ]-");
                     Console.WriteLine();
                 }
             }
