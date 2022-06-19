@@ -14,12 +14,10 @@ namespace TextWorld.Core.Systems
             {
                 var roomEntity = Helper.GetPlayersCurrentRoom(playerEntity, roomEntities);
 
-                // TODO: Change this to use a switch expression
-
                 if (roomEntity != null)
                 {
                     switch (commandComponent.Command)
-                    {                        
+                    {
                         case "quit":
                             processedComponents.Add(commandComponent);
                             outputEntity.AddComponent(new QuitComponent("quit game"));
@@ -34,6 +32,7 @@ namespace TextWorld.Core.Systems
                             {
                                 processedComponents.Add(commandComponent);
                                 outputEntity.AddComponent(new ShowDescriptionComponent("show room description", roomEntity, DescriptionType.Room));
+                                outputEntity.AddComponent(Helper.GetRoomExitInfoForRoom(playerEntity, roomEntities, roomEntity));
                             }
                             break;
                         case "show":

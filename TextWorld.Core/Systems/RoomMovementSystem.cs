@@ -10,24 +10,21 @@ namespace TextWorld.Core.Systems
     {
         public override void Run(TWEntity commandEntity, TWEntity playerEntity, List<TWEntity> roomEntities, TWEntity outputEntity)
         {
+            TextInfo myTI = new CultureInfo("en-US", false).TextInfo;
             var processedComponents = new List<CommandComponent>();
 
             foreach (var commandComponent in commandEntity.GetComponentsByType<CommandComponent>())
             {
-                if (commandComponent.Command == "north" ||
-                   commandComponent.Command == "south" ||
-                   commandComponent.Command == "east" ||
-                   commandComponent.Command == "west")
+                var commandAsTitleCase = myTI.ToTitleCase(commandComponent.Command);
+
+                if (Enum.TryParse<Direction>(commandAsTitleCase, out Direction direction))
                 {
                     processedComponents.Add(commandComponent);
 
                     var currentRoomComponent = playerEntity.GetComponentByName<IdComponent>("player current room");
                     var currentRoomEntity = roomEntities.FirstOrDefault(x => x.Id == currentRoomComponent!.Id);
                     var currentRoomExits = currentRoomEntity!.GetComponentsByType<ExitComponent>();
-
-                    TextInfo myTI = new CultureInfo("en-US", false).TextInfo;
-
-                    var exit = currentRoomExits.FirstOrDefault(x => x.Direction.ToString() == myTI.ToTitleCase(commandComponent.Command));
+                    var exit = currentRoomExits.FirstOrDefault(x => x.Direction.ToString() == commandAsTitleCase);
 
                     if (exit != null)
                     {
@@ -36,21 +33,15 @@ namespace TextWorld.Core.Systems
                         if (newRoomEntity != null)
                         {
                             currentRoomComponent!.SetId(newRoomEntity.Id);
+
                             playerEntity.AddComponent(new ShowDescriptionComponent("player new room", newRoomEntity, DescriptionType.Room));
                             playerEntity.AddComponent(Helper.GetRoomExitInfoForRoom(playerEntity, roomEntities, newRoomEntity));
-
-                            //var newRoomExits = newRoomEntity.GetComponentsByType<ExitComponent>();
-                            //var exitDictionary = newRoomExits.ToDictionary(x => x.RoomId);
-                            //var exitRooms = roomEntities.Where(x => exitDictionary.TryGetValue(x.Id, out var e) /*&& x.Id != currentRoomEntity.Id*/).ToList();
-                            //var exitInfo = exitRooms.Select(x => $"{exitDictionary[x.Id].Direction} -> {x.Name}".ToString()).ToList();
-                            //playerEntity.AddComponent(new ShowDescriptionComponent(string.Join(", ", exitInfo), exitRooms, DescriptionType.Exit));
                         }
                     }
                     else
                     {
                         outputEntity.AddComponent(new OutputComponent("output for inaccessible direction", "I cannot go in that direction", OutputType.Regular));
                     }
-
 
                     commandEntity.RemoveComponents(processedComponents);
                 }
