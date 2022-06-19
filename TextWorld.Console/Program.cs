@@ -27,7 +27,9 @@ MOTDEntity.AddComponent(new DescriptionComponent("motd description", "This is th
 Guid streamId = Guid.NewGuid(),
     openFieldId = Guid.NewGuid(),
     largeRockId = Guid.NewGuid(),
-    oldForestId = Guid.NewGuid();
+    oldForestId = Guid.NewGuid(),
+    coinId = Guid.NewGuid(),
+    healthPotionId = Guid.NewGuid();
 
 RoomEntities = new List<TWEntity>()
 {
@@ -35,28 +37,28 @@ RoomEntities = new List<TWEntity>()
     {
         new DisplayNameComponent("shallow stream display name", "Shallow Stream"),
         new DescriptionComponent("shallow stream description", "A shallow rocky stream is swifty flowing from your west to east. The water looks approximately one foot deep. There is quite a large rock to your east."),
-        new ExitComponent("shallow stream exit south", Direction.South, openFieldId),
-        new ExitComponent("shallow stream exit east", Direction.East, largeRockId)
+        new ExitComponent("shallow stream exit south", Direction.South, openFieldId, false),
+        new ExitComponent("shallow stream exit east", Direction.East, largeRockId, false)
     }),
     new (openFieldId, "Open Field", new()
     {
-        new ItemComponent("leather coin purse item", new CoinPurse("leather coin purse", 32, 1)),
-        new ItemComponent("health potion item", new HealthPotion("health potion", 50, 10)),
+        new ItemComponent("leather coin purse item", new CoinPurse(coinId, "leather coin purse", 32, 1)),
+        new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10)),
         new DisplayNameComponent("open field display name", "Open Field"),
         new DescriptionComponent("open field description", "You are standing in an open field. All around you stands vibrant green grass. You can hear a running water to your north which you suspect is a small stream."),
-        new ExitComponent("open field exit", Direction.North, streamId)
+        new ExitComponent("open field exit", Direction.North, streamId, false)
     }),
     new (largeRockId, "Large Rock", new() {
-        new ItemComponent("health potion item", new HealthPotion("health potion", 50, 3)),
+        new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 3)),
         new DisplayNameComponent("large rock display name", "Large Rock"),
         new DescriptionComponent("large rock description", "You are standing beside a large rock. The rock looks out of place with respect to the rest of your surroundings. You see an ominous forest to the east."),
-        new ExitComponent("large rock exit west", Direction.West, streamId),
-        new ExitComponent("large rock exit east", Direction.East, oldForestId)
+        new ExitComponent("large rock exit west", Direction.West, streamId, false),
+        new ExitComponent("large rock exit east", Direction.East, oldForestId, false)
     }),
     new (oldForestId, "Old Forest", new() {        
         new DisplayNameComponent("The old and wise forest", "Old Forest"),
         new DescriptionComponent("The old and wise forest description", "Thick tall trees block your way but seem to have allowed the stream safe passage. It doesn't appear as though you can travel any further in this direction."),
-        new ExitComponent("large rock exit", Direction.West, largeRockId)
+        new ExitComponent("large rock exit", Direction.West, largeRockId, false)
     }),
 };
 

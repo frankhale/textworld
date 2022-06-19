@@ -1,5 +1,4 @@
-﻿using System.ComponentModel;
-using TextWorld.Core.Components;
+﻿using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
 using TextWorld.Core.Misc;
 

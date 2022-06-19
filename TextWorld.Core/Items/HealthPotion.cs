@@ -7,7 +7,7 @@ namespace TextWorld.Core.Items
     {
         public int HealthImmediately { get; private set; }
 
-        public HealthPotion(string name, int healthImmediately, int quantity) : base(name, quantity)
+        public HealthPotion(Guid id, string name, int healthImmediately, int quantity) : base(id, name, quantity)
         {
             HealthImmediately = healthImmediately;
         }

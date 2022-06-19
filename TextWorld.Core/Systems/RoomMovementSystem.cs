@@ -5,11 +5,18 @@ using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Systems
 {
+    // TODO: We don't want to explicitly put exit locations in the description of a room. 
+    // We can use the exit components to describe the exits and leave the description for 
+    // a detailed description of the room.
+
     public class RoomMovementSystem : TWSystem
     {
         public override void Run(TWEntity commandEntity, TWEntity playerEntity, List<TWEntity> roomEntities, TWEntity outputEntity)
         {
             var processedComponents = new List<CommandComponent>();
+
+            // FIXME: directionCommandComponent doesn't need to be a list here because there is only
+            // one command coming in at a time.
             var directionCommandComponents = new List<CommandComponent>();
 
             foreach (var commandComponent in commandEntity.GetComponentsByType<CommandComponent>())
@@ -24,47 +31,42 @@ namespace TextWorld.Core.Systems
                 }
             }
 
-            var currentRoomComponent = playerEntity.GetComponentByName<IdComponent>("player current room");
-
-            if (currentRoomComponent != null)
+            if (directionCommandComponents.Count > 0)
             {
+                var currentRoomComponent = playerEntity.GetComponentByName<IdComponent>("player current room");
                 var currentRoomEntity = roomEntities.FirstOrDefault(x => x.Id == currentRoomComponent.Id);
+                var currentRoomExits = currentRoomEntity!.GetComponentsByType<ExitComponent>();
 
-                if (currentRoomEntity != null)
+                TextInfo myTI = new CultureInfo("en-US", false).TextInfo;
+
+                foreach (var exit in currentRoomExits)
                 {
-                    var currentRoomExits = currentRoomEntity.GetComponentsByType<ExitComponent>();
+                    var exitCommand = directionCommandComponents.FirstOrDefault(x => exit.Direction.ToString() == myTI.ToTitleCase(x.Command));
 
-                    TextInfo myTI = new CultureInfo("en-US", false).TextInfo;
-
-                    foreach (var exit in currentRoomExits)
+                    if (exitCommand != null)
                     {
-                        var exitCommand = directionCommandComponents.FirstOrDefault(x => exit.Direction.ToString() == myTI.ToTitleCase(x.Command));
+                        directionCommandComponents.Remove(exitCommand);
 
-                        if (exitCommand != null)
+                        // get new room entity based on exit component room id
+                        var newRoomEntity = roomEntities.FirstOrDefault(x => x.Id == exit.RoomId);
+
+                        if (newRoomEntity != null)
                         {
-                            directionCommandComponents.Remove(exitCommand);
+                            // if we find a match set the players current room component to a new Id
+                            currentRoomComponent!.SetId(newRoomEntity.Id);
 
-                            // get new room entity based on exit component room id
-                            var newRoomEntity = roomEntities.FirstOrDefault(x => x.Id == exit.RoomId);
-
-                            if (newRoomEntity != null)
-                            {
-                                // if we find a match set the players current room component to a new Id
-                                currentRoomComponent.SetId(newRoomEntity.Id);
-
-                                // Add a room changed component to the player entity
-                                playerEntity.AddComponent(new ShowDescriptionComponent("player new room", newRoomEntity));
-                            }
+                            // Add a room changed component to the player entity
+                            playerEntity.AddComponent(new ShowDescriptionComponent("player new room", newRoomEntity));
                         }
                     }
                 }
-            }
 
-            commandEntity.RemoveComponents(processedComponents);
+                commandEntity.RemoveComponents(processedComponents);
+            }
 
             if (directionCommandComponents.Count > 0)
             {
-                outputEntity.AddComponent(new OutputComponent("output for inaccessible direction", $"I cannot go in that direction", OutputType.Regular));
+                outputEntity.AddComponent(new OutputComponent("output for inaccessible direction", "I cannot go in that direction", OutputType.Regular));
             }
         }
     }

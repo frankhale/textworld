@@ -8,7 +8,7 @@ namespace TextWorld.Core.Items
     {
         public int NumberOfCoins { get; private set; }
 
-        public CoinPurse(string name, int numberOfCoins, int itemQuantity) : base(name, itemQuantity)
+        public CoinPurse(Guid id, string name, int numberOfCoins, int itemQuantity) : base(id, name, itemQuantity)
         {
             NumberOfCoins = numberOfCoins;
             Synonyms = new string[] { "purse", "coin purse", "coins" };
