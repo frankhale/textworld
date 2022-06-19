@@ -28,12 +28,12 @@ namespace TextWorld.Core.Systems
                             if (commandComponent.Args.Length > 0 && commandComponent.Args[0] == "self")
                             {
                                 processedComponents.Add(commandComponent);
-                                outputEntity.AddComponent(new ShowDescriptionComponent("show player description", playerEntity));
+                                outputEntity.AddComponent(new ShowDescriptionComponent("show player description", playerEntity, DescriptionType.Room));
                             }
                             else
                             {
                                 processedComponents.Add(commandComponent);
-                                outputEntity.AddComponent(new ShowDescriptionComponent("show room description", roomEntity));
+                                outputEntity.AddComponent(new ShowDescriptionComponent("show room description", roomEntity, DescriptionType.Room));
                             }
                             break;
                         case "show":

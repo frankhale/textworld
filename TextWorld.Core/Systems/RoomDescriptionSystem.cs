@@ -14,16 +14,20 @@ namespace TextWorld.Core.Systems
                 .Where(x => x.GetType() == typeof(ShowDescriptionComponent)))
             {
                 processedComponents.Add(component);
-
-                var entity = (component as ShowDescriptionComponent)?.Entity;
-
-                if (entity != null)
+                
+                var showDescriptionComponent = component as ShowDescriptionComponent;
+                if (showDescriptionComponent!.DescriptionType == DescriptionType.Room)
                 {
-                    var descriptionComponent = entity.GetComponentByType<DescriptionComponent>();
+                    var entity = showDescriptionComponent!.Entity;
 
-                    if (descriptionComponent != null)
+                    if (entity != null)
                     {
-                        outputEntity.AddComponent(new OutputComponent("description output", descriptionComponent.Description, OutputType.Regular));
+                        var descriptionComponent = entity.GetComponentByType<DescriptionComponent>();
+
+                        if (descriptionComponent != null)
+                        {
+                            outputEntity.AddComponent(new OutputComponent("description output", descriptionComponent.Description, OutputType.Regular));
+                        }
                     }
                 }
             }

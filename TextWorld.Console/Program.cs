@@ -69,7 +69,7 @@ PlayerEntity.AddComponent(new CurrencyComponent("player currency", 30));
 PlayerEntity.AddComponent(new IdComponent("player current room", openFieldId));
 
 var firstRoom = RoomEntities.FirstOrDefault(room => room.Id == openFieldId);
-PlayerEntity.AddComponent(new ShowDescriptionComponent("show current room description", firstRoom!));
+PlayerEntity.AddComponent(new ShowDescriptionComponent("show current room description", firstRoom!, DescriptionType.Room));
 
 // Run systems
 MOTDSystem.Run(MOTDEntity, OutputEntity);
