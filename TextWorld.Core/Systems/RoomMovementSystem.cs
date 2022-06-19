@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.Xml.Linq;
 using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
 using TextWorld.Core.Misc;

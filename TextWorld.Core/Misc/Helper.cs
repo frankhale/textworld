@@ -171,7 +171,8 @@ namespace TextWorld.Core.Misc
             }
             else
             {
-                outputEntity.AddComponent(new OutputComponent("output for non existant item", $"{component.ItemName} does not exist here.", OutputType.Regular));
+                var itemName = string.IsNullOrEmpty(component.ItemName) ? "that item" : component.ItemName;
+                outputEntity.AddComponent(new OutputComponent("output for non existant item", $"{itemName} does not exist here.", OutputType.Regular));
             }
         }
     
