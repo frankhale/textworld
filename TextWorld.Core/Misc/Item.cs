@@ -4,26 +4,43 @@ namespace TextWorld.Core.Misc
 {
     public abstract class Item
     {
-        public Guid Id { get; private set; }
-        public string Name { get; private set; }
-        // FIXME: The command system needs to honor synonyms
-        public string[]? Synonyms { get; protected set; }
-        public int Quantity { get; private set; }
+        // FIXME: Not all properties here are currently being honored
 
-        public Item(Guid id, string name, int quantity)
+        public Guid Id { get; private set; }
+        public string Name { get; private set; }        
+        public string[] Synonyms { get; protected set; }
+        public int Quantity { get; private set; }
+        public string Description { get; private set; }
+        public bool IsContainer { get; private set; }
+
+        public Item(Guid id, string name, int quantity, string description, string[] synonyms)
         {
             Id = id;
             Name = name;
             Quantity = quantity;
-        }
-
-        public Item(Guid id, string name, int quantity, string[] synonyms) : this(id, name, quantity)
-        {
+            Description = description;
             Synonyms = synonyms;
         }
 
-        //TODO: We are going to need a way to define multiple Use functions.
-        // probably using a dictionary of "name" and "Actions"
+        public Item(Guid id, string name, int quantity, string description, bool isContainer)
+        {
+            Id = id;
+            Name = name;
+            Quantity = quantity;
+            Description = description;
+            Synonyms = Array.Empty<string>();
+            IsContainer = isContainer;
+        }
+
+        public Item(Guid id, string name, int quantity, string description, string[] synonyms, bool isContainer)
+        {
+            Id = id;
+            Name = name;
+            Quantity = quantity;
+            Description = description;
+            Synonyms = synonyms;
+            IsContainer = isContainer;            
+        }
 
         public abstract void Use(TWEntity entity);
     }

@@ -180,7 +180,7 @@ namespace TextWorld.Core.Test
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "New Room", new List<TWComponent>()
                 {
-                    new ItemComponent("item", new CoinPurse(coinId, "leather coin purse", 64, 1)),
+                    new ItemComponent("item", new CoinPurse(coinId, "leather coin purse", 64, 1, "An ordinary coin purse")),
                 });
             roomEntities.Add(room);
 
@@ -212,7 +212,7 @@ namespace TextWorld.Core.Test
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "New Room", new List<TWComponent>()
                 {
-                    new ItemComponent("item", new CoinPurse(coinId, "leather coin purse", 64, 1)),
+                    new ItemComponent("item", new CoinPurse(coinId, "leather coin purse", 64, 1, "An ordinary coin purse")),
                 });
             roomEntities.Add(room);
 
@@ -244,7 +244,7 @@ namespace TextWorld.Core.Test
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "New Room", new List<TWComponent>()
                 {
-                    new ItemComponent("item", new CoinPurse(coinId, "leather coin purse", 64, 1)),
+                    new ItemComponent("item", new CoinPurse(coinId, "leather coin purse", 64, 1, "An ordinary coin purse")),
                 });
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));
@@ -384,8 +384,8 @@ namespace TextWorld.Core.Test
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "Test Room", new List<TWComponent>()
             {
-                new ItemComponent("leather coin purse item", new CoinPurse(coinId, "leather coin purse", 32, 1)),
-                new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10))
+                new ItemComponent("leather coin purse item", new CoinPurse(coinId, "leather coin purse", 32, 1, "An ordinary coin purse")),
+                new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10, "An ordinary health potion", new [] { "potion" })),
             });
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));
@@ -418,7 +418,7 @@ namespace TextWorld.Core.Test
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "Test Room", new List<TWComponent>()
             {
-                new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10))
+                new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10, "An ordinary health potion", new [] { "potion" }))
             });
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));
@@ -452,7 +452,7 @@ namespace TextWorld.Core.Test
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "Test Room", new List<TWComponent>()
             {
-                new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10))
+                new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10, "An ordinary health potion", new [] { "potion" }))
             });
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));
@@ -484,7 +484,7 @@ namespace TextWorld.Core.Test
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "Test Room", new List<TWComponent>()
             {
-                new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10))
+                new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10, "An ordinary health potion", new [] { "potion" }))
             });
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));

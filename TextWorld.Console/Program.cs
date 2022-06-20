@@ -31,12 +31,15 @@ Guid streamId = Guid.NewGuid(),
     coinId = Guid.NewGuid(),
     healthPotionId = Guid.NewGuid();
 
+string healthPotionDescription = "An oddly shaped bottle with a cool blue liquid inside. The liquid glows with an intense light.";
+var healthPotionSynonyms = new string[] { "potion", "health pot", "health" };
+    
 RoomEntities = new List<TWEntity>()
 {
     new (openFieldId, "Open Field", new()
     {
-        new ItemComponent("leather coin purse item", new CoinPurse(coinId, "leather coin purse", 32, 1)),
-        new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10)),
+        new ItemComponent("leather coin purse item", new CoinPurse(coinId, "leather coin purse", 32, 1, "Extremely worn leather purse. The leather is soft and flexible and it's color has faded.")),
+        new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10, healthPotionDescription, healthPotionSynonyms)),
         new DisplayNameComponent("open field display name", "Open Field"),
         new DescriptionComponent("open field description", "You are standing in an open field. All around you stands vibrant green grass. You can hear the sound of flowing water off in the distance which you suspect is a stream."),
         new ExitComponent("open field exit", Direction.North, streamId, false)
@@ -48,15 +51,15 @@ RoomEntities = new List<TWEntity>()
         new ExitComponent("shallow stream exit south", Direction.South, openFieldId, false),
         new ExitComponent("shallow stream exit east", Direction.East, largeRockId, false)
     }),
-    new (largeRockId, "Large Rock", new() 
+    new (largeRockId, "Large Rock", new()
     {
-        new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 3)),
+        new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 3, healthPotionDescription, healthPotionSynonyms)),
         new DisplayNameComponent("large rock display name", "Large Rock"),
         new DescriptionComponent("large rock description", "You are standing beside a large rock. The rock looks out of place with respect to the rest of your surroundings."),
         new ExitComponent("large rock exit west", Direction.West, streamId, false),
         new ExitComponent("large rock exit east", Direction.East, oldForestId, false)
     }),
-    new (oldForestId, "Old Forest", new() 
+    new (oldForestId, "Old Forest", new()
     {
         new DisplayNameComponent("The old and wise forest", "Old Forest"),
         new DescriptionComponent("The old and wise forest description", "Thick tall trees block your way but seem to have allowed the stream safe passage. It doesn't appear as though you can travel any further in this direction."),
@@ -65,9 +68,9 @@ RoomEntities = new List<TWEntity>()
 };
 
 PlayerEntity.AddComponent(new DescriptionComponent("player description", "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!"));
+PlayerEntity.AddComponent(new CurrencyComponent("coins", 10));
 PlayerEntity.AddComponent(new InventoryComponent("player inventory"));
 PlayerEntity.AddComponent(new HealthComponent("player health", 100, 100));
-PlayerEntity.AddComponent(new CurrencyComponent("player currency", 30));
 PlayerEntity.AddComponent(new IdComponent("player current room", openFieldId));
 
 var firstRoom = RoomEntities.FirstOrDefault(room => room.Id == openFieldId);
