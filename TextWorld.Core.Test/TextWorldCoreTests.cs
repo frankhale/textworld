@@ -54,7 +54,7 @@ namespace TextWorld.Core.Test
             {
                 component.Name.Should().Be(componentName);
                 component.Description.Should().Be(description);
-            }            
+            }
         }
 
         [Fact]
@@ -87,7 +87,7 @@ namespace TextWorld.Core.Test
             {
                 component.Name.Should().Be(componentName);
                 component.Description.Should().Be(description);
-            }           
+            }
         }
 
         [Fact]
@@ -104,7 +104,7 @@ namespace TextWorld.Core.Test
             {
                 entity.RemoveComponent(component);
             }
-            
+
             // Assert
             entity.Components.Should().BeEmpty();
         }
@@ -142,7 +142,7 @@ namespace TextWorld.Core.Test
             if (outputComponent != null)
             {
                 outputComponent.Value.Should().Be(motd);
-            }            
+            }
         }
 
         [Fact]
@@ -165,7 +165,7 @@ namespace TextWorld.Core.Test
                 commandComponent.Command.Should().Be(command);
                 commandComponent.Args.Should().HaveCount(1);
                 commandComponent.Args.First().Should().Be(arg);
-            }            
+            }
         }
 
         [Fact]
@@ -260,7 +260,7 @@ namespace TextWorld.Core.Test
             // Assert
             playerCurrentRoom.Should().NotBeNull();
             outputComponent.Should().NotBeNull();
-            
+
             if (playerCurrentRoom != null)
             {
                 var takenItemComponent = playerCurrentRoom.GetComponentsByType<ItemComponent>().FirstOrDefault(x => x.Item.Name == "leather coin purse");
@@ -270,7 +270,7 @@ namespace TextWorld.Core.Test
             if (outputComponent != null)
             {
                 outputComponent.Value.Should().Contain("You've taken leather coin purse");
-            }            
+            }
         }
 
         [Fact]
@@ -300,9 +300,9 @@ namespace TextWorld.Core.Test
             quitComponent.Should().NotBeNull();
 
             if (quitComponent != null)
-            {                
+            {
                 quitComponent.Name.Should().Be("quit game");
-            }            
+            }
         }
 
         [Fact]
@@ -403,7 +403,7 @@ namespace TextWorld.Core.Test
             if (itemActionComponent != null)
             {
                 itemActionComponent.ActionType.Should().Be(ItemActionType.ShowAll);
-            }            
+            }
         }
 
         [Fact]
@@ -437,7 +437,107 @@ namespace TextWorld.Core.Test
             if (itemActionComponent != null)
             {
                 itemActionComponent.ActionType.Should().Be(ItemActionType.Take);
-            }            
+            }
+        }
+
+        [Fact]
+        public void CanProcessTakeAllCommand()
+        {
+            // Arrange
+            var playerEntity = new TWEntity("player");
+            var roomEntities = new List<TWEntity>();
+            var commandEntity = new TWEntity("Command Entity");
+            var commandSystem = new CommandSystem();
+
+            var roomId = Guid.NewGuid();
+            var room = new TWEntity(roomId, "Test Room", new List<TWComponent>()
+            {
+                new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10))
+            });
+
+            playerEntity.AddComponent(new InventoryComponent("player inventory"));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            roomEntities.Add(room);
+
+            Helper.AddCommandComponentToEntity(commandEntity, "take all");
+            commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
+            var itemActionComponent = playerEntity.GetComponentByType<ItemActionComponent>();
+
+            // Act
+            itemActionComponent.Should().NotBeNull();
+
+            if (itemActionComponent != null)
+            {
+                itemActionComponent.ActionType.Should().Be(ItemActionType.TakeAll);
+            }
+        }
+
+        [Fact]
+        public void CanProcessDropCommand()
+        {
+            // Arrange
+            var playerEntity = new TWEntity("player");
+            var roomEntities = new List<TWEntity>();
+            var commandEntity = new TWEntity("Command Entity");
+            var commandSystem = new CommandSystem();
+
+            var roomId = Guid.NewGuid();
+            var room = new TWEntity(roomId, "Test Room", new List<TWComponent>()
+            {
+                new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10))
+            });
+
+            playerEntity.AddComponent(new InventoryComponent("player inventory"));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            roomEntities.Add(room);
+
+            Helper.AddCommandComponentToEntity(commandEntity, "drop health potion");
+            commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
+            var itemActionComponent = playerEntity.GetComponentByType<ItemActionComponent>();
+
+            // Act
+            itemActionComponent.Should().NotBeNull();
+
+            if (itemActionComponent != null)
+            {
+                itemActionComponent.ActionType.Should().Be(ItemActionType.Drop);
+            }
+        }
+
+        [Fact]
+        public void CanShowRoomDescription()
+        {
+            // Arrange
+            var playerEntity = new TWEntity("player");
+            var roomEntities = new List<TWEntity>();
+            var commandEntity = new TWEntity("Command Entity");            
+            var outputEntity = new TWEntity("Output Entity");
+            var commandSystem = new CommandSystem();
+            var roomId = Guid.NewGuid();
+            var roomDescription = "You are standing in an open field. All around you stands vibrant green grass. You can hear the sound of flowing water off in the distance which you suspect is a stream.";
+            var room = new TWEntity(roomId, "Test Room", new List<TWComponent>()
+            {
+                new DescriptionComponent("open field description", roomDescription),
+            });
+            
+            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            roomEntities.Add(room);
+
+            Helper.AddCommandComponentToEntity(commandEntity, "look");
+            
+            // Act
+            commandSystem.Run(commandEntity, playerEntity, roomEntities, outputEntity);            
+
+            var showRoomDescription = outputEntity.GetComponentByType<ShowDescriptionComponent>();
+            
+            // Assert
+            showRoomDescription.Should().NotBeNull();
+            showRoomDescription!.Entity.Should().NotBeNull();
+
+            var roomDescriptionComponent = showRoomDescription!.Entity!.GetComponentByType<DescriptionComponent>();
+
+            roomDescriptionComponent.Should().NotBeNull();
+            roomDescriptionComponent!.Description.Should().Be(roomDescription);
         }
     }
 }

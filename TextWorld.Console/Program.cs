@@ -48,14 +48,16 @@ RoomEntities = new List<TWEntity>()
         new ExitComponent("shallow stream exit south", Direction.South, openFieldId, false),
         new ExitComponent("shallow stream exit east", Direction.East, largeRockId, false)
     }),
-    new (largeRockId, "Large Rock", new() {
+    new (largeRockId, "Large Rock", new() 
+    {
         new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 3)),
         new DisplayNameComponent("large rock display name", "Large Rock"),
         new DescriptionComponent("large rock description", "You are standing beside a large rock. The rock looks out of place with respect to the rest of your surroundings."),
         new ExitComponent("large rock exit west", Direction.West, streamId, false),
         new ExitComponent("large rock exit east", Direction.East, oldForestId, false)
     }),
-    new (oldForestId, "Old Forest", new() {
+    new (oldForestId, "Old Forest", new() 
+    {
         new DisplayNameComponent("The old and wise forest", "Old Forest"),
         new DescriptionComponent("The old and wise forest description", "Thick tall trees block your way but seem to have allowed the stream safe passage. It doesn't appear as though you can travel any further in this direction."),
         new ExitComponent("large rock exit", Direction.West, largeRockId, false)

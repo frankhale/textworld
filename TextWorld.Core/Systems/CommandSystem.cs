@@ -7,6 +7,8 @@ namespace TextWorld.Core.Systems
     public class CommandSystem : TWSystem
     {
         private readonly Dictionary<string, Action<TWEntity, List<TWEntity>, CommandComponent, List<CommandComponent>, TWEntity>> CommandActions = new() {
+            // FIXME: There is a lot of redundant string joining for command args going on. We need to 
+            // do this once and reuse.
             { "quit", (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
                 processedComponents.Add(commandComponent);
                 outputEntity.AddComponent(new QuitComponent("quit game"));
@@ -22,7 +24,15 @@ namespace TextWorld.Core.Systems
                     var roomEntity = Helper.GetPlayersCurrentRoom(playerEntity, roomEntities);
                     processedComponents.Add(commandComponent);
                     outputEntity.AddComponent(new ShowDescriptionComponent("show room description", roomEntity!, DescriptionType.Room));
-                    outputEntity.AddComponent(Helper.GetRoomExitInfoForRoom(playerEntity, roomEntities, roomEntity!));
+
+                    // Rooms having no exits is weird and shouldn't happen in a real game but in testing
+                    // where certain parts of rooms are tested we ought to check here and not add extra
+                    // components when they are not necessary.
+                    var newRoomExits = roomEntity!.GetComponentsByType<ExitComponent>();
+                    if(newRoomExits != null)
+                    {
+                        outputEntity.AddComponent(Helper.GetRoomExitInfoForRoom(playerEntity, roomEntities, roomEntity!));
+                    }
                 }
             } },
             { "show",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
@@ -40,6 +50,10 @@ namespace TextWorld.Core.Systems
             { "take all",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
                 processedComponents.Add(commandComponent);
                 outputEntity.AddComponent(new ItemActionComponent("take all items action", string.Join(" ", commandComponent.Args), ItemActionType.TakeAll, Helper.TakeAllItemsAction));
+            } },
+            { "drop",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
+                processedComponents.Add(commandComponent);
+                outputEntity.AddComponent(new ItemActionComponent("drop items action", string.Join(" ", commandComponent.Args), ItemActionType.Drop, Helper.DropItemAction));
             } }
         };
 

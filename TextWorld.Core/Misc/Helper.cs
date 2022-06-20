@@ -195,12 +195,22 @@ namespace TextWorld.Core.Misc
             }
         }
 
+        public static void DropItemAction(List<TWEntity> roomEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
+        {
+            throw new NotImplementedException();
+        }
+
+        public static void DropAllItemsAction(List<TWEntity> roomEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
+        {
+            throw new NotImplementedException();
+        }
+
         public static ShowDescriptionComponent GetRoomExitInfoForRoom(TWEntity playerEntity, List<TWEntity> roomEntities, TWEntity roomEntity)
         {
             var newRoomExits = roomEntity!.GetComponentsByType<ExitComponent>();
             var exitDictionary = newRoomExits.ToDictionary(x => x.RoomId);
             var exitRooms = roomEntities.Where(x => exitDictionary.TryGetValue(x.Id, out var e) && !e.Hidden).ToList();
-            var exitInfo = exitRooms.Select(x => $"{exitDictionary[x.Id].Direction} -> {x.Name}".ToString()).ToList();            
+            var exitInfo = exitRooms.Select(x => $"{exitDictionary[x.Id].Direction} -> {x.Name}".ToString()).ToList();                        
             return new ShowDescriptionComponent($"Exits: {string.Join(", ", exitInfo)}", exitRooms, DescriptionType.Exit);
         }
     }

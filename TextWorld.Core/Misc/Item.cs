@@ -6,6 +6,7 @@ namespace TextWorld.Core.Misc
     {
         public Guid Id { get; private set; }
         public string Name { get; private set; }
+        // FIXME: The command system needs to honor synonyms
         public string[]? Synonyms { get; protected set; }
         public int Quantity { get; private set; }
 
