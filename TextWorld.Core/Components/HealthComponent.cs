@@ -4,12 +4,12 @@ namespace TextWorld.Core.Components
 {
     public class HealthComponent : TWComponent
     {
-        public int Health { get; set; }
+        public int CurrentHealth { get; set; }
         public int MaxHealth { get; set; }
 
-        public HealthComponent(string name, int health, int maxHealth) : base(name) 
+        public HealthComponent(string name, int currentHealth, int maxHealth) : base(name) 
         {
-            Health = health;
+            CurrentHealth = currentHealth;
             MaxHealth = maxHealth;
         }
     }

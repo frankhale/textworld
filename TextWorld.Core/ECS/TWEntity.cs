@@ -4,8 +4,8 @@ namespace TextWorld.Core.ECS
     {
         public Guid Id { get; } = Guid.NewGuid();
         public string Name { get; private set; }
-        public List<TWComponent> Components { get; private set; } = new List<TWComponent>();
-
+        public List<TWComponent> Components { get; private set; } = new();
+        
         public TWEntity(string name)
         {
             Name = name;

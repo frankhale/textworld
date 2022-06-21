@@ -31,7 +31,7 @@ namespace TextWorld.Core.Systems
 
                         if (newRoomEntity != null)
                         {
-                            currentRoomComponent!.SetId(newRoomEntity.Id);
+                            currentRoomComponent!.Id = newRoomEntity.Id;
 
                             playerEntity.AddComponent(new ShowDescriptionComponent("player new room", newRoomEntity, DescriptionType.Room));
                             playerEntity.AddComponent(Helper.GetRoomExitInfoForRoom(playerEntity, roomEntities, newRoomEntity));

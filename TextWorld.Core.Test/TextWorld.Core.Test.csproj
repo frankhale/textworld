@@ -25,4 +25,10 @@
     <ProjectReference Include="..\TextWorld.Core\TextWorld.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="game.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

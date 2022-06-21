@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using TextWorld.Core.Components;
+using TextWorld.Core.Data;
 using TextWorld.Core.ECS;
 using TextWorld.Core.Items;
 using TextWorld.Core.Misc;
@@ -538,6 +539,26 @@ namespace TextWorld.Core.Test
 
             roomDescriptionComponent.Should().NotBeNull();
             roomDescriptionComponent!.Description.Should().Be(roomDescription);
+        }
+
+        [Fact]
+        public void CanLoadGameData()
+        {
+            var gameLoader = new GameLoader();
+            var loaded = gameLoader.Load("game.json");
+            var gameEntities = gameLoader.GetGameEntities();
+
+            loaded.Should().BeTrue();
+            gameEntities.Player.Should().NotBeNull();
+            gameEntities.Rooms.Should().NotBeNull();
+            gameEntities.Items.Should().NotBeNull();
+
+            // Check to make sure players current room is one of the ones that exists in the list of rooms
+            var playerCurrentRoom = gameEntities.Player!.GetComponentByType<IdComponent>();
+            playerCurrentRoom.Should().NotBeNull();
+            var playerCurrentRoomId = playerCurrentRoom!.Id;
+            var playerCurrentRoomExists = gameEntities.Rooms!.Any(r => r.Id == playerCurrentRoomId);
+            playerCurrentRoomExists.Should().BeTrue();            
         }
     }
 }
