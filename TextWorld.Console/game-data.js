@@ -1,75 +1,72 @@
-let items = [
+let Items = [
     {
-        id: 1,
-        name: "leather coin purse",
-        description: "Extremely worn leather purse. The leather is soft and flexible and it's color has faded.",
-        type: "coin purse",
-        quantity: 1,
-        numberOfCoins: 10
+        Id: 1,
+        Name: "leather coin purse",
+        Description: "Extremely worn leather purse. The leather is soft and flexible and it's color has faded.",
+        ItemType: "CoinPurse",
+        AttributesJSON: "{ \"quantity\": 1, \"numberOfCoins\": 10 }"
     },
     {
-        id: 2,
-        name: "health potion",
-        description: "An oddly shaped bottle with a cool blue liquid inside. The liquid glows with an intense light.",
-        type: "potion",
-        quantity: 1,
-        health: 50,
+        Id: 2,
+        Name: "health potion",
+        Description: "An oddly shaped bottle with a cool blue liquid inside. The liquid glows with an intense light.",
+        ItemType: "Potion",
+        AttributesJSON: "{ \"quantity\": 1, \"health\": 50 }"
     },
     {
-        id: 3,
-        name: "basic sword",
-        description: "A basic sword with no special qualities. It's very worn and it's color is that of dull metal. It otherwise feels solid in your hand",
-        type: "sword",
-        attack: 10,
-        quantity: 1,
-        defense: 2,
+        Id: 3,
+        Name: "basic sword",
+        Description: "A basic sword with no special qualities. It's very worn and it's color is that of dull metal. It otherwise feels solid in your hand",
+        ItemType: "Sword",
+        AttributesJSON: "{ \"attack\": 10, \"quantity\": 1, \"defense\": 2 }"
     }
 ]
 
-let player = {
-    description: "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!",
-    currency: { coins: 10 },
-    health: { current: 100, max: 100 },
-    inventory: [
-        { id: 3, quantity: 1 },
-        { id: 2, quantity: 3 },
+let Player = {
+    Description: "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!",
+    Currency: { Coins: 10 },
+    Health: { Current: 100, Max: 100 },
+    Inventory: [
+        { Id: 3, Quantity: 1 },
+        { Id: 2, Quantity: 3 },
     ],
-    currentRoom: 1
+    CurrentRoom: 1
 }
 
-let rooms = [
+let Rooms = [
     {
-        name: "Open Field",
-        description: "You are standing in an open field. All around you stands tall vibrant green grass. You can hear the sound of flowing water off in the distance which you suspect is a stream.",
-        exits: { north: "Stream" },
-        items: [
-            { id: 1, quantity: 1 }
+        Name: "Open Field",
+        Description: "You are standing in an open field. All around you stands tall vibrant green grass. You can hear the sound of flowing water off in the distance which you suspect is a stream.",
+        Exits: { North: "Stream" },
+        Items: [
+            { Id: 1, Quantity: 1 }
         ]
     },
     {
-        name: "Stream",
-        description: "A shallow rocky stream is swifty flowing from your west to east. The water looks approximately one foot deep from where you are standing.",
-        exits: { south: "Open Field", east: "Large Rock" },
+        Name: "Stream",
+        Description: "A shallow rocky stream is swifty flowing from your west to east. The water looks approximately one foot deep from where you are standing.",
+        Exits: { South: "Open Field", East: "Large Rock" },
     },
     {
-        name: "Large Rock",
-        description: "You are standing beside a large rock. The rock looks out of place with respect to the rest of your surroundings.",
-        exits: { west: "Stream" },
-        items: [
-            { id: 2, quantity: 10 }
+        Name: "Large Rock",
+        Description: "You are standing beside a large rock. The rock looks out of place with respect to the rest of your surroundings.",
+        Exits: { West: "Stream" },
+        Items: [
+            { Id: 2, Quantity: 10 }
         ]
     },
     {
-        name: "Old Forest",
-        description: "Thick tall trees block your way but seem to have allowed the stream safe passage. It doesn't appear as though you can travel any further in this direction.",
-        exits: { west: "Large Rock" },
+        Name: "Old Forest",
+        Description: "Thick tall trees block your way but seem to have allowed the stream safe passage. It doesn't appear as though you can travel any further in this direction.",
+        Exits: { West: "Large Rock" }
     }
 ]
 
-let game = {
-    player,
-    items,
-    rooms
+let Game = {
+    Player,
+    Items,
+    Rooms
 }
 
-console.log(JSON.stringify(game, null, 2));
+let outputJSON = JSON.stringify(Game, null, 2);
+await Deno.writeTextFile("game.json", outputJSON);

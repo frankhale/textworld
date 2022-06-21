@@ -4,7 +4,7 @@ using TextWorld.Core.Items;
 using TextWorld.Core.Misc;
 using TextWorld.Core.Systems;
 
-// Entities
+//Entities
 TWEntity MOTDEntity = new("MOTD Entity");
 TWEntity PlayerEntity = new("Player Entity");
 TWEntity CommandEntity = new("Command Entity");
@@ -33,7 +33,7 @@ Guid streamId = Guid.NewGuid(),
 
 string healthPotionDescription = "An oddly shaped bottle with a cool blue liquid inside. The liquid glows with an intense light.";
 var healthPotionSynonyms = new string[] { "potion", "health pot", "health" };
-    
+
 RoomEntities = new List<TWEntity>()
 {
     new (openFieldId, "Open Field", new()
