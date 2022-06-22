@@ -6,8 +6,8 @@
       "Coins": 10
     },
     "Health": {
-      "Current": 100,
-      "Max": 100
+      "CurrentHealth": 100,
+      "MaxHealth": 100
     },
     "Inventory": [
       {
@@ -26,8 +26,10 @@
       "Synonyms": [
         "purse",
         "coin purse",
-        "leather purse"
+        "leather purse",
+        "coins"
       ],
+      "IsContainer": false,
       "AttributesJSON": "{ \"Quantity\": 1, \"NumberOfCoins\": 10 }"
     },
     {
@@ -39,6 +41,7 @@
         "health",
         "health pot"
       ],
+      "IsContainer": false,
       "AttributesJSON": "{ \"Quantity\": 1, \"Health\": 50 }"
     }
   ],
@@ -99,8 +102,7 @@
       "Exits": [
         {
           "Direction": "West",
-          "RoomId": "Large Rock",
-          "Hidden": false
+          "RoomId": "Large Rock"
         }
       ]
     }

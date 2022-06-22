@@ -5,11 +5,11 @@ namespace TextWorld.Core.Components
 {
     public class InventoryComponent : TWComponent
     {
-        public List<Item> Items { get; private set; } = new List<Item>();
+        public List<InventoryItem> Items { get; private set; } = new();
 
         public InventoryComponent(string name) : base(name) { }
 
-        public void AddItem(Item i)
+        public void AddItem(InventoryItem i)
         {
             if (i.Id != Guid.Empty)
             {

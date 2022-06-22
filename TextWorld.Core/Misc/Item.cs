@@ -21,7 +21,7 @@ namespace TextWorld.Core.Misc
             Quantity = quantity;
             Description = description;
             Synonyms = synonyms;
-            ItemType = ItemType;
+            ItemType = itemType;
         }
 
         public Item(Guid id, string name, int quantity, string description, ItemType itemType, bool isContainer)
@@ -32,7 +32,7 @@ namespace TextWorld.Core.Misc
             Description = description;
             Synonyms = Array.Empty<string>();
             IsContainer = isContainer;
-            ItemType = ItemType;
+            ItemType = itemType;
         }
 
         public Item(Guid id, string name, int quantity, string description, ItemType itemType, string[] synonyms, bool isContainer)
@@ -43,7 +43,7 @@ namespace TextWorld.Core.Misc
             Description = description;
             Synonyms = synonyms;
             IsContainer = isContainer;
-            ItemType = ItemType;
+            ItemType = itemType;
         }
 
         public virtual void Use(TWEntity entity) { }

@@ -66,7 +66,14 @@ namespace TextWorld.Core.Misc
                 }
                 else
                 {
-                    inventoryComponent.AddItem(new Item(itemComponent.Item.Id, itemComponent.Item.Name, itemComponent.Item.Quantity, itemComponent.Item.Description, itemComponent.Item.ItemType, itemComponent.Item.IsContainer));
+                    inventoryComponent.AddItem(
+                        new InventoryItem 
+                        { 
+                            Id = itemComponent.Item.Id,
+                            Name = itemComponent.Item.Name,
+                            Quantity = itemComponent.Item.Quantity
+                        }                        
+                    );
                 }
 
                 var itemToRemove = GetItemComponentOnEntity(itemOnEntity, itemComponent);
@@ -80,27 +87,27 @@ namespace TextWorld.Core.Misc
 
         public static void RemoveOrDecrementItemFromPlayersInventory(TWEntity playerEntity, TWEntity itemOnEntity, ItemComponent itemComponent)
         {
-            var inventoryComponent = playerEntity.GetComponentByType<InventoryComponent>();
+            //var inventoryComponent = playerEntity.GetComponentByType<InventoryComponent>();
 
-            if (inventoryComponent != null)
-            {
-                var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Id == itemComponent.Item.Id);
+            //if (inventoryComponent != null)
+            //{
+            //    var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Id == itemComponent.Item.Id);
 
-                if (itemInInventory != null)
-                {
-                    itemInInventory.Quantity -= itemComponent.Item.Quantity;
-                }
+            //    if (itemInInventory != null)
+            //    {
+            //        itemInInventory.Quantity -= itemComponent.Item.Quantity;
+            //    }
 
-                if (itemInInventory != null && itemInInventory.Quantity <= 0)
-                {
-                    var itemToRemove = GetItemComponentOnEntity(itemOnEntity, itemComponent);
+            //    if (itemInInventory != null && itemInInventory.Quantity <= 0)
+            //    {
+            //        var itemToRemove = GetItemComponentOnEntity(itemOnEntity, itemComponent);
 
-                    if (itemToRemove != null)
-                    {
-                        itemOnEntity.RemoveComponent(itemToRemove);
-                    }
-                }
-            }
+            //        if (itemToRemove != null)
+            //        {
+            //            itemOnEntity.RemoveComponent(itemToRemove);
+            //        }
+            //    }
+            //}
         }
 
         public static void AddCommandComponentToEntity(TWEntity commandEntity, string command)

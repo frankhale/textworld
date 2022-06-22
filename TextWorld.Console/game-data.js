@@ -2,22 +2,22 @@ let MOTD = "Welcome to a text adventure written using an entity component system
 
 let Items = [
     {
-        Id: "1",
+        Id: 1,
         Name: "leather coin purse",
         Description: "Extremely worn leather purse. The leather is soft and flexible and it's color has faded.",
         ItemType: "CoinPurse",
         Synonyms: ["purse", "coin purse", "leather purse", "coins"],
         IsContainer: false,
-        AttributesJSON: "{ \"Quantity\": 1, \"NumberOfCoins\": 10 }"
+        AttributesJSON: "{ \"NumberOfCoins\": 10 }"
     },
     {
-        Id: "2",
+        Id: 2,
         Name: "health potion",
         Description: "An oddly shaped bottle with a cool blue liquid inside. The liquid glows with an intense light.",
         ItemType: "HealthPotion",
         Synonyms: ["health", "health pot"],
         IsContainer: false,
-        AttributesJSON: "{ \"Quantity\": 1, \"Health\": 50 }"
+        AttributesJSON: "{ \"Health\": 50 }"
     }
 ]
 
@@ -26,7 +26,7 @@ let Player = {
     Currency: { Coins: 10 },
     Health: { CurrentHealth: 100, MaxHealth: 100 },
     Inventory: [        
-        { Id: "2", Quantity: 3 },
+        { Id: 2, Quantity: 3 },
     ],
     CurrentRoom: "Open Field"
 }
@@ -42,7 +42,7 @@ let Rooms = [
             }
         ],
         Items: [
-            { Id: "1", Quantity: 1 }
+            { Id: 1, Quantity: 1 }
         ]
     },
     {
@@ -73,7 +73,7 @@ let Rooms = [
             }
         ],
         Items: [
-            { Id: "2", Quantity: 10 }
+            { Id: 2, Quantity: 10 }
         ]
     },
     {

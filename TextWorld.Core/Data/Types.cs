@@ -14,9 +14,10 @@ namespace TextWorld.Core.Data
         public int MaxHealth { get; set; }
     }
 
-    public class Inventory
+   
+    public class ItemDrop
     {
-        public string Id { get; set; }
+        public int Id { get; set; }
         public int Quantity { get; set; }
     }
 
@@ -26,25 +27,19 @@ namespace TextWorld.Core.Data
         public string? Description { get; set; }
         public Currency? Currency { get; set; }
         public Health? Health { get; set; }
-        public List<Inventory>? Inventory { get; set; }
+        public List<ItemDrop>? Inventory { get; set; }
         public string? CurrentRoom { get; set; }
     }
 
     public class Item
     {
-        public string? Id { get; set; }
+        public int Id { get; set; }
         public string? Name { get; set; }
         public string? Description { get; set; }
         public ItemType ItemType { get; set; }
         public string[]? Synonyms { get; set; }
         public string? AttributesJSON { get; set; }
         public bool IsContainer { get; set; }
-    }
-
-    public class ItemDrop
-    {
-        public string? Id { get; set; }
-        public int Quantity { get; set; }
     }
 
     public class Exit

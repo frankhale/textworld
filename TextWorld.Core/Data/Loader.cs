@@ -38,7 +38,7 @@ namespace TextWorld.Core.Data
             if (Data != null && Data.Player != null && Data.Rooms != null && Data.Items != null)
             {
                 Dictionary<string, Guid> roomIds = new() { };
-                Dictionary<string, Guid> itemIds = new() { };
+                Dictionary<int, Guid> itemIds = new() { };
                 
                 #region ITEMS
                 foreach (var item in Data.Items)
@@ -89,7 +89,7 @@ namespace TextWorld.Core.Data
 
                                 if (fullItem != null)
                                 {
-                                    var itemGuid = itemIds[item.Id!];
+                                    var itemGuid = itemIds[item.Id];
                                     dynamic? itemAttributes = JsonConvert.DeserializeObject(fullItem.AttributesJSON!);
 
                                     if (fullItem.ItemType == ItemType.CoinPurse)
@@ -99,7 +99,8 @@ namespace TextWorld.Core.Data
                                     }
                                     else if (fullItem.ItemType == ItemType.HealthPotion)
                                     {
-                                        roomEntity.AddComponent(new ItemComponent("health potion item", new HealthPotion(itemGuid, fullItem.Name!, (int)itemAttributes!.Health, item.Quantity, fullItem.Description!, fullItem.Synonyms!)));
+                                        roomEntity.AddComponent(new ItemComponent("health potion item", 
+                                            new HealthPotion(itemGuid, fullItem.Name!, (int)itemAttributes!.Health, item.Quantity, fullItem.Description!, fullItem.Synonyms!)));
                                     }
                                 }
                             }
@@ -125,16 +126,17 @@ namespace TextWorld.Core.Data
                 {
                     foreach (var item in Data.Player.Inventory)
                     {
-                        var fullItem = Data.Items!.FirstOrDefault(x => x.Id == item.Id);
+                        var fullItem = Data.Items.FirstOrDefault(x => x.Id == item.Id);
 
-                        inventoryComponent.AddItem(new(
-                            itemIds[item.Id],
-                            fullItem!.Name!,
-                            item.Quantity,
-                            fullItem!.Description!,
-                            fullItem!.ItemType,
-                            fullItem!.IsContainer
-                        ));
+                        if (fullItem != null)
+                        {
+                            inventoryComponent.AddItem(new()
+                            {
+                                Id = itemIds[item.Id],
+                                Name = fullItem.Name,
+                                Quantity = item.Quantity,
+                            });
+                        }
                     }
                 }
 
