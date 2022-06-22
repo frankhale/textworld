@@ -6,12 +6,12 @@
       "Coins": 10
     },
     "Health": {
-      "Current": 100,
-      "Max": 100
+      "CurrentHealth": 100,
+      "MaxHealth": 100
     },
     "Inventory": [
       {
-        "Id": 2,
+        "Id": "2",
         "Quantity": 3
       }
     ],
@@ -19,19 +19,21 @@
   },
   "Items": [
     {
-      "Id": 1,
+      "Id": "1",
       "Name": "leather coin purse",
       "Description": "Extremely worn leather purse. The leather is soft and flexible and it's color has faded.",
       "ItemType": "CoinPurse",
       "Synonyms": [
         "purse",
         "coin purse",
-        "leather purse"
+        "leather purse",
+        "coins"
       ],
+      "IsContainer": false,
       "AttributesJSON": "{ \"Quantity\": 1, \"NumberOfCoins\": 10 }"
     },
     {
-      "Id": 2,
+      "Id": "2",
       "Name": "health potion",
       "Description": "An oddly shaped bottle with a cool blue liquid inside. The liquid glows with an intense light.",
       "ItemType": "HealthPotion",
@@ -39,6 +41,7 @@
         "health",
         "health pot"
       ],
+      "IsContainer": false,
       "AttributesJSON": "{ \"Quantity\": 1, \"Health\": 50 }"
     }
   ],
@@ -54,7 +57,7 @@
       ],
       "Items": [
         {
-          "Id": 1,
+          "Id": "1",
           "Quantity": 1
         }
       ]
@@ -88,7 +91,7 @@
       ],
       "Items": [
         {
-          "Id": 2,
+          "Id": "2",
           "Quantity": 10
         }
       ]
@@ -99,8 +102,7 @@
       "Exits": [
         {
           "Direction": "West",
-          "RoomId": "Large Rock",
-          "Hidden": false
+          "RoomId": "Large Rock"
         }
       ]
     }

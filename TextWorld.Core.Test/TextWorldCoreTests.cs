@@ -181,11 +181,11 @@ namespace TextWorld.Core.Test
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "New Room", new List<TWComponent>()
                 {
-                    new ItemComponent("item", new CoinPurse(coinId, "leather coin purse", 64, 1, "An ordinary coin purse")),
+                    new ItemComponent("item", new CoinPurse(coinId, "leather coin purse", 64, 1, "An ordinary coin purse", Array.Empty<string>())),
                 });
             roomEntities.Add(room);
 
-            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));
             playerEntity.AddComponent(new ItemActionComponent("show room items", ItemActionType.ShowAll, Helper.ShowAllItemAction));
 
             // Act
@@ -213,11 +213,11 @@ namespace TextWorld.Core.Test
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "New Room", new List<TWComponent>()
                 {
-                    new ItemComponent("item", new CoinPurse(coinId, "leather coin purse", 64, 1, "An ordinary coin purse")),
+                    new ItemComponent("item", new CoinPurse(coinId, "leather coin purse", 64, 1, "An ordinary coin purse", Array.Empty<string>())),
                 });
             roomEntities.Add(room);
 
-            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));
             playerEntity.AddComponent(new ItemActionComponent("show room items", "leather coin purse", ItemActionType.Show, Helper.ShowItemAction));
 
             // Act
@@ -245,11 +245,11 @@ namespace TextWorld.Core.Test
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "New Room", new List<TWComponent>()
                 {
-                    new ItemComponent("item", new CoinPurse(coinId, "leather coin purse", 64, 1, "An ordinary coin purse")),
+                    new ItemComponent("item", new CoinPurse(coinId, "leather coin purse", 64, 1, "An ordinary coin purse", Array.Empty<string>())),
                 });
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));
-            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));
             playerEntity.AddComponent(new ItemActionComponent("take item from room", "leather coin purse", ItemActionType.Take, Helper.TakeItemAction));
             roomEntities.Add(room);
 
@@ -287,7 +287,7 @@ namespace TextWorld.Core.Test
             var room = new TWEntity(roomId, "New Room");
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));
-            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));
             playerEntity.AddComponent(new ItemActionComponent("take item from room", "leather coin purse", ItemActionType.Take));
             roomEntities.Add(room);
 
@@ -322,7 +322,7 @@ namespace TextWorld.Core.Test
             });
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));
-            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));
             playerEntity.AddComponent(new ItemActionComponent("take item from room", "leather coin purse", ItemActionType.Take));
             roomEntities.Add(room);
 
@@ -354,7 +354,7 @@ namespace TextWorld.Core.Test
             var room = new TWEntity(roomId, "Test Room");
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));
-            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));
             playerEntity.AddComponent(new ItemActionComponent("take item from room", "leather coin purse", ItemActionType.Take));
             roomEntities.Add(room);
 
@@ -385,12 +385,12 @@ namespace TextWorld.Core.Test
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "Test Room", new List<TWComponent>()
             {
-                new ItemComponent("leather coin purse item", new CoinPurse(coinId, "leather coin purse", 32, 1, "An ordinary coin purse")),
+                new ItemComponent("leather coin purse item", new CoinPurse(coinId, "leather coin purse", 32, 1, "An ordinary coin purse", Array.Empty<string>())),
                 new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10, "An ordinary health potion", new [] { "potion" })),
             });
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));
-            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));
             roomEntities.Add(room);
 
             Helper.AddCommandComponentToEntity(commandEntity, "inspect");
@@ -423,7 +423,7 @@ namespace TextWorld.Core.Test
             });
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));
-            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));
             roomEntities.Add(room);
 
             Helper.AddCommandComponentToEntity(commandEntity, "take health potion");
@@ -453,11 +453,11 @@ namespace TextWorld.Core.Test
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "Test Room", new List<TWComponent>()
             {
-                new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10, "An ordinary health potion", new [] { "potion" }))
+                new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10, "An ordinary health potion", Array.Empty<string>()))
             });
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));
-            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));
             roomEntities.Add(room);
 
             Helper.AddCommandComponentToEntity(commandEntity, "take all");
@@ -485,11 +485,11 @@ namespace TextWorld.Core.Test
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "Test Room", new List<TWComponent>()
             {
-                new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10, "An ordinary health potion", new [] { "potion" }))
+                new ItemComponent("health potion item", new HealthPotion(healthPotionId, "health potion", 50, 10, "An ordinary health potion", Array.Empty<string>()))
             });
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));
-            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));
             roomEntities.Add(room);
 
             Helper.AddCommandComponentToEntity(commandEntity, "drop health potion");
@@ -521,7 +521,7 @@ namespace TextWorld.Core.Test
                 new DescriptionComponent("open field description", roomDescription),
             });
             
-            playerEntity.AddComponent(new IdComponent("player current room", roomId));
+            playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));
             roomEntities.Add(room);
 
             Helper.AddCommandComponentToEntity(commandEntity, "look");

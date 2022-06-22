@@ -2,9 +2,13 @@
 using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
 using TextWorld.Core.Items;
+using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Data
 {
+    // FIXME: We are taking short cuts in here and explicitly ignoring some possible null values
+    //        in data. This is so freaking lame, I'm using bandaids and witchcraft to get this
+    //        to work!!!
     public class GameLoader
     {
         private Game? Data;
@@ -34,16 +38,15 @@ namespace TextWorld.Core.Data
             if (Data != null && Data.Player != null && Data.Rooms != null && Data.Items != null)
             {
                 Dictionary<string, Guid> roomIds = new() { };
-                Dictionary<int, Guid> itemIds = new() { };
-
+                Dictionary<string, Guid> itemIds = new() { };
+                
                 #region ITEMS
                 foreach (var item in Data.Items)
                 {
-                    itemIds[item.Id] = Guid.NewGuid();
+                    itemIds[item.Id!] = Guid.NewGuid();
 
                     TWEntity itemEntity = new(item.Name!);
-                    itemEntity.AddComponent(new JsonComponent(item.Name!, itemIds[item.Id], JsonConvert.SerializeObject(item)));
-                    itemEntities.Add(itemEntity);
+                    itemEntity.AddComponent(new JsonComponent(item.Name!, itemIds[item.Id!], JsonConvert.SerializeObject(item)));                    itemEntities.Add(itemEntity);
                 }
 
                 gameEntities.Items = itemEntities;
@@ -86,17 +89,17 @@ namespace TextWorld.Core.Data
 
                                 if (fullItem != null)
                                 {
-                                    var itemGuid = itemIds[item.Id];
+                                    var itemGuid = itemIds[item.Id!];
                                     dynamic? itemAttributes = JsonConvert.DeserializeObject(fullItem.AttributesJSON!);
 
                                     if (fullItem.ItemType == ItemType.CoinPurse)
                                     {
                                         roomEntity.AddComponent(new ItemComponent($"{fullItem.Name} item",
-                                            new CoinPurse(itemGuid, fullItem.Name!, (int)itemAttributes!.NumberOfCoins, item.Quantity, fullItem.Description!)));
+                                            new CoinPurse(itemGuid, fullItem.Name!, (int)itemAttributes!.NumberOfCoins, item.Quantity, fullItem.Description!, fullItem.Synonyms!)));
                                     }
                                     else if (fullItem.ItemType == ItemType.HealthPotion)
                                     {
-                                        roomEntity.AddComponent(new ItemComponent("health potion item", new HealthPotion(itemGuid, fullItem.Name, (int)itemAttributes!.Health, item.Quantity, fullItem.Description!, fullItem.Synonyms!)));
+                                        roomEntity.AddComponent(new ItemComponent("health potion item", new HealthPotion(itemGuid, fullItem.Name!, (int)itemAttributes!.Health, item.Quantity, fullItem.Description!, fullItem.Synonyms!)));
                                     }
                                 }
                             }
@@ -112,7 +115,7 @@ namespace TextWorld.Core.Data
                 #region PLAYER
                 if (!string.IsNullOrEmpty(Data.Player.Description)) playerEntity.AddComponent(new DescriptionComponent("player description", Data.Player.Description));
                 if (Data.Player.Currency != null) playerEntity.AddComponent(new CurrencyComponent("coins", Data.Player.Currency.Coins));
-                if (!string.IsNullOrEmpty(Data.Player.CurrentRoom)) playerEntity.AddComponent(new IdComponent("player current room", roomIds[Data.Player.CurrentRoom]));
+                if (!string.IsNullOrEmpty(Data.Player.CurrentRoom)) playerEntity.AddComponent(new IdComponent("player current room", roomIds[Data.Player.CurrentRoom], IdType.Room));
                 if (Data.Player.Health != null) playerEntity.AddComponent(new HealthComponent("player health", Data.Player.Health.CurrentHealth, Data.Player.Health.MaxHealth));
 
                 var inventoryComponent = new InventoryComponent("player inventory");
@@ -122,12 +125,16 @@ namespace TextWorld.Core.Data
                 {
                     foreach (var item in Data.Player.Inventory)
                     {
-                        inventoryComponent.AddItem(new()
-                        {
-                            Id = itemIds[item.Id],
-                            Name = Data.Items != null ? Data.Items.FirstOrDefault(x => x.Id == item.Id)?.Name : "No Name",
-                            Quantity = item.Quantity
-                        });
+                        var fullItem = Data.Items!.FirstOrDefault(x => x.Id == item.Id);
+
+                        inventoryComponent.AddItem(new(
+                            itemIds[item.Id],
+                            fullItem!.Name!,
+                            item.Quantity,
+                            fullItem!.Description!,
+                            fullItem!.ItemType,
+                            fullItem!.IsContainer
+                        ));
                     }
                 }
 

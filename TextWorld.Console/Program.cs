@@ -52,6 +52,6 @@ if (gameLoader.Load("game.json"))
         InventorySystem.Run(CommandEntity, PlayerEntity, OutputEntity);
         UnknownCommandSystem.Run(CommandEntity, OutputEntity);
         ConsoleOutputSystem.Run(OutputEntity);
-        ConsoleInputSystem.Run(CommandEntity, OutputEntity);
+        ConsoleInputSystem.Run(PlayerEntity, CommandEntity, OutputEntity);
     }
 }

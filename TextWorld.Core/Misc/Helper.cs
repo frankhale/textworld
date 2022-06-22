@@ -66,12 +66,7 @@ namespace TextWorld.Core.Misc
                 }
                 else
                 {
-                    inventoryComponent.AddItem(new InventoryItem()
-                    {
-                        Id = itemComponent.Item.Id,
-                        Name = itemComponent.Item.Name,
-                        Quantity = itemComponent.Item.Quantity
-                    });
+                    inventoryComponent.AddItem(new Item(itemComponent.Item.Id, itemComponent.Item.Name, itemComponent.Item.Quantity, itemComponent.Item.Description, itemComponent.Item.ItemType, itemComponent.Item.IsContainer));
                 }
 
                 var itemToRemove = GetItemComponentOnEntity(itemOnEntity, itemComponent);
@@ -83,7 +78,7 @@ namespace TextWorld.Core.Misc
             }
         }
 
-        public static void DeleteItemFromPlayersInventory(TWEntity playerEntity, TWEntity itemOnEntity, ItemComponent itemComponent)
+        public static void RemoveOrDecrementItemFromPlayersInventory(TWEntity playerEntity, TWEntity itemOnEntity, ItemComponent itemComponent)
         {
             var inventoryComponent = playerEntity.GetComponentByType<InventoryComponent>();
 
@@ -96,11 +91,14 @@ namespace TextWorld.Core.Misc
                     itemInInventory.Quantity -= itemComponent.Item.Quantity;
                 }
 
-                var itemToRemove = GetItemComponentOnEntity(itemOnEntity, itemComponent);
-
-                if (itemToRemove != null)
+                if (itemInInventory != null && itemInInventory.Quantity <= 0)
                 {
-                    itemOnEntity.RemoveComponent(itemToRemove);
+                    var itemToRemove = GetItemComponentOnEntity(itemOnEntity, itemComponent);
+
+                    if (itemToRemove != null)
+                    {
+                        itemOnEntity.RemoveComponent(itemToRemove);
+                    }
                 }
             }
         }

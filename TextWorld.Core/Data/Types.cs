@@ -16,7 +16,7 @@ namespace TextWorld.Core.Data
 
     public class Inventory
     {
-        public int Id { get; set; }
+        public string Id { get; set; }
         public int Quantity { get; set; }
     }
 
@@ -30,27 +30,20 @@ namespace TextWorld.Core.Data
         public string? CurrentRoom { get; set; }
     }
 
-    public enum ItemType
-    {
-        CoinPurse,
-        HealthPotion,
-        Sword,
-        Lamp
-    }
-
     public class Item
     {
-        public int Id { get; set; }
+        public string? Id { get; set; }
         public string? Name { get; set; }
         public string? Description { get; set; }
         public ItemType ItemType { get; set; }
         public string[]? Synonyms { get; set; }
         public string? AttributesJSON { get; set; }
+        public bool IsContainer { get; set; }
     }
 
     public class ItemDrop
     {
-        public int Id { get; set; }
+        public string? Id { get; set; }
         public int Quantity { get; set; }
     }
 
