@@ -30,13 +30,13 @@ namespace TextWorld.Core.Misc
             return result;
         }
 
-        public static ItemComponent? GetItemComponentFromEntity(TWEntity currentRoom, string itemName)
+        public static ItemComponent? GetItemComponentFromEntity(TWEntity entity, string itemName)
         {
-            var roomItems = currentRoom.GetComponentsByType<ItemComponent>();
+            var items = entity.GetComponentsByType<ItemComponent>();
 
-            if (roomItems.Count > 0)
+            if (items.Count > 0)
             {
-                var takeItem = roomItems.FirstOrDefault(x => x.Item.Name == itemName);
+                var takeItem = items.FirstOrDefault(x => x.Item.Name == itemName);
 
                 if (takeItem != null)
                 {
@@ -47,36 +47,53 @@ namespace TextWorld.Core.Misc
             return null;
         }
 
-        public static ItemComponent? GetItemComponentOnEntity(TWEntity entity, ItemComponent itemComponent)
+        public static ItemDropComponent? GetItemDropComponentFromEntity(TWEntity entity, string itemName)
         {
-            return entity.GetComponentsByType<ItemComponent>().FirstOrDefault(x => x.Item.Id == itemComponent.Item.Id);
+            var items = entity.GetComponentsByType<ItemDropComponent>();
+
+            if (items.Count > 0)
+            {
+                var takeItem = items.FirstOrDefault(x => x.Item.Name == itemName);
+
+                if (takeItem != null)
+                {
+                    return takeItem;
+                }
+            }
+
+            return null;
         }
 
-        public static void AddItemToPlayersInventory(TWEntity playerEntity, TWEntity itemOnEntity, ItemComponent itemComponent)
+        public static ItemDropComponent? GetItemDropComponentOnEntity(TWEntity entity, ItemDropComponent itemDropComponent)
+        {
+            return entity.GetComponentsByType<ItemDropComponent>().FirstOrDefault(x => x.Item.Id == itemDropComponent.Item.Id);
+        }
+
+        public static void AddItemToPlayersInventory(TWEntity playerEntity, TWEntity itemOnEntity, ItemDropComponent itemDropComponent)
         {
             var inventoryComponent = playerEntity.GetComponentByType<InventoryComponent>();
 
             if (inventoryComponent != null)
             {
-                var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Id == itemComponent.Item.Id);
+                var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Id == itemDropComponent.Item.Id);
 
                 if (itemInInventory != null)
                 {
-                    itemInInventory.Quantity += itemComponent.Item.Quantity;
+                    itemInInventory.Quantity += itemDropComponent.Item.Quantity;
                 }
                 else
                 {
                     inventoryComponent.AddItem(
-                        new InventoryItem 
-                        { 
-                            Id = itemComponent.Item.Id,
-                            Name = itemComponent.Item.Name,
-                            Quantity = itemComponent.Item.Quantity
-                        }                        
+                        new InventoryItem
+                        {
+                            Id = itemDropComponent.Item.Id,
+                            Name = itemDropComponent.Item.Name,
+                            Quantity = itemDropComponent.Item.Quantity
+                        }
                     );
                 }
 
-                var itemToRemove = GetItemComponentOnEntity(itemOnEntity, itemComponent);
+                var itemToRemove = GetItemDropComponentOnEntity(itemOnEntity, itemDropComponent);
 
                 if (itemToRemove != null)
                 {
@@ -85,31 +102,32 @@ namespace TextWorld.Core.Misc
             }
         }
 
-        public static void RemoveOrDecrementItemFromPlayersInventory(TWEntity playerEntity, TWEntity itemOnEntity, ItemComponent itemComponent)
+        public static void RemoveOrDecrementItemFromPlayersInventory(TWEntity playerEntity, TWEntity itemOnEntity, ItemDropComponent itemDropComponent)
         {
-            //var inventoryComponent = playerEntity.GetComponentByType<InventoryComponent>();
+            var inventoryComponent = playerEntity.GetComponentByType<InventoryComponent>();
 
-            //if (inventoryComponent != null)
-            //{
-            //    var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Id == itemComponent.Item.Id);
+            if (inventoryComponent != null)
+            {
+                var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Id == itemDropComponent.Item.Id);
 
-            //    if (itemInInventory != null)
-            //    {
-            //        itemInInventory.Quantity -= itemComponent.Item.Quantity;
-            //    }
+                if (itemInInventory != null)
+                {
+                    itemInInventory.Quantity -= itemDropComponent.Item.Quantity;
+                }
 
-            //    if (itemInInventory != null && itemInInventory.Quantity <= 0)
-            //    {
-            //        var itemToRemove = GetItemComponentOnEntity(itemOnEntity, itemComponent);
+                if (itemInInventory != null && itemInInventory.Quantity <= 0)
+                {
+                    var itemToRemove = GetItemDropComponentOnEntity(itemOnEntity, itemDropComponent);
 
-            //        if (itemToRemove != null)
-            //        {
-            //            itemOnEntity.RemoveComponent(itemToRemove);
-            //        }
-            //    }
-            //}
+                    if (itemToRemove != null)
+                    {
+                        itemOnEntity.RemoveComponent(itemToRemove);
+                    }
+                }
+            }
         }
 
+        // FIXME: This logic needs to be in the CommandComponent
         public static void AddCommandComponentToEntity(TWEntity commandEntity, string command)
         {
             if (!string.IsNullOrEmpty(command))
@@ -128,11 +146,11 @@ namespace TextWorld.Core.Misc
             }
         }
 
-        public static void ShowItemAction(List<TWEntity> roomEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
+        public static void ShowItemAction(List<TWEntity> roomEntities, List<TWEntity> itemEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
         {
             var roomEntity = GetPlayersCurrentRoom(playerEntity, roomEntities);
 
-            var showItem = Helper.GetItemComponentFromEntity(roomEntity!, component.ItemName ?? string.Empty);
+            var showItem = Helper.GetItemDropComponentFromEntity(roomEntity!, component.ItemName ?? string.Empty);
 
             if (showItem != null)
             {
@@ -144,14 +162,14 @@ namespace TextWorld.Core.Misc
             }
         }
 
-        public static void ShowAllItemAction(List<TWEntity> roomEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
+        public static void ShowAllItemAction(List<TWEntity> roomEntities, List<TWEntity> itemEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
         {
             var roomEntity = GetPlayersCurrentRoom(playerEntity, roomEntities);
-            var itemComponents = roomEntity!.GetComponentsByType<ItemComponent>();
+            var itemDropComponents = roomEntity!.GetComponentsByType<ItemDropComponent>();
 
             var items = new List<string>();
 
-            itemComponents.ForEach(item => items.Add($"{item.Item.Name} ({item.Item.Quantity})"));
+            itemDropComponents.ForEach(item => items.Add($"{item.Item.Name} ({item.Item.Quantity})"));
 
             if (items.Count > 0)
             {
@@ -163,15 +181,14 @@ namespace TextWorld.Core.Misc
             }
         }
 
-        public static void TakeItemAction(List<TWEntity> roomEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
+        public static void TakeItemAction(List<TWEntity> roomEntities, List<TWEntity> itemEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
         {
             var roomEntity = GetPlayersCurrentRoom(playerEntity, roomEntities);
-            var takeItem = Helper.GetItemComponentFromEntity(roomEntity!, component.ItemName ?? string.Empty);
+            var takeItem = Helper.GetItemDropComponentFromEntity(roomEntity!, component.ItemName ?? string.Empty);
 
             if (takeItem != null)
             {
                 Helper.AddItemToPlayersInventory(playerEntity, roomEntity!, takeItem);
-
                 outputEntity.AddComponent(new OutputComponent("output for item taken", $"You've taken {component.ItemName}", OutputType.Regular));
             }
             else
@@ -181,12 +198,12 @@ namespace TextWorld.Core.Misc
             }
         }
 
-        public static void TakeAllItemsAction(List<TWEntity> roomEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
+        public static void TakeAllItemsAction(List<TWEntity> roomEntities, List<TWEntity> itemEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
         {
             var roomEntity = GetPlayersCurrentRoom(playerEntity, roomEntities);
-            var roomItems = roomEntity!.GetComponentsByType<ItemComponent>();
+            var roomItems = roomEntity!.GetComponentsByType<ItemDropComponent>();
 
-            if(roomItems.Count > 0)
+            if (roomItems.Count > 0)
             {
                 roomItems.ForEach(item =>
                 {
@@ -195,19 +212,56 @@ namespace TextWorld.Core.Misc
                 });
             }
             else
-            {            
+            {
                 outputEntity.AddComponent(new OutputComponent("output for non existant item", $"Can't find any items here.", OutputType.Regular));
             }
         }
 
-        public static void DropItemAction(List<TWEntity> roomEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
+        public static void DropItemAction(List<TWEntity> roomEntities, List<TWEntity> itemEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
         {
             throw new NotImplementedException();
         }
 
-        public static void DropAllItemsAction(List<TWEntity> roomEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
+        public static void DropAllItemsAction(List<TWEntity> roomEntities, List<TWEntity> itemEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
         {
             throw new NotImplementedException();
+        }
+
+        public static void UseItemAction(List<TWEntity> roomEntities, List<TWEntity> itemEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
+        {
+            // look at player inventory to make sure item exists
+            var inventoryComponent = playerEntity.GetComponentByType<InventoryComponent>();
+
+            if (inventoryComponent != null)
+            {
+                // create a variable that is the item name, it's stored in the itemActionComponent.CommandComponent.Args
+                var itemName = component.CommandComponent.ArgsJoined;
+                // search inventoryComponent.Items for itemName
+                var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Name == itemName);
+
+                // if item exists then look the item up in the itemEntities
+                if (itemInInventory != null)
+                {
+                    // get the item entity from the itemEntities
+                    var itemEntity = itemEntities.FirstOrDefault(x => x.GetComponentByType<ItemComponent>()?.Item.Name == itemName);
+                    var item = itemEntity?.GetComponentByType<ItemComponent>()?.Item;
+
+                    if (item != null)
+                    {
+                        // if the item is consumable then execute it's Use function
+                        if (item.Consumable)
+                        {
+                            //item.Use(playerEntity);
+                            outputEntity.AddComponent(new OutputComponent("output for item used", $"You used {itemName}", OutputType.Regular));
+                        }
+                        else
+                        {
+                            outputEntity.AddComponent(new OutputComponent("output for item not used", $"You can't use {itemName}", OutputType.Regular));
+                        }
+
+                    }
+                }
+            }
         }
 
         public static ShowDescriptionComponent GetRoomExitInfoForRoom(TWEntity playerEntity, List<TWEntity> roomEntities, TWEntity roomEntity)
@@ -215,7 +269,7 @@ namespace TextWorld.Core.Misc
             var newRoomExits = roomEntity!.GetComponentsByType<ExitComponent>();
             var exitDictionary = newRoomExits.ToDictionary(x => x.RoomId);
             var exitRooms = roomEntities.Where(x => exitDictionary.TryGetValue(x.Id, out var e) && !e.Hidden).ToList();
-            var exitInfo = exitRooms.Select(x => $"{exitDictionary[x.Id].Direction} -> {x.Name}".ToString()).ToList();                        
+            var exitInfo = exitRooms.Select(x => $"{exitDictionary[x.Id].Direction} -> {x.Name}".ToString()).ToList();
             return new ShowDescriptionComponent($"Exits: {string.Join(", ", exitInfo)}", exitRooms, DescriptionType.Exit);
         }
     }

@@ -2,50 +2,48 @@
 
 namespace TextWorld.Core.Misc
 {
-    public class Item
+    public abstract class Item
     {
         // FIXME: Not all properties here are currently being honored
 
         public Guid Id { get; private set; }
         public string Name { get; private set; }
-        public string[] Synonyms { get; protected set; }
-        public int Quantity { get; set; }
+        public string[] Synonyms { get; protected set; }        
         public string Description { get; private set; }
-        public bool IsContainer { get; private set; }
+        public bool IsContainer { get; protected set; }
         public ItemType ItemType { get; private set; }
+        public bool CanBeDestroyed { get; protected set; }
+        public bool Consumable { get; protected set; }
 
-        public Item(Guid id, string name, int quantity, string description, ItemType itemType, string[] synonyms)
+        public Item(Guid id, string name, string description, ItemType itemType, string[] synonyms)
         {
             Id = id;
-            Name = name;
-            Quantity = quantity;
+            Name = name;            
             Description = description;
             Synonyms = synonyms;
             ItemType = itemType;
         }
 
-        public Item(Guid id, string name, int quantity, string description, ItemType itemType, bool isContainer)
+        public Item(Guid id, string name, string description, ItemType itemType, bool isContainer)
         {
             Id = id;
-            Name = name;
-            Quantity = quantity;
+            Name = name;            
             Description = description;
             Synonyms = Array.Empty<string>();
             IsContainer = isContainer;
             ItemType = itemType;
         }
 
-        public Item(Guid id, string name, int quantity, string description, ItemType itemType, string[] synonyms, bool isContainer)
+        public Item(Guid id, string name, string description, ItemType itemType, string[] synonyms, bool isContainer)
         {
             Id = id;
-            Name = name;
-            Quantity = quantity;
+            Name = name;            
             Description = description;
             Synonyms = synonyms;
             IsContainer = isContainer;
             ItemType = itemType;
         }
 
-        public virtual void Use(TWEntity entity) { }
+        public abstract void Use(TWEntity entity);
     }
 }

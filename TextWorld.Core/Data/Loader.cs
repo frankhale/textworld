@@ -39,14 +39,35 @@ namespace TextWorld.Core.Data
             {
                 Dictionary<string, Guid> roomIds = new() { };
                 Dictionary<int, Guid> itemIds = new() { };
-                
+
                 #region ITEMS
                 foreach (var item in Data.Items)
                 {
-                    itemIds[item.Id!] = Guid.NewGuid();
+                    itemIds[item.Id] = Guid.NewGuid();
 
                     TWEntity itemEntity = new(item.Name!);
-                    itemEntity.AddComponent(new JsonComponent(item.Name!, itemIds[item.Id!], JsonConvert.SerializeObject(item)));                    itemEntities.Add(itemEntity);
+
+                    var fullItem = Data.Items.FirstOrDefault(x => x.Id == item.Id);
+
+                    if (fullItem != null)
+                    {
+                        var itemGuid = itemIds[item.Id];
+                        dynamic? itemAttributes = JsonConvert.DeserializeObject(fullItem.AttributesJSON!);
+                        
+                        if (fullItem.ItemType == ItemType.CoinPurse)
+                        {
+                            itemEntity.AddComponent(new ItemComponent($"{fullItem.Name} item",
+                                new CoinPurse(itemGuid, fullItem.Name!, (int)itemAttributes!.NumberOfCoins, fullItem.Description!, fullItem.Synonyms!)));
+                        }
+                        else if (fullItem.ItemType == ItemType.HealthPotion)
+                        {
+                            itemEntity.AddComponent(new ItemComponent($"{fullItem.Name} item",
+                                new HealthPotion(itemGuid, fullItem.Name!, (int)itemAttributes!.Health, fullItem.Description!, fullItem.Synonyms!)));
+                        }
+                    }
+
+                    itemEntity.AddComponent(new JsonComponent(item.Name!, itemIds[item.Id!], JsonConvert.SerializeObject(item))); 
+                    itemEntities.Add(itemEntity);
                 }
 
                 gameEntities.Items = itemEntities;
@@ -87,22 +108,11 @@ namespace TextWorld.Core.Data
                             {
                                 var fullItem = Data.Items.FirstOrDefault(x => x.Id == item.Id);
 
-                                if (fullItem != null)
-                                {
-                                    var itemGuid = itemIds[item.Id];
-                                    dynamic? itemAttributes = JsonConvert.DeserializeObject(fullItem.AttributesJSON!);
-
-                                    if (fullItem.ItemType == ItemType.CoinPurse)
-                                    {
-                                        roomEntity.AddComponent(new ItemComponent($"{fullItem.Name} item",
-                                            new CoinPurse(itemGuid, fullItem.Name!, (int)itemAttributes!.NumberOfCoins, item.Quantity, fullItem.Description!, fullItem.Synonyms!)));
-                                    }
-                                    else if (fullItem.ItemType == ItemType.HealthPotion)
-                                    {
-                                        roomEntity.AddComponent(new ItemComponent("health potion item", 
-                                            new HealthPotion(itemGuid, fullItem.Name!, (int)itemAttributes!.Health, item.Quantity, fullItem.Description!, fullItem.Synonyms!)));
-                                    }
-                                }
+                                roomEntity.AddComponent(new ItemDropComponent($"item drop component", new InventoryItem { 
+                                    Id = itemIds[item.Id],
+                                    Name = fullItem!.Name!,
+                                    Quantity = item.Quantity
+                                }));
                             }
                         }
 

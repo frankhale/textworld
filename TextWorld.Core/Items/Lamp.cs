@@ -5,7 +5,10 @@ namespace TextWorld.Core.Items
 {
     public class Lamp : Item
     {
-        public Lamp(Guid id, string name, int quantity, string description, string[] synonyms) : base(id, name, quantity, description, ItemType.Lamp, synonyms) { }
+        public Lamp(Guid id, string name, string description, string[] synonyms) : base(id, name, description, ItemType.Lamp, synonyms) 
+        {
+            Consumable = true;
+        }
 
         public override void Use(TWEntity entity)
         {

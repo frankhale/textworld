@@ -14,7 +14,7 @@ namespace TextWorld.Core.Systems
 
             foreach (var commandComponent in commandEntity.GetComponentsByType<CommandComponent>())
             {
-                var commandAsTitleCase = myTI.ToTitleCase(commandComponent.Command);
+                var commandAsTitleCase = myTI.ToTitleCase(commandComponent.Command!);
 
                 if (Enum.TryParse<Direction>(commandAsTitleCase, out Direction direction))
                 {

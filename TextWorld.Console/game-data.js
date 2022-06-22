@@ -8,6 +8,7 @@ let Items = [
         ItemType: "CoinPurse",
         Synonyms: ["purse", "coin purse", "leather purse", "coins"],
         IsContainer: false,
+        Consumable: true,
         AttributesJSON: "{ \"NumberOfCoins\": 10 }"
     },
     {
@@ -17,6 +18,7 @@ let Items = [
         ItemType: "HealthPotion",
         Synonyms: ["health", "health pot"],
         IsContainer: false,
+        Consumable: true,
         AttributesJSON: "{ \"Health\": 50 }"
     }
 ]

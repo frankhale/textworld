@@ -8,6 +8,7 @@
         public virtual void Run(TWEntity input, TWEntity output) { }
         public virtual void Run(TWEntity input1, TWEntity input2, TWEntity output) { }
         public virtual void Run(TWEntity input1, List<TWEntity> input2, TWEntity output) { }
+        public virtual void Run(TWEntity input1, List<TWEntity> input2, List<TWEntity> input3, TWEntity output) { }
         public virtual void Run(TWEntity input1, TWEntity input2, List<TWEntity> input3, TWEntity output) { }
     }
 }

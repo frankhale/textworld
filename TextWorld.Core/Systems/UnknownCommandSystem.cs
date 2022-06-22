@@ -12,7 +12,7 @@ namespace TextWorld.Core.Systems
 
             commandEntity.GetComponentsByType<CommandComponent>().ForEach(x =>
             {
-                unknownCommandComponents.Add(new UnknownCommandComponent("unknown command", x.Command));
+                unknownCommandComponents.Add(new UnknownCommandComponent("unknown command", x.Command!));
             });
 
             commandEntity.Components.Clear();

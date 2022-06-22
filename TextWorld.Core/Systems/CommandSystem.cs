@@ -9,20 +9,17 @@ namespace TextWorld.Core.Systems
         private readonly Dictionary<string, Action<TWEntity, List<TWEntity>, CommandComponent, List<CommandComponent>, TWEntity>> CommandActions = new() {
             // FIXME: There is a lot of redundant string joining for command args going on. We need to 
             // do this once and reuse.
-            { "quit", (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
-                processedComponents.Add(commandComponent);
+            { "quit", (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {                
                 outputEntity.AddComponent(new QuitComponent("quit game"));
             } },
             { "look",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
                 if (commandComponent.Args.Length > 0 && commandComponent.Args[0] == "self")
-                {
-                    processedComponents.Add(commandComponent);
+                {                    
                     outputEntity.AddComponent(new ShowDescriptionComponent("show player description", playerEntity, DescriptionType.Room));
                 }
                 else
                 {
-                    var roomEntity = Helper.GetPlayersCurrentRoom(playerEntity, roomEntities);
-                    processedComponents.Add(commandComponent);
+                    var roomEntity = Helper.GetPlayersCurrentRoom(playerEntity, roomEntities);                    
                     outputEntity.AddComponent(new ShowDescriptionComponent("show room description", roomEntity!, DescriptionType.Room));
 
                     // Rooms having no exits is weird and shouldn't happen in a real game but in testing
@@ -35,25 +32,23 @@ namespace TextWorld.Core.Systems
                     }
                 }
             } },
-            { "show",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
-                processedComponents.Add(commandComponent);
-                outputEntity.AddComponent(new ItemActionComponent("show an item action", string.Join(" ", commandComponent.Args), ItemActionType.Show, Helper.ShowItemAction));
+            { "show",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {                
+                outputEntity.AddComponent(new ItemActionComponent("show an item action", string.Join(" ", commandComponent.Args), commandComponent, ItemActionType.Show, Helper.ShowItemAction));
             } },
-            { "inspect",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
-                processedComponents.Add(commandComponent);
-                outputEntity.AddComponent(new ItemActionComponent("show all items action", ItemActionType.ShowAll, Helper.ShowAllItemAction));
+            { "inspect",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {                
+                outputEntity.AddComponent(new ItemActionComponent("show all items action", commandComponent, ItemActionType.ShowAll, Helper.ShowAllItemAction));
             } },
-            { "take",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
-                processedComponents.Add(commandComponent);
-                outputEntity.AddComponent(new ItemActionComponent("take item action", string.Join(" ", commandComponent.Args), ItemActionType.Take, Helper.TakeItemAction));
+            { "take",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {                
+                outputEntity.AddComponent(new ItemActionComponent("take item action", string.Join(" ", commandComponent.Args), commandComponent, ItemActionType.Take, Helper.TakeItemAction));
             } },
-            { "take all",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
-                processedComponents.Add(commandComponent);
-                outputEntity.AddComponent(new ItemActionComponent("take all items action", string.Join(" ", commandComponent.Args), ItemActionType.TakeAll, Helper.TakeAllItemsAction));
+            { "take all",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {                
+                outputEntity.AddComponent(new ItemActionComponent("take all items action", string.Join(" ", commandComponent.Args), commandComponent, ItemActionType.TakeAll, Helper.TakeAllItemsAction));
             } },
-            { "drop",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
-                processedComponents.Add(commandComponent);
-                outputEntity.AddComponent(new ItemActionComponent("drop items action", string.Join(" ", commandComponent.Args), ItemActionType.Drop, Helper.DropItemAction));
+            { "drop",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {                
+                outputEntity.AddComponent(new ItemActionComponent("drop items action", string.Join(" ", commandComponent.Args), commandComponent,  ItemActionType.Drop, Helper.DropItemAction));
+            } },
+            { "use",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {                
+                outputEntity.AddComponent(new ItemActionComponent("use item action", string.Join(" ", commandComponent.Args), commandComponent, ItemActionType.Use, Helper.UseItemAction));
             } }
         };
 
@@ -70,10 +65,14 @@ namespace TextWorld.Core.Systems
 
                 if (!foundAction)
                 {
-                    foundAction = CommandActions.TryGetValue(commandComponent.Command, out action);
+                    foundAction = CommandActions.TryGetValue(commandComponent.Command!, out action);
                 }
-
-                action?.Invoke(playerEntity, roomEntities, commandComponent, processedComponents, outputEntity);
+                
+                if (foundAction)
+                {
+                    processedComponents.Add(commandComponent);
+                    action?.Invoke(playerEntity, roomEntities, commandComponent, processedComponents, outputEntity);
+                }
             }
 
             commandEntity.RemoveComponents(processedComponents);

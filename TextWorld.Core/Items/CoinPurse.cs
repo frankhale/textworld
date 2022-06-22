@@ -8,10 +8,12 @@ namespace TextWorld.Core.Items
     {
         public int NumberOfCoins { get; private set; }
 
-        public CoinPurse(Guid id, string name, int numberOfCoins, int itemQuantity, string description, string[] synonyms)
-            : base(id, name, itemQuantity, description, ItemType.CoinPurse, synonyms, true)
+        public CoinPurse(Guid id, string name, int numberOfCoins, string description, string[] synonyms)
+            : base(id, name, description, ItemType.CoinPurse, synonyms, true)
         {
-            NumberOfCoins = numberOfCoins;            
+            NumberOfCoins = numberOfCoins;
+            Consumable = true;
+            IsContainer = true;
         }
 
         public override void Use(TWEntity entity)

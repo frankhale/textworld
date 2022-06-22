@@ -12,7 +12,7 @@ namespace TextWorld.Core.Systems
 
             foreach (var commandComponent in commandEntity.GetComponentsByType<CommandComponent>())
             {
-                var command = commandComponent.Command.ToLower();
+                var command = commandComponent.Command!.ToLower();
 
                 if (command == "inv" || command == "inventory")
                 {
