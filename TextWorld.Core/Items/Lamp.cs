@@ -8,9 +8,10 @@ namespace TextWorld.Core.Items
         public Lamp(Guid id, string name, string description, string[] synonyms) : base(id, name, description, ItemType.Lamp, synonyms) 
         {
             Consumable = true;
+            CanBeDestroyed = true;
         }
 
-        public override void Use(TWEntity entity)
+        public override void Use(TWEntity entity, List<TWEntity> itemEntities)
         {
             throw new NotImplementedException();
         }

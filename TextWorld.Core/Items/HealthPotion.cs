@@ -12,27 +12,34 @@ namespace TextWorld.Core.Items
         {
             HealthImmediately = healthImmediately;
             Consumable = true;
+            CanBeDestroyed = true;
         }
 
-        public override void Use(TWEntity entity)
+        public override void Use(TWEntity player, List<TWEntity> itemEntities)
         {
-            var inventoryComponent = entity.GetComponentByType<InventoryComponent>();
-
+            var inventoryComponent = player.GetComponentByType<InventoryComponent>();
+            
             if (inventoryComponent != null)
             {
-                //var healthPotion = inventoryComponent.Items.FirstOrDefault(x => x.ItemType == ItemType.HealthPotion);
+                var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Id == Id);
 
-                //var healthComponent = entity.GetComponentByType<HealthComponent>();
-                //if (healthComponent != null && healthComponent.CurrentHealth < HealthImmediately)
-                //{
-                //    healthComponent.CurrentHealth += HealthImmediately;
-                //    if (healthComponent.CurrentHealth > healthComponent.MaxHealth)
-                //    {
-                //        healthComponent.CurrentHealth = healthComponent.MaxHealth;
-                //    }
+                if (itemInInventory != null)
+                {
+                    var itemEntity = itemEntities.FirstOrDefault(x => x.GetComponentByType<ItemComponent>()?.Item.Id == Id);
+                    var healthPotion = itemEntity?.GetComponentByType<ItemComponent>()?.Item as HealthPotion;
 
-                //    //Helper.RemoveOrDecrementItemFromPlayersInventory(entity, entity, )
-                //}
+                    var healthComponent = player.GetComponentByType<HealthComponent>();
+                    if (healthComponent != null && healthComponent.CurrentHealth < healthComponent.MaxHealth)
+                    {
+                        healthComponent.CurrentHealth += HealthImmediately;
+                        if (healthComponent.CurrentHealth > healthComponent.MaxHealth)
+                        {
+                            healthComponent.CurrentHealth = healthComponent.MaxHealth;
+                        }
+
+                        Helper.RemoveOrDecrementItemFromPlayersInventory(player, player, itemInInventory);
+                    }
+                }
             }
         }
     }

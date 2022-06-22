@@ -43,7 +43,7 @@ namespace TextWorld.Core.Misc
             IsContainer = isContainer;
             ItemType = itemType;
         }
-
-        public abstract void Use(TWEntity entity);
+        
+        public abstract void Use(TWEntity entity, List<TWEntity> entities);
     }
 }

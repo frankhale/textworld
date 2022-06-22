@@ -14,9 +14,10 @@ namespace TextWorld.Core.Items
             NumberOfCoins = numberOfCoins;
             Consumable = true;
             IsContainer = true;
+            CanBeDestroyed = true;            
         }
 
-        public override void Use(TWEntity entity)
+        public override void Use(TWEntity entity, List<TWEntity> itemEntities)
         {
             var currencyComponent = entity.GetComponentByType<CurrencyComponent>();
 

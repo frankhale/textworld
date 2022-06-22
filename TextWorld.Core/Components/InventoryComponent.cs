@@ -17,6 +17,11 @@ namespace TextWorld.Core.Components
             }
         }
 
+        public void RemoveItem(InventoryItem item)
+        {
+            Items.Remove(item);
+        }
+
         public void IncrementItemCount(Guid id, int count)
         {
             var item = Items.FirstOrDefault(x => x.Id == id);

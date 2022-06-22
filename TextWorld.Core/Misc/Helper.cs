@@ -102,27 +102,22 @@ namespace TextWorld.Core.Misc
             }
         }
 
-        public static void RemoveOrDecrementItemFromPlayersInventory(TWEntity playerEntity, TWEntity itemOnEntity, ItemDropComponent itemDropComponent)
+        public static void RemoveOrDecrementItemFromPlayersInventory(TWEntity playerEntity, TWEntity itemOnEntity, InventoryItem inventoryItem)
         {
             var inventoryComponent = playerEntity.GetComponentByType<InventoryComponent>();
 
             if (inventoryComponent != null)
             {
-                var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Id == itemDropComponent.Item.Id);
+                var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Id == inventoryItem.Id);
 
                 if (itemInInventory != null)
                 {
-                    itemInInventory.Quantity -= itemDropComponent.Item.Quantity;
+                    itemInInventory.Quantity--;
                 }
 
                 if (itemInInventory != null && itemInInventory.Quantity <= 0)
                 {
-                    var itemToRemove = GetItemDropComponentOnEntity(itemOnEntity, itemDropComponent);
-
-                    if (itemToRemove != null)
-                    {
-                        itemOnEntity.RemoveComponent(itemToRemove);
-                    }
+                    inventoryComponent.RemoveItem(itemInInventory);
                 }
             }
         }
@@ -251,7 +246,7 @@ namespace TextWorld.Core.Misc
                         // if the item is consumable then execute it's Use function
                         if (item.Consumable)
                         {
-                            //item.Use(playerEntity);
+                            item.Use(playerEntity, itemEntities);
                             outputEntity.AddComponent(new OutputComponent("output for item used", $"You used {itemName}", OutputType.Regular));
                         }
                         else
