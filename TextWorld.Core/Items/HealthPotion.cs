@@ -17,6 +17,11 @@ namespace TextWorld.Core.Items
 
         public override void Use(TWEntity player, List<TWEntity> itemEntities)
         {
+            // TODO: Need to extract this function and put it as a helper and then expose the bits
+            // that will change as an Action (eg. the bits below that deal specifically with health potions)
+            //
+            // Actually I think the necessary code is in Helper.UseItemAction and just redundant here.
+            // some of this should just move to that function.
             var inventoryComponent = player.GetComponentByType<InventoryComponent>();
             
             if (inventoryComponent != null)

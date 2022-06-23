@@ -253,8 +253,11 @@ namespace TextWorld.Core.Misc
                         {
                             outputEntity.AddComponent(new OutputComponent("output for item not used", $"You can't use {itemName}", OutputType.Regular));
                         }
-
                     }
+                }
+                else
+                {
+                    outputEntity.AddComponent(new OutputComponent("output for item not found", $"You don't have a {itemName}", OutputType.Regular));
                 }
             }
         }
