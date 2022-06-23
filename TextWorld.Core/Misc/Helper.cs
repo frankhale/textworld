@@ -249,11 +249,12 @@ namespace TextWorld.Core.Misc
                         {
                             var item = itemComponent.Item;
 
+                            item.Use(playerEntity, itemEntities, outputEntity);
+                            //outputEntity.AddComponent(new OutputComponent("output for item used", $"You used {itemName}", OutputType.Regular));
+                            
                             // if the item is consumable then execute it's Use function
                             if (item.Consumable)
                             {
-                                item.Use(playerEntity, itemEntities, itemEntity);
-                                outputEntity.AddComponent(new OutputComponent("output for item used", $"You used {itemName}", OutputType.Regular));
                                 Helper.RemoveOrDecrementItemFromPlayersInventory(playerEntity, playerEntity, itemInInventory);
                             }
                             else

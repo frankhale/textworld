@@ -11,7 +11,7 @@ namespace TextWorld.Core.Items
             CanBeDestroyed = true;
         }
 
-        public override void Use(TWEntity entity, List<TWEntity> itemEntities, TWEntity itemEntity)
+        public override void Use(TWEntity entity, List<TWEntity> itemEntities, TWEntity outputEntity)
         {
             throw new NotImplementedException();
         }

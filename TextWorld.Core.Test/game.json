@@ -6,7 +6,7 @@
       "Coins": 10
     },
     "Health": {
-      "CurrentHealth": 100,
+      "CurrentHealth": 45,
       "MaxHealth": 100
     },
     "Inventory": [
@@ -30,7 +30,8 @@
         "coins"
       ],
       "IsContainer": false,
-      "AttributesJSON": "{ \"Quantity\": 1, \"NumberOfCoins\": 10 }"
+      "Consumable": true,
+      "AttributesJSON": "{ \"NumberOfCoins\": 10 }"
     },
     {
       "Id": 2,
@@ -42,7 +43,8 @@
         "health pot"
       ],
       "IsContainer": false,
-      "AttributesJSON": "{ \"Quantity\": 1, \"Health\": 50 }"
+      "Consumable": true,
+      "AttributesJSON": "{ \"Health\": 50 }"
     }
   ],
   "Rooms": [

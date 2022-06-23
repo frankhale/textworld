@@ -15,11 +15,11 @@ namespace TextWorld.Core.Systems
                     Console.WriteLine(component.Value);
                     Console.WriteLine();
                 }
-                else if (component.OutputType == OutputType.Command)
-                {
-                    Console.WriteLine($"command: {component.Value}");
-                    Console.WriteLine();
-                }
+                //else if (component.OutputType == OutputType.Command)
+                //{
+                //    Console.WriteLine($"command: {component.Value}");
+                //    Console.WriteLine();
+                //}
                 else if (component.OutputType == OutputType.Separator)
                 {
                     Console.WriteLine();

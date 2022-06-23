@@ -15,18 +15,18 @@ namespace TextWorld.Core.Items
             CanBeDestroyed = true;
         }
 
-        public override void Use(TWEntity player, List<TWEntity> itemEntities, TWEntity itemEntity)
+        public override void Use(TWEntity player, List<TWEntity> itemEntities, TWEntity outputEntity)
         {
-            var healthPotion = itemEntity?.GetComponentByType<ItemComponent>()?.Item as HealthPotion;
-
             var healthComponent = player.GetComponentByType<HealthComponent>();
-            if (healthPotion != null && healthComponent != null && healthComponent.CurrentHealth < healthComponent.MaxHealth)
+            if (healthComponent != null && healthComponent.CurrentHealth < healthComponent.MaxHealth)
             {
-                healthComponent.CurrentHealth += healthPotion.HealthImmediately;
+                healthComponent.CurrentHealth += HealthImmediately;
                 if (healthComponent.CurrentHealth > healthComponent.MaxHealth)
                 {
                     healthComponent.CurrentHealth = healthComponent.MaxHealth;
                 }
+                
+                outputEntity.AddComponent(new OutputComponent("output for item used", $"{Name} used: +{HealthImmediately} health", OutputType.Regular));
             }
         }
     }

@@ -26,7 +26,7 @@ let Items = [
 let Player = {
     Description: "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!",
     Currency: { Coins: 10 },
-    Health: { CurrentHealth: 45, MaxHealth: 100 },
+    Health: { CurrentHealth: 50, MaxHealth: 100 },
     Inventory: [        
         { Id: 2, Quantity: 3 },
     ],

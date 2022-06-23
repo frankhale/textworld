@@ -17,14 +17,16 @@ namespace TextWorld.Core.Items
             CanBeDestroyed = true;            
         }
 
-        public override void Use(TWEntity entity, List<TWEntity> itemEntities, TWEntity itemEntity)
+        public override void Use(TWEntity playerEntity, List<TWEntity> itemEntities, TWEntity outputEntity)
         {
-            var currencyComponent = entity.GetComponentByType<CurrencyComponent>();
+            var currencyComponent = playerEntity.GetComponentByType<CurrencyComponent>();
 
             if (currencyComponent != null)
             {
                 currencyComponent.Coins += NumberOfCoins;
                 NumberOfCoins = 0;
+
+                outputEntity.AddComponent(new OutputComponent("output for item used", $"{Name} used: +{NumberOfCoins} coins", OutputType.Regular));
             }
         }
     }

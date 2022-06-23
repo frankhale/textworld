@@ -44,6 +44,6 @@ namespace TextWorld.Core.Misc
             ItemType = itemType;
         }
         
-        public abstract void Use(TWEntity entity, List<TWEntity> entities, TWEntity itemEntity);
+        public abstract void Use(TWEntity entity, List<TWEntity> entities, TWEntity outputEntity);
     }
 }
