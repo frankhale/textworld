@@ -48,7 +48,7 @@ namespace TextWorld.Core.Systems
                 outputEntity.AddComponent(new ItemActionComponent("drop items action", string.Join(" ", commandComponent.Args), commandComponent,  ItemActionType.Drop, Helper.DropItemAction));
             } },
             { "use",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {                
-                outputEntity.AddComponent(new ItemActionComponent("use item action", string.Join(" ", commandComponent.Args), commandComponent, ItemActionType.Use, Helper.UseItemAction));
+                outputEntity.AddComponent(new ItemActionComponent("use item action", string.Join(" ", commandComponent.Args), commandComponent, ItemActionType.Use, Helper.UseItemFromInventoryAction));
             } }
         };
 

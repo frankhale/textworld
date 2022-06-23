@@ -1,4 +1,5 @@
 ﻿using TextWorld.Core.Components;
+using TextWorld.Core.Data;
 using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Misc
@@ -222,7 +223,7 @@ namespace TextWorld.Core.Misc
             throw new NotImplementedException();
         }
 
-        public static void UseItemAction(List<TWEntity> roomEntities, List<TWEntity> itemEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
+        public static void UseItemFromInventoryAction(List<TWEntity> roomEntities, List<TWEntity> itemEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
         {
             // look at player inventory to make sure item exists
             var inventoryComponent = playerEntity.GetComponentByType<InventoryComponent>();
@@ -239,19 +240,26 @@ namespace TextWorld.Core.Misc
                 {
                     // get the item entity from the itemEntities
                     var itemEntity = itemEntities.FirstOrDefault(x => x.GetComponentByType<ItemComponent>()?.Item.Name == itemName);
-                    var item = itemEntity?.GetComponentByType<ItemComponent>()?.Item;
 
-                    if (item != null)
+                    if (itemEntity != null)
                     {
-                        // if the item is consumable then execute it's Use function
-                        if (item.Consumable)
+                        var itemComponent = itemEntity.GetComponentByType<ItemComponent>();
+
+                        if (itemComponent != null)
                         {
-                            item.Use(playerEntity, itemEntities);
-                            outputEntity.AddComponent(new OutputComponent("output for item used", $"You used {itemName}", OutputType.Regular));
-                        }
-                        else
-                        {
-                            outputEntity.AddComponent(new OutputComponent("output for item not used", $"You can't use {itemName}", OutputType.Regular));
+                            var item = itemComponent.Item;
+
+                            // if the item is consumable then execute it's Use function
+                            if (item.Consumable)
+                            {
+                                item.Use(playerEntity, itemEntities, itemEntity);
+                                outputEntity.AddComponent(new OutputComponent("output for item used", $"You used {itemName}", OutputType.Regular));
+                                Helper.RemoveOrDecrementItemFromPlayersInventory(playerEntity, playerEntity, itemInInventory);
+                            }
+                            else
+                            {
+                                outputEntity.AddComponent(new OutputComponent("output for item not used", $"You can't use {itemName}", OutputType.Regular));
+                            }
                         }
                     }
                 }
