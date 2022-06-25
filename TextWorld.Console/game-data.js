@@ -9,7 +9,7 @@ let Items = [
         Synonyms: ["purse", "coin purse", "leather purse", "coins"],
         IsContainer: false,
         Consumable: true,
-        AttributesJSON: "{ \"NumberOfCoins\": 10 }"
+        AttributesJSON: "{ \"NumberOfCoins\": 100 }"
     },
     {
         Id: 2,
@@ -20,15 +20,39 @@ let Items = [
         IsContainer: false,
         Consumable: true,
         AttributesJSON: "{ \"Health\": 50 }"
+    },
+    {
+        Id: 3,
+        Name: "lamp",
+        Description: "A strickingly beautiful oil lamp",
+        ItemType: "Lamp",
+        Synonyms: ["lantern"],
+        IsContainer: false,
+        Consumable: true,
+        AttributesJSON: "{}"
     }
 ]
+
+let NPCs = [
+    {
+        Id: 1,
+        Name: "NPC 1",
+        Description: "A wretched old beggar",
+        Synonyms: ["npc1"],
+        Items: [],
+        Dialogue: [
+            { Id: 1, Line: "Would you have any coins to spare?" },
+            { Id: 2, Line: "I'm really hungry" }            
+        ]
+    }
+];
 
 let Player = {
     Description: "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!",
     Currency: { Coins: 10 },
     Health: { CurrentHealth: 50, MaxHealth: 100 },
-    Inventory: [        
-        { Id: 2, Quantity: 3 },
+    Inventory: [
+        { Id: 2, Quantity: 3 }
     ],
     CurrentRoom: "Open Field"
 }
@@ -40,11 +64,12 @@ let Rooms = [
         Exits: [
             {
                 Direction: "North",
-                RoomId: "Stream"                
+                RoomId: "Stream"
             }
         ],
         Items: [
-            { Id: 1, Quantity: 1 }
+            { Id: 1, Quantity: 1 },
+            { Id: 3, Quantity: 1 }
         ]
     },
     {
@@ -53,7 +78,7 @@ let Rooms = [
         Exits: [
             {
                 Direction: "South",
-                RoomId: "Open Field"                
+                RoomId: "Open Field"
             },
             {
                 Direction: "East",
@@ -67,11 +92,11 @@ let Rooms = [
         Exits: [
             {
                 Direction: "West",
-                RoomId: "Stream"                
+                RoomId: "Stream"
             },
             {
                 Direction: "East",
-                RoomId: "Old Forest"                
+                RoomId: "Old Forest"
             }
         ],
         Items: [
@@ -84,7 +109,7 @@ let Rooms = [
         Exits: [
             {
                 Direction: "West",
-                RoomId: "Large Rock"                
+                RoomId: "Large Rock"
             }
         ]
     }

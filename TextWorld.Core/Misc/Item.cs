@@ -1,4 +1,5 @@
-﻿using TextWorld.Core.ECS;
+﻿using TextWorld.Core.Components;
+using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Misc
 {
@@ -44,6 +45,9 @@ namespace TextWorld.Core.Misc
             ItemType = itemType;
         }
         
-        public abstract void Use(TWEntity entity, List<TWEntity> entities, TWEntity outputEntity);
+        public virtual void Use(TWEntity entity, List<TWEntity> entities, TWEntity outputEntity)
+        {
+            outputEntity.AddComponent(new OutputComponent("output for item used", $"Hmm, nothing happened", OutputType.Regular));
+        }
     }
 }

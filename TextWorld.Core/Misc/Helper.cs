@@ -1,5 +1,4 @@
 ﻿using TextWorld.Core.Components;
-using TextWorld.Core.Data;
 using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Misc
@@ -122,23 +121,12 @@ namespace TextWorld.Core.Misc
                 }
             }
         }
-
-        // FIXME: This logic needs to be in the CommandComponent
+        
         public static void AddCommandComponentToEntity(TWEntity commandEntity, string command)
         {
             if (!string.IsNullOrEmpty(command))
             {
-                var commandParts = command.ToLower().Split(" ");
-
-                if (commandParts.Length > 1)
-                {
-                    commandEntity.AddComponent(new CommandComponent("add command with args", commandParts[0],
-                        commandParts.Skip(1).Take(commandParts.Length).ToArray()));
-                }
-                else
-                {
-                    commandEntity.AddComponent(new CommandComponent("add command with no args", command.ToLower()));
-                }
+                commandEntity.AddComponent(new CommandComponent("add command", command.ToLower()));
             }
         }
 
@@ -257,10 +245,10 @@ namespace TextWorld.Core.Misc
                             {
                                 Helper.RemoveOrDecrementItemFromPlayersInventory(playerEntity, playerEntity, itemInInventory);
                             }
-                            else
-                            {
-                                outputEntity.AddComponent(new OutputComponent("output for item not used", $"You can't use {itemName}", OutputType.Regular));
-                            }
+                            //else
+                            //{
+                            //    outputEntity.AddComponent(new OutputComponent("output for item not used", $"You can't use {itemName}", OutputType.Regular));
+                            //}
                         }
                     }
                 }

@@ -31,7 +31,7 @@
       ],
       "IsContainer": false,
       "Consumable": true,
-      "AttributesJSON": "{ \"NumberOfCoins\": 10 }"
+      "AttributesJSON": "{ \"NumberOfCoins\": 100 }"
     },
     {
       "Id": 2,
@@ -45,6 +45,18 @@
       "IsContainer": false,
       "Consumable": true,
       "AttributesJSON": "{ \"Health\": 50 }"
+    },
+    {
+      "Id": 3,
+      "Name": "lamp",
+      "Description": "A strickingly beautiful oil lamp",
+      "ItemType": "Lamp",
+      "Synonyms": [
+        "lantern"
+      ],
+      "IsContainer": false,
+      "Consumable": true,
+      "AttributesJSON": "{}"
     }
   ],
   "Rooms": [
@@ -60,6 +72,10 @@
       "Items": [
         {
           "Id": 1,
+          "Quantity": 1
+        },
+        {
+          "Id": 3,
           "Quantity": 1
         }
       ]

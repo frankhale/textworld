@@ -56,6 +56,8 @@ namespace TextWorld.Core.Data
                         
                         if (fullItem.ItemType == ItemType.CoinPurse)
                         {
+                            var numberOfCoins = (int)itemAttributes!.NumberOfCoins;
+
                             itemEntity.AddComponent(new ItemComponent($"{fullItem.Name} item",
                                 new CoinPurse(itemGuid, fullItem.Name!, (int)itemAttributes!.NumberOfCoins, fullItem.Description!, fullItem.Synonyms!)));
                         }
@@ -63,6 +65,11 @@ namespace TextWorld.Core.Data
                         {
                             itemEntity.AddComponent(new ItemComponent($"{fullItem.Name} item",
                                 new HealthPotion(itemGuid, fullItem.Name!, (int)itemAttributes!.Health, fullItem.Description!, fullItem.Synonyms!)));
+                        }
+                        else if (fullItem.ItemType == ItemType.Lamp)
+                        {
+                            itemEntity.AddComponent(new ItemComponent($"{fullItem.Name} item",
+                                new Lamp(itemGuid, fullItem.Name!, fullItem.Description!, Array.Empty<string>())));
                         }
                     }
 

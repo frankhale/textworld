@@ -23,8 +23,7 @@ namespace TextWorld.Core.Items
 
             if (currencyComponent != null)
             {
-                currencyComponent.Coins += NumberOfCoins;
-                NumberOfCoins = 0;
+                currencyComponent.Coins += NumberOfCoins;                
 
                 outputEntity.AddComponent(new OutputComponent("output for item used", $"{Name} used: +{NumberOfCoins} coins", OutputType.Regular));
             }

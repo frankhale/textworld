@@ -72,5 +72,6 @@ namespace TextWorld.Core.Data
         public TWEntity? Player { get; set; }
         public List<TWEntity>? Rooms { get; set; }
         public List<TWEntity>? Items { get; set; }
+        public List<TWEntity>? NPCs { get; set; }        
     }
 }
