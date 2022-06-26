@@ -1,4 +1,5 @@
 ﻿using TextWorld.Core.Components;
+using TextWorld.Core.Data;
 using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Misc
@@ -121,7 +122,7 @@ namespace TextWorld.Core.Misc
                 }
             }
         }
-        
+
         public static void AddCommandComponentToEntity(TWEntity commandEntity, string command)
         {
             if (!string.IsNullOrEmpty(command))
@@ -203,12 +204,98 @@ namespace TextWorld.Core.Misc
 
         public static void DropItemAction(List<TWEntity> roomEntities, List<TWEntity> itemEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
         {
-            throw new NotImplementedException();
+            // look at player inventory to make sure item exists
+            var inventoryComponent = playerEntity.GetComponentByType<InventoryComponent>();
+
+            if (inventoryComponent != null)
+            {
+                // create a variable that is the item name, it's stored in the itemActionComponent.CommandComponent.Args                
+                // search inventoryComponent.Items for itemName
+                var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Name == component.ItemName);
+
+                // if item exists then look the item up in the itemEntities
+                if (itemInInventory != null)
+                {
+                    // get the item entity from the itemEntities
+                    var itemEntity = itemEntities.FirstOrDefault(x => x.GetComponentByType<ItemComponent>()?.Item.Name == component.ItemName);
+
+                    if (itemEntity != null)
+                    {
+                        var itemComponent = itemEntity.GetComponentByType<ItemComponent>();
+
+                        if (itemComponent != null)
+                        {
+                            var currentRoomEntity = Helper.GetPlayersCurrentRoom(playerEntity, roomEntities);
+
+                            if (currentRoomEntity != null)
+                            {
+                                var itemExistsInRoom = currentRoomEntity.GetComponentsByType<ItemDropComponent>().Where(x => x.Item.Id == itemComponent.Item.Id).FirstOrDefault();
+
+                                if (itemExistsInRoom != null)
+                                {
+                                    itemExistsInRoom.Item.Quantity += itemInInventory.Quantity;
+                                }
+                                else
+                                {
+                                    currentRoomEntity.AddComponent(new ItemDropComponent($"item drop component", new InventoryItem
+                                    {
+                                        Id = itemInInventory.Id,
+                                        Name = itemInInventory.Name,
+                                        Quantity = itemInInventory.Quantity
+                                    }));
+                                }
+                            }
+
+                            inventoryComponent.RemoveItem(itemInInventory);
+
+                            outputEntity.AddComponent(new OutputComponent("output for drop item", $"You dropped {component.ItemName}", OutputType.Regular));
+                        }
+                    }
+                }
+                else
+                {
+                    outputEntity.AddComponent(new OutputComponent("output for drop item not found", $"You don't have a {component.ItemName} to drop", OutputType.Regular));
+                }
+            }
         }
 
         public static void DropAllItemsAction(List<TWEntity> roomEntities, List<TWEntity> itemEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
         {
-            throw new NotImplementedException();
+            var currentRoomEntity = Helper.GetPlayersCurrentRoom(playerEntity, roomEntities);
+            var inventoryComponent = playerEntity.GetComponentByType<InventoryComponent>();
+
+            if (inventoryComponent != null && inventoryComponent.Items.Count > 0)
+            {
+                foreach (var itemInInventory in inventoryComponent.Items)
+                {
+                    if (currentRoomEntity != null)
+                    {
+                        var itemExistsInRoom = currentRoomEntity.GetComponentsByType<ItemDropComponent>().Where(x => x.Item.Id == itemInInventory.Id).FirstOrDefault();
+
+                        if (itemExistsInRoom != null)
+                        {
+                            itemExistsInRoom.Item.Quantity += itemInInventory.Quantity;
+                        }
+                        else
+                        {
+                            currentRoomEntity.AddComponent(new ItemDropComponent($"item drop component", new InventoryItem
+                            {
+                                Id = itemInInventory.Id,
+                                Name = itemInInventory.Name,
+                                Quantity = itemInInventory.Quantity
+                            }));
+                        }
+                    }
+                    
+                }
+
+                outputEntity.AddComponent(new OutputComponent("output for drop item", $"You dropped {component.ItemName} items", OutputType.Regular));
+                inventoryComponent.RemoveAllItems();
+            }
+            else
+            {
+                outputEntity.AddComponent(new OutputComponent("output for drop all items", $"You don't have any items to drop", OutputType.Regular));
+            }
         }
 
         public static void UseItemFromInventoryAction(List<TWEntity> roomEntities, List<TWEntity> itemEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
@@ -218,16 +305,15 @@ namespace TextWorld.Core.Misc
 
             if (inventoryComponent != null)
             {
-                // create a variable that is the item name, it's stored in the itemActionComponent.CommandComponent.Args
-                var itemName = component.CommandComponent.ArgsJoined;
+                // create a variable that is the item name, it's stored in the itemActionComponent.CommandComponent.Args                
                 // search inventoryComponent.Items for itemName
-                var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Name == itemName);
+                var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Name == component.ItemName);
 
                 // if item exists then look the item up in the itemEntities
                 if (itemInInventory != null)
                 {
                     // get the item entity from the itemEntities
-                    var itemEntity = itemEntities.FirstOrDefault(x => x.GetComponentByType<ItemComponent>()?.Item.Name == itemName);
+                    var itemEntity = itemEntities.FirstOrDefault(x => x.GetComponentByType<ItemComponent>()?.Item.Name == component.ItemName);
 
                     if (itemEntity != null)
                     {
@@ -235,13 +321,11 @@ namespace TextWorld.Core.Misc
 
                         if (itemComponent != null)
                         {
-                            var item = itemComponent.Item;
-
-                            item.Use(playerEntity, itemEntities, outputEntity);
+                            itemComponent.Item.Use(playerEntity, itemEntities, outputEntity);
                             //outputEntity.AddComponent(new OutputComponent("output for item used", $"You used {itemName}", OutputType.Regular));
-                            
+
                             // if the item is consumable then execute it's Use function
-                            if (item.Consumable)
+                            if (itemComponent.Item.Consumable)
                             {
                                 Helper.RemoveOrDecrementItemFromPlayersInventory(playerEntity, playerEntity, itemInInventory);
                             }
@@ -254,7 +338,7 @@ namespace TextWorld.Core.Misc
                 }
                 else
                 {
-                    outputEntity.AddComponent(new OutputComponent("output for item not found", $"You don't have a {itemName}", OutputType.Regular));
+                    outputEntity.AddComponent(new OutputComponent("output for item not found", $"You don't have a {component.ItemName}", OutputType.Regular));
                 }
             }
         }

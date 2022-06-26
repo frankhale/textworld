@@ -44,7 +44,7 @@ if (gameLoader.Load("game.json"))
 
     while (true)
     {
-        commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
+        commandSystem.Run(commandEntity, playerEntity, roomEntities, itemEntities, playerEntity);
         consoleQuitSystem.Run(playerEntity, () => { Console.WriteLine("Goodbye!"); Environment.Exit(0); });
         roomMovementSystem.Run(commandEntity, playerEntity, roomEntities, outputEntity);
         roomDescriptionSystem.Run(playerEntity, roomEntities, outputEntity);

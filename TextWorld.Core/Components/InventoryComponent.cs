@@ -22,6 +22,8 @@ namespace TextWorld.Core.Components
             Items.Remove(item);
         }
 
+        public void RemoveAllItems() { Items.Clear(); }
+
         public void IncrementItemCount(Guid id, int count)
         {
             var item = Items.FirstOrDefault(x => x.Id == id);

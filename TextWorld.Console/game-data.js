@@ -69,6 +69,7 @@ let Rooms = [
         ],
         Items: [
             { Id: 1, Quantity: 1 },
+            { Id: 2, Quantity: 5 },
             { Id: 3, Quantity: 1 }
         ]
     },

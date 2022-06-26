@@ -57,7 +57,7 @@ namespace TextWorld.Core.ECS
         public List<T> GetComponentsByType<T>() where T : TWComponent
         {
             return Components.Where(x => x.GetType() == typeof(T)).Cast<T>().ToList();
-        }
+        }        
 
         public T? GetComponentByName<T>(string name) where T : TWComponent
         {
