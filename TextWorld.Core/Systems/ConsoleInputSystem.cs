@@ -7,7 +7,7 @@ namespace TextWorld.Core.Systems
     public class ConsoleInputSystem : TWSystem
     {
         public override void Run(TWEntityCollection gameEntities)
-        {            
+        {
             var playerEntity = gameEntities.GetEntityByName("players", "player");
             var commandEntity = gameEntities.GetEntityByName("misc", "command");
             var outputEntity = gameEntities.GetEntityByName("misc", "output");
@@ -24,7 +24,7 @@ namespace TextWorld.Core.Systems
             }
 
             var command = Console.ReadLine();
-            outputEntity.AddComponent(new OutputComponent("command output", command!, OutputType.Command));
+            outputEntity!.AddComponent(new OutputComponent("command output", command!, OutputType.Command));
             Helper.AddCommandComponentToEntity(commandEntity!, command!);
         }
     }

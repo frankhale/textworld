@@ -13,7 +13,7 @@ namespace TextWorld.Core.Systems
             var outputEntity = gameEntities.GetEntityByName("misc", "output");
             var commandEntity = gameEntities.GetEntityByName("misc", "command");
             var roomEntities = gameEntities.GetEntitiesByName("rooms");
-            
+
             TextInfo myTI = new CultureInfo("en-US", false).TextInfo;
             var processedComponents = new List<CommandComponent>();
 
@@ -32,14 +32,14 @@ namespace TextWorld.Core.Systems
 
                     if (exit != null)
                     {
-                        var newRoomEntity = roomEntities.FirstOrDefault(x => x.Id == exit.RoomId);
+                        var newRoomEntity = roomEntities!.FirstOrDefault(x => x.Id == exit.RoomId);
 
                         if (newRoomEntity != null)
                         {
                             currentRoomComponent!.Id = newRoomEntity.Id;
 
                             playerEntity.AddComponent(new ShowDescriptionComponent("player new room", newRoomEntity, DescriptionType.Room));
-                            playerEntity.AddComponent(Helper.GetRoomExitInfoForRoom(playerEntity, roomEntities, newRoomEntity));
+                            playerEntity.AddComponent(Helper.GetRoomExitInfoForRoom(playerEntity, roomEntities!, newRoomEntity));
                         }
                     }
                     else

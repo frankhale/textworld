@@ -11,7 +11,7 @@ namespace TextWorld.Core.Components
         public Action<List<TWEntity>, List<TWEntity>, TWEntity, TWEntity, ItemActionComponent>? Action { get; private set; }
 
         public string? ItemName { get; private set; }
-        
+
         public ItemActionComponent(string name, CommandComponent commandComponent, ItemActionType actionType) : base(name)
         {
             ItemId = Guid.NewGuid();

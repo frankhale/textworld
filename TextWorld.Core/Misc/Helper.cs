@@ -208,7 +208,7 @@ namespace TextWorld.Core.Misc
 
             if (inventoryComponent != null)
             {
-                // create a variable that is the item name, it's stored in the itemActionComponent.CommandComponent.Args                
+                // create a variable that is the item name, it's stored in the itemActionComponent.CommandComponent.Args
                 // search inventoryComponent.Items for itemName
                 var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Name == component.ItemName);
 
@@ -285,7 +285,7 @@ namespace TextWorld.Core.Misc
                             }));
                         }
                     }
-                    
+
                 }
 
                 outputEntity.AddComponent(new OutputComponent("output for drop item", $"You dropped {component.ItemName} items", OutputType.Regular));
@@ -304,7 +304,7 @@ namespace TextWorld.Core.Misc
 
             if (inventoryComponent != null)
             {
-                // create a variable that is the item name, it's stored in the itemActionComponent.CommandComponent.Args                
+                // create a variable that is the item name, it's stored in the itemActionComponent.CommandComponent.Args
                 // search inventoryComponent.Items for itemName
                 var itemInInventory = inventoryComponent.Items.FirstOrDefault(x => x.Name == component.ItemName);
 
