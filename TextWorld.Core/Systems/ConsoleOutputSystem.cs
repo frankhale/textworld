@@ -6,9 +6,11 @@ namespace TextWorld.Core.Systems
 {
     public class ConsoleOutputSystem : TWSystem
     {
-        public override void Run(TWEntity outputEntity)
-        {
-            foreach (var component in outputEntity.GetComponentsByType<OutputComponent>())
+        public override void Run(TWEntityCollection gameEntities)
+        {            
+            var outputEntity = gameEntities.GetEntityByName("misc", "output");
+
+            foreach (var component in outputEntity!.GetComponentsByType<OutputComponent>())
             {                
                 if (component.OutputType == OutputType.Regular)
                 {

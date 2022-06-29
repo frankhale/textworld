@@ -2,27 +2,62 @@
 {
     public class TWEntityCollection
     {
-        public List<TWEntity> Entities { get; private set; } = new List<TWEntity>();
-        public string? Name { get; private set; }
+        private readonly Dictionary<string, List<TWEntity>> Entities = new();
 
-        public TWEntityCollection(string name)
+        public void AddEntity(string name, TWEntity entity)
         {
-            Name = name;
+            if (!Entities.ContainsKey(name))
+            {
+                Entities[name] = new List<TWEntity>();
+            }
+
+            Entities[name].Add(entity);            
         }
 
-        public void AddEntity(TWEntity entity)
+        public void AddEntities(string name, List<TWEntity> entities)
         {
-            Entities.Add(entity);
+            if (!Entities.ContainsKey(name))
+            {
+                Entities[name] = new List<TWEntity>();
+            }
+
+            Entities[name].AddRange(entities);
         }
 
-        public void RemoveEntity(TWEntity entity)
+        public void RemoveEntity(string name, TWEntity entity)
         {
-            Entities.Remove(entity);
+            if (Entities[name] != null)
+            {
+                Entities[name].Remove(entity);
+            }
         }
 
-        public TWEntity? GetEntityByName(string name)
+        public void RemoveEntities(string name)
         {
-            return Entities.FirstOrDefault(x => x.Name == name);
+            if (Entities.ContainsKey(name))
+            {                
+                Entities.Remove(name);
+            }
+        }
+
+        public TWEntity? GetEntityByName(string collectionName, string entityName)
+        {
+            if (Entities.ContainsKey(collectionName))
+            {
+                return Entities[collectionName].FirstOrDefault(x => x.Name == entityName);
+            }
+
+            return null;
+        }
+
+        public List<TWEntity>? GetEntitiesByName(string name)
+        {
+            if (Entities.ContainsKey(name))
+            {
+                return Entities[name];
+            }
+
+            return null;
         }
     }
 }

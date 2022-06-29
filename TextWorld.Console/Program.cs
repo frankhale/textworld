@@ -7,13 +7,6 @@ using TextWorld.Core.Systems;
 var gameLoader = new GameLoader();
 if (gameLoader.Load("game.json"))
 {
-    //Entities
-    TWEntity motdEntity = new("MOTD Entity");
-    TWEntity playerEntity = new("Player Entity");
-    TWEntity commandEntity = new("Command Entity");
-    TWEntity outputEntity = new("Output Entity");
-    List<TWEntity> roomEntities = new();
-    List<TWEntity> itemEntities = new();
     // Systems
     MOTDSystem motdSystem = new();
     CommandSystem commandSystem = new();
@@ -26,32 +19,30 @@ if (gameLoader.Load("game.json"))
     ConsoleOutputSystem consoleOutputSystem = new();
     QuitSystem consoleQuitSystem = new();
 
+    //Entities
     var gameEntities = gameLoader.GetGameEntities();
 
-    motdEntity = gameEntities.MOTD!;
-    playerEntity = gameEntities.Player!;
-    roomEntities = gameEntities.Rooms!;
-    itemEntities = gameEntities.Items!;
+    var rooms = gameEntities.GetEntitiesByName("rooms");
+    var player = gameEntities.GetEntityByName("players", "player");
+    var playerCurrentRoomComponent = player!.GetComponentByType<IdComponent>();
 
-    var playerCurrentRoomComponent = playerEntity.GetComponentByType<IdComponent>();
-
-    var firstRoom = roomEntities.FirstOrDefault(room => room.Id == playerCurrentRoomComponent!.Id);
-    playerEntity.AddComponent(new ShowDescriptionComponent("show current room description", firstRoom!, DescriptionType.Room));
-    playerEntity.AddComponent(Helper.GetRoomExitInfoForRoom(playerEntity, roomEntities, firstRoom!));
+    var firstRoom = rooms!.FirstOrDefault(room => room.Id == playerCurrentRoomComponent!.Id);
+    player.AddComponent(new ShowDescriptionComponent("show current room description", firstRoom!, DescriptionType.Room));
+    player.AddComponent(Helper.GetRoomExitInfoForRoom(player, rooms!, firstRoom!));
 
     // Run systems
-    motdSystem.Run(motdEntity, outputEntity);
+    motdSystem.Run(gameEntities);
 
     while (true)
     {
-        commandSystem.Run(commandEntity, playerEntity, roomEntities, itemEntities, playerEntity);
-        consoleQuitSystem.Run(playerEntity, () => { Console.WriteLine("Goodbye!"); Environment.Exit(0); });
-        roomMovementSystem.Run(commandEntity, playerEntity, roomEntities, outputEntity);
-        roomDescriptionSystem.Run(playerEntity, roomEntities, outputEntity);
-        itemsSystem.Run(playerEntity, itemEntities, roomEntities, outputEntity);
-        inventorySystem.Run(commandEntity, playerEntity, outputEntity);
-        unknownCommandSystem.Run(commandEntity, outputEntity);
-        consoleOutputSystem.Run(outputEntity);
-        consoleInputSystem.Run(playerEntity, commandEntity, outputEntity);
+        commandSystem.Run(gameEntities);
+        consoleQuitSystem.Run(gameEntities, () => { Console.WriteLine("Goodbye!"); Environment.Exit(0); });
+        roomMovementSystem.Run(gameEntities);
+        roomDescriptionSystem.Run(gameEntities);
+        itemsSystem.Run(gameEntities);
+        inventorySystem.Run(gameEntities);
+        unknownCommandSystem.Run(gameEntities);
+        consoleOutputSystem.Run(gameEntities);
+        consoleInputSystem.Run(gameEntities);
     }
 }

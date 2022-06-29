@@ -6,13 +6,16 @@ namespace TextWorld.Core.Systems
 {
     public class MOTDSystem : TWSystem
     {
-        public override void Run(TWEntity motdEntity, TWEntity outputEntity)
+        public override void Run(TWEntityCollection entityCollection)
         {
-            var motdDescriptionComponent = motdEntity.GetComponentByType<DescriptionComponent>();
+            var motdEntity = entityCollection.GetEntityByName("misc", "motd");
+            var outputEntity = entityCollection.GetEntityByName("misc", "output");
+
+            var motdDescriptionComponent = motdEntity!.GetComponentByType<DescriptionComponent>();
 
             if (motdDescriptionComponent != null)
             {
-                outputEntity.AddComponent(new OutputComponent("motd output for description", motdDescriptionComponent.Description, OutputType.MessageOfTheDay));
+                outputEntity!.AddComponent(new OutputComponent("motd output for description", motdDescriptionComponent.Description, OutputType.MessageOfTheDay));
             }
         }
     }

@@ -9,7 +9,6 @@ using TextWorld.Core.Items;
 using TextWorld.Core.Misc;
 using TextWorld.Core.Systems;
 using Xunit;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace TextWorld.Core.Test
 {
@@ -128,14 +127,18 @@ namespace TextWorld.Core.Test
         public void MOTDSystemOutputsMOTD()
         {
             // Arrange
-            var outputEntity = new TWEntity("Output Entity");
-            var motdEntity = new TWEntity("MOTD Entity");
+            var outputEntity = new TWEntity("output");
+            var motdEntity = new TWEntity("motd");
             var motdSystem = new MOTDSystem();
             var motd = "This is the message of the day.";
             motdEntity.AddComponent(new DescriptionComponent("description", motd));
 
+            var gameEntities = new TWEntityCollection();
+            gameEntities.AddEntity("misc", motdEntity);
+            gameEntities.AddEntity("misc", outputEntity);
+
             // Act
-            motdSystem.Run(motdEntity, outputEntity);
+            motdSystem.Run(gameEntities);
 
             var outputComponent = outputEntity.GetComponentByType<OutputComponent>();
 
@@ -179,7 +182,7 @@ namespace TextWorld.Core.Test
             var roomEntities = new List<TWEntity>();
             var outputEntity = new TWEntity("output");
             var commandEntity = new TWEntity("command");
-            
+
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "New Room", new List<TWComponent>()
                 {
@@ -198,11 +201,15 @@ namespace TextWorld.Core.Test
             playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));
             playerEntity.AddComponent(new ItemActionComponent("show room items", commandComponent!, ItemActionType.ShowAll, Helper.ShowAllItemAction));
 
-            // we don't care that itemEntities is empty here.
-            var itemEntities = new List<TWEntity>();
+            var gameEntities = new TWEntityCollection();
+            gameEntities.AddEntity("players", playerEntity);
+            gameEntities.AddEntity("rooms", room);
+            gameEntities.AddEntity("misc", commandEntity);
+            gameEntities.AddEntity("misc", outputEntity);
+            gameEntities.AddEntities("items", new List<TWEntity>());
 
             // Act
-            itemsSystem.Run(playerEntity, itemEntities, roomEntities, outputEntity);
+            itemsSystem.Run(gameEntities);
             var outputComponent = outputEntity.GetComponentByType<OutputComponent>();
 
             // Assert
@@ -242,11 +249,15 @@ namespace TextWorld.Core.Test
             playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));
             playerEntity.AddComponent(new ItemActionComponent("show room items", "leather coin purse", commandComponent!, ItemActionType.Show, Helper.ShowItemAction));
 
-            // we don't care that itemEntities is empty here.
-            var itemEntities = new List<TWEntity>();
+            var gameEntities = new TWEntityCollection();
+            gameEntities.AddEntity("players", playerEntity);
+            gameEntities.AddEntity("rooms", room);
+            gameEntities.AddEntity("misc", commandEntity);
+            gameEntities.AddEntity("misc", outputEntity);
+            gameEntities.AddEntities("items", new List<TWEntity>());
 
             // Act
-            itemsSystem.Run(playerEntity, itemEntities, roomEntities, outputEntity);
+            itemsSystem.Run(gameEntities);
             var outputComponent = outputEntity.GetComponentByType<OutputComponent>();
 
             // Assert
@@ -267,7 +278,7 @@ namespace TextWorld.Core.Test
             var roomEntities = new List<TWEntity>();
             var outputEntity = new TWEntity("output");
             var commandEntity = new TWEntity("command");
-            
+
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "New Room", new List<TWComponent>()
                 {
@@ -287,11 +298,15 @@ namespace TextWorld.Core.Test
             playerEntity.AddComponent(new ItemActionComponent("take item from room", "leather coin purse", commandComponent!, ItemActionType.Take, Helper.TakeItemAction));
             roomEntities.Add(room);
 
-            // we don't care that itemEntities is empty here.
-            var itemEntities = new List<TWEntity>();
+            var gameEntities = new TWEntityCollection();
+            gameEntities.AddEntity("players", playerEntity);
+            gameEntities.AddEntity("rooms", room);
+            gameEntities.AddEntity("misc", commandEntity);
+            gameEntities.AddEntity("misc", outputEntity);
+            gameEntities.AddEntities("items", new List<TWEntity>());
 
             // Act
-            itemsSystem.Run(playerEntity, itemEntities, roomEntities, outputEntity);
+            itemsSystem.Run(gameEntities);
             var outputComponent = outputEntity.GetComponentByType<OutputComponent>();
             var playerCurrentRoom = Helper.GetPlayersCurrentRoom(playerEntity, roomEntities);
 
@@ -317,7 +332,7 @@ namespace TextWorld.Core.Test
             // Arrange
             var playerEntity = new TWEntity("player");
             var roomEntities = new List<TWEntity>();
-            var commandEntity = new TWEntity("Command Entity");
+            var commandEntity = new TWEntity("command");
             var commandSystem = new CommandSystem();
 
             var roomId = Guid.NewGuid();
@@ -329,8 +344,13 @@ namespace TextWorld.Core.Test
 
             Helper.AddCommandComponentToEntity(commandEntity, "quit");
 
+            var gameEntities = new TWEntityCollection();
+            gameEntities.AddEntity("players", playerEntity);
+            gameEntities.AddEntity("rooms", room);
+            gameEntities.AddEntity("misc", commandEntity);
+
             // Act
-            commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
+            commandSystem.Run(gameEntities);
             var quitComponent = playerEntity.GetComponentByType<QuitComponent>();
 
             // Assert
@@ -348,7 +368,7 @@ namespace TextWorld.Core.Test
             // Arrange
             var playerEntity = new TWEntity("player");
             var roomEntities = new List<TWEntity>();
-            var commandEntity = new TWEntity("Command Entity");
+            var commandEntity = new TWEntity("command");
             var commandSystem = new CommandSystem();
 
             var roomId = Guid.NewGuid();
@@ -358,13 +378,18 @@ namespace TextWorld.Core.Test
             });
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));
-            playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));            
+            playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));
             roomEntities.Add(room);
 
             Helper.AddCommandComponentToEntity(commandEntity, "look");
 
+            var gameEntities = new TWEntityCollection();
+            gameEntities.AddEntity("players", playerEntity);
+            gameEntities.AddEntity("rooms", room);
+            gameEntities.AddEntity("misc", commandEntity);            
+
             // Act
-            commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
+            commandSystem.Run(gameEntities);
             var showRoomDescriptionComponent = playerEntity.GetComponentByType<ShowDescriptionComponent>();
 
             // Assert
@@ -382,20 +407,25 @@ namespace TextWorld.Core.Test
             // Arrange
             var playerEntity = new TWEntity("player");
             var roomEntities = new List<TWEntity>();
-            var commandEntity = new TWEntity("Command Entity");
+            var commandEntity = new TWEntity("command");
             var commandSystem = new CommandSystem();
 
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "Test Room");
 
             playerEntity.AddComponent(new InventoryComponent("player inventory"));
-            playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));            
+            playerEntity.AddComponent(new IdComponent("player current room", roomId, IdType.Room));
             roomEntities.Add(room);
 
             Helper.AddCommandComponentToEntity(commandEntity, "look self");
 
+            var gameEntities = new TWEntityCollection();
+            gameEntities.AddEntity("players", playerEntity);
+            gameEntities.AddEntity("rooms", room);
+            gameEntities.AddEntity("misc", commandEntity);
+
             // Act
-            commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
+            commandSystem.Run(gameEntities);
             var showRoomDescriptionComponent = playerEntity.GetComponentByType<ShowDescriptionComponent>();
 
             // Assert
@@ -413,9 +443,10 @@ namespace TextWorld.Core.Test
             // Arrange
             var playerEntity = new TWEntity("player");
             var roomEntities = new List<TWEntity>();
-            var commandEntity = new TWEntity("Command Entity");
+            var commandEntity = new TWEntity("command");
             var commandSystem = new CommandSystem();
-
+            var outputEntity = new TWEntity("output");
+            
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "Test Room", new List<TWComponent>()
             {
@@ -429,8 +460,14 @@ namespace TextWorld.Core.Test
 
             Helper.AddCommandComponentToEntity(commandEntity, "inspect");
 
+            var gameEntities = new TWEntityCollection();
+            gameEntities.AddEntity("players", playerEntity);
+            gameEntities.AddEntity("rooms", room);
+            gameEntities.AddEntity("misc", commandEntity);
+            gameEntities.AddEntity("misc", outputEntity);
+
             // Act
-            commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
+            commandSystem.Run(gameEntities);
             var itemActionComponent = playerEntity.GetComponentByType<ItemActionComponent>();
 
             // Assert            
@@ -447,9 +484,10 @@ namespace TextWorld.Core.Test
             // Arrange
             var playerEntity = new TWEntity("player");
             var roomEntities = new List<TWEntity>();
-            var commandEntity = new TWEntity("Command Entity");
+            var commandEntity = new TWEntity("command");
             var commandSystem = new CommandSystem();
-
+            var outputEntity = new TWEntity("output");
+            
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "Test Room", new List<TWComponent>()
             {
@@ -462,8 +500,14 @@ namespace TextWorld.Core.Test
 
             Helper.AddCommandComponentToEntity(commandEntity, "take health potion");
 
+            var gameEntities = new TWEntityCollection();
+            gameEntities.AddEntity("players", playerEntity);
+            gameEntities.AddEntity("rooms", room);
+            gameEntities.AddEntity("misc", commandEntity);
+            gameEntities.AddEntity("misc", outputEntity);
+
             // Act
-            commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
+            commandSystem.Run(gameEntities);
             var itemActionComponent = playerEntity.GetComponentByType<ItemActionComponent>();
 
             // Assert
@@ -481,8 +525,9 @@ namespace TextWorld.Core.Test
             // Arrange
             var playerEntity = new TWEntity("player");
             var roomEntities = new List<TWEntity>();
-            var commandEntity = new TWEntity("Command Entity");
+            var commandEntity = new TWEntity("command");
             var commandSystem = new CommandSystem();
+            var outputEntity = new TWEntity("output");
 
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "Test Room", new List<TWComponent>()
@@ -495,7 +540,14 @@ namespace TextWorld.Core.Test
             roomEntities.Add(room);
 
             Helper.AddCommandComponentToEntity(commandEntity, "take all");
-            commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
+
+            var gameEntities = new TWEntityCollection();
+            gameEntities.AddEntity("players", playerEntity);
+            gameEntities.AddEntity("rooms", room);
+            gameEntities.AddEntity("misc", commandEntity);
+            gameEntities.AddEntity("misc", outputEntity);
+
+            commandSystem.Run(gameEntities);
             var itemActionComponent = playerEntity.GetComponentByType<ItemActionComponent>();
 
             // Act
@@ -513,8 +565,9 @@ namespace TextWorld.Core.Test
             // Arrange
             var playerEntity = new TWEntity("player");
             var roomEntities = new List<TWEntity>();
-            var commandEntity = new TWEntity("Command Entity");
+            var commandEntity = new TWEntity("command");
             var commandSystem = new CommandSystem();
+            var outputEntity = new TWEntity("output");
 
             var roomId = Guid.NewGuid();
             var room = new TWEntity(roomId, "Test Room", new List<TWComponent>()
@@ -527,7 +580,14 @@ namespace TextWorld.Core.Test
             roomEntities.Add(room);
 
             Helper.AddCommandComponentToEntity(commandEntity, "drop health potion");
-            commandSystem.Run(commandEntity, playerEntity, roomEntities, playerEntity);
+
+            var gameEntities = new TWEntityCollection();
+            gameEntities.AddEntity("players", playerEntity);
+            gameEntities.AddEntity("rooms", room);
+            gameEntities.AddEntity("misc", commandEntity);
+            gameEntities.AddEntity("misc", outputEntity);
+            
+            commandSystem.Run(gameEntities);
             var itemActionComponent = playerEntity.GetComponentByType<ItemActionComponent>();
 
             // Act
@@ -545,8 +605,8 @@ namespace TextWorld.Core.Test
             // Arrange
             var playerEntity = new TWEntity("player");
             var roomEntities = new List<TWEntity>();
-            var commandEntity = new TWEntity("Command Entity");
-            var outputEntity = new TWEntity("Output Entity");
+            var commandEntity = new TWEntity("command");
+            var outputEntity = new TWEntity("output");
             var commandSystem = new CommandSystem();
             var roomId = Guid.NewGuid();
             var roomDescription = "You are standing in an open field. All around you stands vibrant green grass. You can hear the sound of flowing water off in the distance which you suspect is a stream.";
@@ -560,10 +620,16 @@ namespace TextWorld.Core.Test
 
             Helper.AddCommandComponentToEntity(commandEntity, "look");
 
-            // Act
-            commandSystem.Run(commandEntity, playerEntity, roomEntities, outputEntity);
+            var gameEntities = new TWEntityCollection();
+            gameEntities.AddEntity("players", playerEntity);
+            gameEntities.AddEntity("rooms", room);
+            gameEntities.AddEntity("misc", commandEntity);
+            gameEntities.AddEntity("misc", outputEntity);
 
-            var showRoomDescription = outputEntity.GetComponentByType<ShowDescriptionComponent>();
+            // Act
+            commandSystem.Run(gameEntities);
+
+            var showRoomDescription = playerEntity.GetComponentByType<ShowDescriptionComponent>();
 
             // Assert
             showRoomDescription.Should().NotBeNull();
@@ -583,15 +649,20 @@ namespace TextWorld.Core.Test
             var gameEntities = gameLoader.GetGameEntities();
 
             loaded.Should().BeTrue();
-            gameEntities.Player.Should().NotBeNull();
-            gameEntities.Rooms.Should().NotBeNull();
-            gameEntities.Items.Should().NotBeNull();
+
+            gameEntities.GetEntitiesByName("players").Should().HaveCount(1);
+            gameEntities.GetEntitiesByName("misc").Should().HaveCountGreaterThan(1);
+            gameEntities.GetEntitiesByName("rooms").Should().HaveCountGreaterThan(1);
+            gameEntities.GetEntitiesByName("items").Should().HaveCountGreaterThan(1);
+
+            var player = gameEntities.GetEntityByName("players", "player");
+            var rooms = gameEntities.GetEntitiesByName("rooms");
 
             // Check to make sure players current room is one of the ones that exists in the list of rooms
-            var playerCurrentRoom = gameEntities.Player!.GetComponentByType<IdComponent>();
+            var playerCurrentRoom = player!.GetComponentByType<IdComponent>();
             playerCurrentRoom.Should().NotBeNull();
             var playerCurrentRoomId = playerCurrentRoom!.Id;
-            var playerCurrentRoomExists = gameEntities.Rooms!.Any(r => r.Id == playerCurrentRoomId);
+            var playerCurrentRoomExists = rooms!.Any(r => r.Id == playerCurrentRoomId);
             playerCurrentRoomExists.Should().BeTrue();
         }
     }

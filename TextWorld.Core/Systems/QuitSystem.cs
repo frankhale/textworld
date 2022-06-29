@@ -5,9 +5,11 @@ namespace TextWorld.Core.Systems
 {
     public class QuitSystem : TWSystem
     {
-        public override void Run(TWEntity playerEntity, Action action)
+        public override void Run(TWEntityCollection gameEntities, Action action)
         {
-            var component = playerEntity.GetComponentByType<QuitComponent>();
+            var playerEntity = gameEntities.GetEntityByName("players", "player");
+
+            var component = playerEntity!.GetComponentByType<QuitComponent>();
 
             if (component != null)
             {

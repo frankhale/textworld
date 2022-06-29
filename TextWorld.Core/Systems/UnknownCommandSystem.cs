@@ -6,11 +6,14 @@ namespace TextWorld.Core.Systems
 {
     public class UnknownCommandSystem : TWSystem
     {
-        public override void Run(TWEntity commandEntity, TWEntity outputEntity)
+        public override void Run(TWEntityCollection gameEntities)
         {
+            var outputEntity = gameEntities.GetEntityByName("misc", "output");
+            var commandEntity = gameEntities.GetEntityByName("misc", "command");
+
             var unknownCommandComponents = new List<UnknownCommandComponent>();
 
-            commandEntity.GetComponentsByType<CommandComponent>().ForEach(x =>
+            commandEntity!.GetComponentsByType<CommandComponent>().ForEach(x =>
             {
                 unknownCommandComponents.Add(new UnknownCommandComponent("unknown command", x.Command!));
             });
@@ -23,7 +26,7 @@ namespace TextWorld.Core.Systems
 
                 unknownCommandComponents.ForEach(x =>
                 {
-                    outputEntity.AddComponent(new OutputComponent("output for unknown command", $"I don't know how to do: {x.Command}", OutputType.Regular));
+                    outputEntity!.AddComponent(new OutputComponent("output for unknown command", $"I don't know how to do: {x.Command}", OutputType.Regular));
                 });
             }
         }

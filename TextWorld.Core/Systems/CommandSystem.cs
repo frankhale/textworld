@@ -7,7 +7,7 @@ namespace TextWorld.Core.Systems
     public class CommandSystem : TWSystem
     {
         private Dictionary<string, string> Synonyms = new Dictionary<string, string>();
-        
+
         private readonly Dictionary<string, Action<TWEntity, List<TWEntity>, CommandComponent, List<CommandComponent>, TWEntity>> CommandActions = new() {
             // FIXME: There is a lot of redundant string joining for command args going on. We need to 
             // do this once and reuse.
@@ -54,13 +54,19 @@ namespace TextWorld.Core.Systems
             } },
             { "use",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
                 outputEntity.AddComponent(new ItemActionComponent("use item action", commandComponent.ArgsOnly, commandComponent, ItemActionType.Use, Helper.UseItemFromInventoryAction));
-            } }            
+            } }
         };
 
-        public override void Run(TWEntity commandEntity, TWEntity playerEntity, List<TWEntity> roomEntities, List<TWEntity> itemEntities, TWEntity outputEntity)
+        public override void Run(TWEntityCollection gameEntities)
         {
+            var playerEntity = gameEntities.GetEntityByName("players", "player");
+            var commandEntity = gameEntities.GetEntityByName("misc", "command");
+            var outputEntity = playerEntity; // LMFAO! gameEntities.GetEntityByName("misc", "output");
+            var roomEntities = gameEntities.GetEntitiesByName("rooms");
+            var itemEntities = gameEntities.GetEntitiesByName("items");
+
             var processedComponents = new List<CommandComponent>();
-            var commandComponent = commandEntity.GetComponentsByType<CommandComponent>().FirstOrDefault();
+            var commandComponent = commandEntity!.GetComponentsByType<CommandComponent>().FirstOrDefault();
 
             if (commandComponent != null)
             {
@@ -74,7 +80,7 @@ namespace TextWorld.Core.Systems
                 if (foundAction)
                 {
                     processedComponents.Add(commandComponent);
-                    action?.Invoke(playerEntity, roomEntities, commandComponent, processedComponents, outputEntity);
+                    action?.Invoke(playerEntity!, roomEntities!, commandComponent, processedComponents, outputEntity!);
                 }
             }
 

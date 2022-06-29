@@ -27,11 +27,11 @@ namespace TextWorld.Core.Data
             }
         }
 
-        public GameEntities GetGameEntities()
+        public TWEntityCollection GetGameEntities()
         {
-            GameEntities gameEntities = new();
+            TWEntityCollection gameEntities = new();
 
-            TWEntity playerEntity = new("Player Entity");
+            TWEntity playerEntity = new("player");
             List<TWEntity> roomEntities = new();
             List<TWEntity> itemEntities = new();
 
@@ -76,8 +76,8 @@ namespace TextWorld.Core.Data
                     itemEntity.AddComponent(new JsonComponent(item.Name!, itemIds[item.Id!], JsonConvert.SerializeObject(item))); 
                     itemEntities.Add(itemEntity);
                 }
-
-                gameEntities.Items = itemEntities;
+                
+                gameEntities.AddEntities("items", itemEntities);
                 #endregion
 
                 #region ROOMS
@@ -126,8 +126,8 @@ namespace TextWorld.Core.Data
                         roomEntities.Add(roomEntity);
                     }
                 }
-
-                gameEntities.Rooms = roomEntities;
+                
+                gameEntities.AddEntities("rooms", roomEntities);
                 #endregion
 
                 #region PLAYER
@@ -156,15 +156,19 @@ namespace TextWorld.Core.Data
                         }
                     }
                 }
-
-                gameEntities.Player = playerEntity;
+                
+                gameEntities.AddEntity("players", playerEntity);
                 #endregion
 
                 if (!string.IsNullOrEmpty(Data.MOTD))
                 {
-                    gameEntities.MOTD = new TWEntity("MOTD Entity");
-                    gameEntities.MOTD.AddComponent(new DescriptionComponent("motd description", "Welcome to a text adventure written using an entity component system based engine called TextWorld. Look around, have fun!"));
+                    var motdEntity = new TWEntity("motd");
+                    motdEntity.AddComponent(new DescriptionComponent("motd description", Data.MOTD));
+                    gameEntities.AddEntity("misc", motdEntity);
                 }
+
+                gameEntities.AddEntity("misc", new TWEntity("command"));
+                gameEntities.AddEntity("misc", new TWEntity("output"));
             }
 
             return gameEntities;

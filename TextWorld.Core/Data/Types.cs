@@ -64,14 +64,4 @@ namespace TextWorld.Core.Data
         public List<Item>? Items { get; set; }
         public List<Room>? Rooms { get; set; }
     }
-
-    public class GameEntities
-    {
-        
-        public TWEntity? MOTD { get; set; }
-        public TWEntity? Player { get; set; }
-        public List<TWEntity>? Rooms { get; set; }
-        public List<TWEntity>? Items { get; set; }
-        public List<TWEntity>? NPCs { get; set; }        
-    }
 }

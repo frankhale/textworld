@@ -7,12 +7,17 @@ namespace TextWorld.Core.Systems
 {
     public class RoomMovementSystem : TWSystem
     {
-        public override void Run(TWEntity commandEntity, TWEntity playerEntity, List<TWEntity> roomEntities, TWEntity outputEntity)
+        public override void Run(TWEntityCollection gameEntities)
         {
+            var playerEntity = gameEntities.GetEntityByName("players", "player");
+            var outputEntity = gameEntities.GetEntityByName("misc", "output");
+            var commandEntity = gameEntities.GetEntityByName("misc", "command");
+            var roomEntities = gameEntities.GetEntitiesByName("rooms");
+            
             TextInfo myTI = new CultureInfo("en-US", false).TextInfo;
             var processedComponents = new List<CommandComponent>();
 
-            foreach (var commandComponent in commandEntity.GetComponentsByType<CommandComponent>())
+            foreach (var commandComponent in commandEntity!.GetComponentsByType<CommandComponent>())
             {
                 var commandAsTitleCase = myTI.ToTitleCase(commandComponent.Command!);
 
@@ -20,8 +25,8 @@ namespace TextWorld.Core.Systems
                 {
                     processedComponents.Add(commandComponent);
 
-                    var currentRoomComponent = playerEntity.GetComponentByName<IdComponent>("player current room");
-                    var currentRoomEntity = roomEntities.FirstOrDefault(x => x.Id == currentRoomComponent!.Id);
+                    var currentRoomComponent = playerEntity!.GetComponentByName<IdComponent>("player current room");
+                    var currentRoomEntity = roomEntities!.FirstOrDefault(x => x.Id == currentRoomComponent!.Id);
                     var currentRoomExits = currentRoomEntity!.GetComponentsByType<ExitComponent>();
                     var exit = currentRoomExits.FirstOrDefault(x => x.Direction.ToString() == commandAsTitleCase);
 
@@ -39,7 +44,7 @@ namespace TextWorld.Core.Systems
                     }
                     else
                     {
-                        outputEntity.AddComponent(new OutputComponent("output for inaccessible direction", "I cannot go in that direction", OutputType.Regular));
+                        outputEntity!.AddComponent(new OutputComponent("output for inaccessible direction", "I cannot go in that direction", OutputType.Regular));
                     }
 
                     commandEntity.RemoveComponents(processedComponents);
