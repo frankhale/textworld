@@ -9,7 +9,7 @@ namespace TextWorld.Core.Systems
         private Dictionary<string, string> Synonyms = new Dictionary<string, string>();
 
         private readonly Dictionary<string, Action<TWEntity, List<TWEntity>, CommandComponent, List<CommandComponent>, TWEntity>> CommandActions = new() {
-            // FIXME: There is a lot of redundant string joining for command args going on. We need to 
+            // FIXME: There is a lot of redundant string joining for command args going on. We need to
             // do this once and reuse.
             { "quit", (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
                 outputEntity.AddComponent(new QuitComponent("quit game"));
@@ -35,7 +35,7 @@ namespace TextWorld.Core.Systems
                 }
             } },
             { "show",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
-                outputEntity.AddComponent(new ItemActionComponent("show an item action", commandComponent.CommandWithArgs, commandComponent, ItemActionType.Show, Helper.ShowItemAction));
+                outputEntity.AddComponent(new ItemActionComponent("show an item action", commandComponent.ArgsOnly, commandComponent, ItemActionType.Show, Helper.ShowItemAction));
             } },
             { "inspect",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
                 outputEntity.AddComponent(new ItemActionComponent("show all items action", commandComponent, ItemActionType.ShowAll, Helper.ShowAllItemAction));
@@ -61,7 +61,6 @@ namespace TextWorld.Core.Systems
         {
             var playerEntity = gameEntities.GetEntityByName("players", "player");
             var commandEntity = gameEntities.GetEntityByName("misc", "command");
-            var outputEntity = playerEntity; // LMFAO! gameEntities.GetEntityByName("misc", "output");
             var roomEntities = gameEntities.GetEntitiesByName("rooms");
             var itemEntities = gameEntities.GetEntitiesByName("items");
 
@@ -80,7 +79,7 @@ namespace TextWorld.Core.Systems
                 if (foundAction)
                 {
                     processedComponents.Add(commandComponent);
-                    action?.Invoke(playerEntity!, roomEntities!, commandComponent, processedComponents, outputEntity!);
+                    action?.Invoke(playerEntity!, roomEntities!, commandComponent, processedComponents, playerEntity!);
                 }
             }
 

@@ -21,7 +21,7 @@
     {
       "Id": 1,
       "Name": "leather coin purse",
-      "Description": "Extremely worn leather purse. The leather is soft and flexible and it's color has faded.",
+      "Description": "Extremely worn leather purse. The leather is soft and flexible and it's color has faded. There are 100 coins inside.",
       "ItemType": "CoinPurse",
       "Synonyms": [
         "purse",

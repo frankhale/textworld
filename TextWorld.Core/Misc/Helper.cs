@@ -5,18 +5,6 @@ namespace TextWorld.Core.Misc
 {
     public static class Helper
     {
-        public static Guid FindGuidForEntity(List<TWEntity> entities, string entityName)
-        {
-            var entity = entities.FirstOrDefault(x => x.Name == entityName);
-
-            if (entity != null)
-            {
-                return entity.Id;
-            }
-
-            return Guid.Empty;
-        }
-
         public static TWEntity? GetPlayersCurrentRoom(TWEntity playerEntity, List<TWEntity> roomEntities)
         {
             TWEntity? result = null;
@@ -28,23 +16,6 @@ namespace TextWorld.Core.Misc
             }
 
             return result;
-        }
-
-        public static ItemComponent? GetItemComponentFromEntity(TWEntity entity, string itemName)
-        {
-            var items = entity.GetComponentsByType<ItemComponent>();
-
-            if (items.Count > 0)
-            {
-                var takeItem = items.FirstOrDefault(x => x.Item.Name == itemName);
-
-                if (takeItem != null)
-                {
-                    return takeItem;
-                }
-            }
-
-            return null;
         }
 
         public static ItemDropComponent? GetItemDropComponentFromEntity(TWEntity entity, string itemName)
@@ -62,11 +33,6 @@ namespace TextWorld.Core.Misc
             }
 
             return null;
-        }
-
-        public static ItemDropComponent? GetItemDropComponentOnEntity(TWEntity entity, ItemDropComponent itemDropComponent)
-        {
-            return entity.GetComponentsByType<ItemDropComponent>().FirstOrDefault(x => x.Item.Id == itemDropComponent.Item.Id);
         }
 
         public static void AddItemToPlayersInventory(TWEntity playerEntity, TWEntity itemOnEntity, ItemDropComponent itemDropComponent)
@@ -93,7 +59,7 @@ namespace TextWorld.Core.Misc
                     );
                 }
 
-                var itemToRemove = GetItemDropComponentOnEntity(itemOnEntity, itemDropComponent);
+                var itemToRemove = itemOnEntity.GetComponentsByType<ItemDropComponent>().FirstOrDefault(x => x.Item.Id == itemDropComponent.Item.Id);
 
                 if (itemToRemove != null)
                 {
@@ -132,6 +98,8 @@ namespace TextWorld.Core.Misc
 
         public static void ShowItemAction(List<TWEntity> roomEntities, List<TWEntity> itemEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
         {
+            // TODO: Show item only shows if its on the room entity. We need to support showing items in the players inventory.
+
             var roomEntity = GetPlayersCurrentRoom(playerEntity, roomEntities);
 
             var showItem = Helper.GetItemDropComponentFromEntity(roomEntity!, component.ItemName ?? string.Empty);
@@ -148,6 +116,8 @@ namespace TextWorld.Core.Misc
 
         public static void ShowAllItemAction(List<TWEntity> roomEntities, List<TWEntity> itemEntities, TWEntity playerEntity, TWEntity outputEntity, ItemActionComponent component)
         {
+            // TODO: Show item only shows if its on the room entity. We need to support showing items in the players inventory.
+
             var roomEntity = GetPlayersCurrentRoom(playerEntity, roomEntities);
             var itemDropComponents = roomEntity!.GetComponentsByType<ItemDropComponent>();
 

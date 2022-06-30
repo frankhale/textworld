@@ -1,15 +1,17 @@
 let MOTD = "Welcome to a text adventure written using an entity component system based engine called TextWorld. Look around, have fun!";
 
+let totalCoinsForCoinPurse = 100;
+
 let Items = [
     {
         Id: 1,
         Name: "leather coin purse",
-        Description: "Extremely worn leather purse. The leather is soft and flexible and it's color has faded.",
+        Description: `Extremely worn leather purse. The leather is soft and flexible and it's color has faded. There are ${totalCoinsForCoinPurse} coins inside.`,
         ItemType: "CoinPurse",
         Synonyms: ["purse", "coin purse", "leather purse", "coins"],
         IsContainer: false,
         Consumable: true,
-        AttributesJSON: "{ \"NumberOfCoins\": 100 }"
+        AttributesJSON: `{ \"NumberOfCoins\": ${totalCoinsForCoinPurse} }`,
     },
     {
         Id: 2,
@@ -42,7 +44,7 @@ let NPCs = [
         Items: [],
         Dialogue: [
             { Id: 1, Line: "Would you have any coins to spare?" },
-            { Id: 2, Line: "I'm really hungry" }            
+            { Id: 2, Line: "I'm really hungry" }
         ]
     }
 ];

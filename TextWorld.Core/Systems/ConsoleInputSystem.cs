@@ -13,10 +13,11 @@ namespace TextWorld.Core.Systems
             var outputEntity = gameEntities.GetEntityByName("misc", "output");
 
             var healthComponent = playerEntity!.GetComponentByType<HealthComponent>();
+            var currencyComponent = playerEntity!.GetComponentByType<CurrencyComponent>();
 
             if (healthComponent != null)
             {
-                Console.Write($"[health:{healthComponent.CurrentHealth}/{healthComponent.MaxHealth}]> ");
+                Console.Write($"[health:{healthComponent.CurrentHealth}/{healthComponent.MaxHealth}|{currencyComponent!.Coins}]> ");
             }
             else
             {
