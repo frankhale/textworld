@@ -6,11 +6,11 @@ namespace TextWorld.Core.Systems
     public class ItemSystem : TWSystem
     {
         public override void Run(TWEntityCollection gameEntities)
-        {            
-            var playerEntity = gameEntities.GetEntityByName("players", "player");            
+        {
+            var playerEntity = gameEntities.GetEntityByName("players", "player");
             var outputEntity = gameEntities.GetEntityByName("misc", "output");
-            var roomEntities = gameEntities.GetEntitiesByName("rooms");
-            var itemEntities = gameEntities.GetEntitiesByName("items");
+            var roomEntities = gameEntities["rooms"];
+            var itemEntities = gameEntities["items"];
 
             var processedComponents = new List<TWComponent>();
 

@@ -9,8 +9,6 @@ namespace TextWorld.Core.Systems
         private Dictionary<string, string> Synonyms = new Dictionary<string, string>();
 
         private readonly Dictionary<string, Action<TWEntity, List<TWEntity>, CommandComponent, List<CommandComponent>, TWEntity>> CommandActions = new() {
-            // FIXME: There is a lot of redundant string joining for command args going on. We need to
-            // do this once and reuse.
             { "quit", (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
                 outputEntity.AddComponent(new QuitComponent("quit game"));
             } },
@@ -50,7 +48,7 @@ namespace TextWorld.Core.Systems
                 outputEntity.AddComponent(new ItemActionComponent("drop items action", commandComponent.ArgsOnly, commandComponent,  ItemActionType.Drop, Helper.DropItemAction));
             } },
             { "drop all",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
-                outputEntity.AddComponent(new ItemActionComponent("drop item action", commandComponent.CommandWithArgs, commandComponent, ItemActionType.Drop, Helper.DropAllItemsAction));
+                outputEntity.AddComponent(new ItemActionComponent("drop item action", commandComponent.CommandWithArgs, commandComponent, ItemActionType.DropAll, Helper.DropAllItemsAction));
             } },
             { "use",  (playerEntity, roomEntities, commandComponent, processedComponents, outputEntity) => {
                 outputEntity.AddComponent(new ItemActionComponent("use item action", commandComponent.ArgsOnly, commandComponent, ItemActionType.Use, Helper.UseItemFromInventoryAction));
@@ -61,8 +59,8 @@ namespace TextWorld.Core.Systems
         {
             var playerEntity = gameEntities.GetEntityByName("players", "player");
             var commandEntity = gameEntities.GetEntityByName("misc", "command");
-            var roomEntities = gameEntities.GetEntitiesByName("rooms");
-            var itemEntities = gameEntities.GetEntitiesByName("items");
+            var roomEntities = gameEntities["rooms"];
+            var itemEntities = gameEntities["items"];
 
             var processedComponents = new List<CommandComponent>();
             var commandComponent = commandEntity!.GetComponentsByType<CommandComponent>().FirstOrDefault();

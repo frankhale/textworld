@@ -53,7 +53,7 @@ namespace TextWorld.Core.Data
                     {
                         var itemGuid = itemIds[item.Id];
                         dynamic? itemAttributes = JsonConvert.DeserializeObject(fullItem.AttributesJSON!);
-                        
+
                         if (fullItem.ItemType == ItemType.CoinPurse)
                         {
                             var numberOfCoins = (int)itemAttributes!.NumberOfCoins;
@@ -73,10 +73,10 @@ namespace TextWorld.Core.Data
                         }
                     }
 
-                    itemEntity.AddComponent(new JsonComponent(item.Name!, itemIds[item.Id!], JsonConvert.SerializeObject(item))); 
+                    itemEntity.AddComponent(new JsonComponent(item.Name!, itemIds[item.Id!], JsonConvert.SerializeObject(item)));
                     itemEntities.Add(itemEntity);
                 }
-                
+
                 gameEntities.AddEntities("items", itemEntities);
                 #endregion
 
@@ -115,7 +115,8 @@ namespace TextWorld.Core.Data
                             {
                                 var fullItem = Data.Items.FirstOrDefault(x => x.Id == item.Id);
 
-                                roomEntity.AddComponent(new ItemDropComponent($"item drop component", new InventoryItem { 
+                                roomEntity.AddComponent(new ItemDropComponent($"item drop component", new InventoryItem
+                                {
                                     Id = itemIds[item.Id],
                                     Name = fullItem!.Name!,
                                     Quantity = item.Quantity
@@ -126,7 +127,7 @@ namespace TextWorld.Core.Data
                         roomEntities.Add(roomEntity);
                     }
                 }
-                
+
                 gameEntities.AddEntities("rooms", roomEntities);
                 #endregion
 
@@ -156,7 +157,12 @@ namespace TextWorld.Core.Data
                         }
                     }
                 }
-                
+
+                var playerCurrentRoomComponent = playerEntity.GetComponentByType<IdComponent>();
+                var firstRoom = roomEntities.FirstOrDefault(room => room.Id == playerCurrentRoomComponent!.Id);
+                playerEntity.AddComponent(new ShowDescriptionComponent("show current room description", firstRoom!, DescriptionType.Room));
+                playerEntity.AddComponent(Helper.GetRoomExitInfoForRoom(playerEntity, roomEntities, firstRoom!));
+
                 gameEntities.AddEntity("players", playerEntity);
                 #endregion
 

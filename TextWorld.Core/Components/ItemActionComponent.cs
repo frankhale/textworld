@@ -44,5 +44,10 @@ namespace TextWorld.Core.Components
         {
             Action = action;
         }
+
+        // public ItemActionComponent(string name, TWEntityCollection gameEntities)
+        // {
+
+        // }
     }
 }

@@ -1,6 +1,4 @@
-﻿using TextWorld.Core.Components;
-using TextWorld.Core.Data;
-using TextWorld.Core.Misc;
+﻿using TextWorld.Core.Data;
 using TextWorld.Core.Systems;
 
 var gameLoader = new GameLoader();
@@ -22,14 +20,6 @@ if (gameLoader.Load("game.json"))
     var gameEntities = gameLoader.GetGameEntities();
     var rooms = gameEntities.GetEntitiesByName("rooms");
     var player = gameEntities.GetEntityByName("players", "player");
-
-    // Get the room the player is currently in and add a show description component so that
-    // the room description is shown when the game starts. This probably should be done by
-    // the room description system instead of being done here.
-    var playerCurrentRoomComponent = player!.GetComponentByType<IdComponent>();
-    var firstRoom = rooms!.FirstOrDefault(room => room.Id == playerCurrentRoomComponent!.Id);
-    player.AddComponent(new ShowDescriptionComponent("show current room description", firstRoom!, DescriptionType.Room));
-    player.AddComponent(Helper.GetRoomExitInfoForRoom(player, rooms!, firstRoom!));
 
     // Run systems
     motdSystem.Run(gameEntities);

@@ -4,6 +4,25 @@
     {
         private readonly Dictionary<string, List<TWEntity>> Entities = new();
 
+        public List<TWEntity> this[string name]
+        {
+            get
+            {
+                if (!Entities.TryGetValue(name, out var entities))
+                {
+                    entities = new List<TWEntity>();
+                    Entities.Add(name, entities);
+                }
+
+                return entities;
+            }
+
+            set
+            {
+                Entities[name].AddRange(value);
+            }
+        }
+
         public void AddEntity(string name, TWEntity entity)
         {
             if (!Entities.ContainsKey(name))
@@ -11,7 +30,7 @@
                 Entities[name] = new List<TWEntity>();
             }
 
-            Entities[name].Add(entity);            
+            Entities[name].Add(entity);
         }
 
         public void AddEntities(string name, List<TWEntity> entities)
@@ -35,7 +54,7 @@
         public void RemoveEntities(string name)
         {
             if (Entities.ContainsKey(name))
-            {                
+            {
                 Entities.Remove(name);
             }
         }

@@ -12,7 +12,7 @@ namespace TextWorld.Core.Systems
             var playerEntity = gameEntities.GetEntityByName("players", "player");
             var outputEntity = gameEntities.GetEntityByName("misc", "output");
             var commandEntity = gameEntities.GetEntityByName("misc", "command");
-            var roomEntities = gameEntities.GetEntitiesByName("rooms");
+            var roomEntities = gameEntities["rooms"];
 
             TextInfo myTI = new CultureInfo("en-US", false).TextInfo;
             var processedComponents = new List<CommandComponent>();
