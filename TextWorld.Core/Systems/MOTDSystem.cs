@@ -1,6 +1,6 @@
 ﻿using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
-using TextWorld.Core.Misc;
+using TextWorld.Core.Data;
 
 namespace TextWorld.Core.Systems
 {

@@ -1,13 +1,19 @@
-﻿using TextWorld.Core.ECS;
+﻿using TextWorld.Core.Data;
+using TextWorld.Core.ECS;
 
 namespace TextWorld.Core.Components
 {
     public class StatsComponent : TWComponent
     {
-        public int Health { get; set; }
-        public int Magicka { get; set; }
-        public int Stamina { get; set; }
+        public Stat Health { get; set; }
+        public Stat Magicka { get; set; }
+        public Stat Stamina { get; set; }
 
-        public StatsComponent(string name) : base(name) { }
+        public StatsComponent(string name, Stat health, Stat magicka, Stat stamina) : base(name)
+        {
+            Health = health;
+            Magicka = magicka;
+            Stamina = stamina;
+        }
     }
 }

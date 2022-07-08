@@ -1,5 +1,6 @@
 ﻿using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
+using TextWorld.Core.Data;
 
 namespace TextWorld.Core.Misc
 {
@@ -315,10 +316,18 @@ namespace TextWorld.Core.Misc
         public static ShowDescriptionComponent GetRoomExitInfoForRoom(TWEntity playerEntity, List<TWEntity> roomEntities, TWEntity roomEntity)
         {
             var newRoomExits = roomEntity!.GetComponentsByType<ExitComponent>();
-            var exitDictionary = newRoomExits.ToDictionary(x => x.RoomId);
-            var exitRooms = roomEntities.Where(x => exitDictionary.TryGetValue(x.Id, out var e) && !e.Hidden).ToList();
-            var exitInfo = exitRooms.Select(x => $"{exitDictionary[x.Id].Direction} -> {x.Name}".ToString()).ToList();
-            return new ShowDescriptionComponent($"Exits: {string.Join(", ", exitInfo)}", exitRooms, DescriptionType.Exit);
+
+            if (newRoomExits != null)
+            {
+                var exitDictionary = newRoomExits.ToDictionary(x => x.RoomId);
+                var exitRooms = roomEntities.Where(x => exitDictionary.TryGetValue(x.Id, out var e) && !e.Hidden).ToList();
+                var exitInfo = exitRooms.Select(x => $"{exitDictionary[x.Id].Direction} -> {x.Name}".ToString()).ToList();
+                return new ShowDescriptionComponent($"Exits: {string.Join(", ", exitInfo)}", exitRooms, DescriptionType.Exit);
+            }
+            else
+            {
+                return new ShowDescriptionComponent($"No Exits", new List<TWEntity>(), DescriptionType.Exit);
+            }
         }
     }
 }

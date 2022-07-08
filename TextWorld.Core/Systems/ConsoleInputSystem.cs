@@ -1,5 +1,6 @@
 ﻿using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
+using TextWorld.Core.Data;
 using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Systems
@@ -12,12 +13,12 @@ namespace TextWorld.Core.Systems
             var commandEntity = gameEntities.GetEntityByName("misc", "command");
             var outputEntity = gameEntities.GetEntityByName("misc", "output");
 
-            var healthComponent = playerEntity!.GetComponentByType<HealthComponent>();
+            var statsComponent = playerEntity!.GetComponentByType<StatsComponent>();
             var currencyComponent = playerEntity!.GetComponentByType<CurrencyComponent>();
 
-            if (healthComponent != null)
+            if (statsComponent != null && currencyComponent != null)
             {
-                Console.Write($"[health:{healthComponent.CurrentHealth}/{healthComponent.MaxHealth}|{currencyComponent!.Coins}]> ");
+                Console.Write($"[Stats:{statsComponent.Health.CurrentValue}/{statsComponent.Magicka.CurrentValue}/{statsComponent.Stamina.CurrentValue}|G{currencyComponent.Coins}]> ");
             }
             else
             {

@@ -1,3 +1,6 @@
+// Since this is currently a single player game a message of the day doesn't make
+// sense. However, this is here because I'm thinking and trying to design in a
+// way that it will be useful for a multiplayer game.
 let MOTD = "Welcome to a text adventure written using an entity component system based engine called TextWorld. Look around, have fun!";
 
 let totalCoinsForCoinPurse = 100;
@@ -44,20 +47,11 @@ let NPCs = [
         Items: [],
         Dialogue: [
             { Id: 1, Line: "Would you have any coins to spare?" },
-            { Id: 2, Line: "I'm really hungry" }
+            { Id: 2, Line: "I'm really hungry!" },
+            { Id: 3, Line: "I know a secret, but I'll never tell you." },
         ]
     }
 ];
-
-let Player = {
-    Description: "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!",
-    Currency: { Coins: 10 },
-    Health: { CurrentHealth: 50, MaxHealth: 100 },
-    Inventory: [
-        { Id: 2, Quantity: 3 }
-    ],
-    CurrentRoom: "Open Field"
-}
 
 let Rooms = [
     {
@@ -117,6 +111,20 @@ let Rooms = [
         ]
     }
 ]
+
+let Player = {
+    Description: "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!",
+    Currency: { Coins: 25 },
+    Stats: {
+        Health: { CurrentValue: 50, MaxValue: 100 },
+        Magicka: { CurrentValue: 50, MaxValue: 50 },
+        Stamina: { CurrentValue: 50, MaxValue: 50 },
+    },
+    Inventory: [
+        { Id: 2, Quantity: 3 }
+    ],
+    CurrentRoom: "Open Field"
+}
 
 let Game = {
     MOTD,

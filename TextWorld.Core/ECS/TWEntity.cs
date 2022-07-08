@@ -5,7 +5,7 @@ namespace TextWorld.Core.ECS
         public Guid Id { get; } = Guid.NewGuid();
         public string Name { get; private set; }
         public List<TWComponent> Components { get; private set; } = new();
-        
+
         public TWEntity(string name)
         {
             Name = name;
@@ -14,6 +14,12 @@ namespace TextWorld.Core.ECS
         public TWEntity(Guid id, string name) : this(name)
         {
             Id = id;
+        }
+
+        public TWEntity(string name, List<TWComponent> components)
+        {
+            Name = name;
+            Components = components;
         }
 
         public TWEntity(Guid id, string name, List<TWComponent> components) : this(id, name)
@@ -57,7 +63,7 @@ namespace TextWorld.Core.ECS
         public List<T> GetComponentsByType<T>() where T : TWComponent
         {
             return Components.Where(x => x.GetType() == typeof(T)).Cast<T>().ToList();
-        }        
+        }
 
         public T? GetComponentByName<T>(string name) where T : TWComponent
         {

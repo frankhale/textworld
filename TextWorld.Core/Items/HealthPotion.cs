@@ -1,5 +1,6 @@
 ﻿using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
+using TextWorld.Core.Data;
 using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Items
@@ -17,15 +18,15 @@ namespace TextWorld.Core.Items
 
         public override void Use(TWEntity player, List<TWEntity> itemEntities, TWEntity outputEntity)
         {
-            var healthComponent = player.GetComponentByType<HealthComponent>();
-            if (healthComponent != null && healthComponent.CurrentHealth < healthComponent.MaxHealth)
+            var statsComponent = player.GetComponentByType<StatsComponent>();
+            if (statsComponent != null && statsComponent.Health.CurrentValue < statsComponent.Health.MaxValue)
             {
-                healthComponent.CurrentHealth += HealthImmediately;
-                if (healthComponent.CurrentHealth > healthComponent.MaxHealth)
+                statsComponent.Health.CurrentValue += HealthImmediately;
+                if (statsComponent.Health.CurrentValue > statsComponent.Health.MaxValue)
                 {
-                    healthComponent.CurrentHealth = healthComponent.MaxHealth;
+                    statsComponent.Health.CurrentValue = statsComponent.Health.MaxValue;
                 }
-                
+
                 outputEntity.AddComponent(new OutputComponent("output for item used", $"{Name} used: +{HealthImmediately} health", OutputType.Regular));
             }
         }

@@ -6,9 +6,6 @@ using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Data
 {
-    // FIXME: We are taking short cuts in here and explicitly ignoring some possible null values
-    //        in data. This is so freaking lame, I'm using bandaids and witchcraft to get this
-    //        to work!!!
     public class GameLoader
     {
         private Game? Data;
@@ -30,6 +27,11 @@ namespace TextWorld.Core.Data
         public TWEntityCollection GetGameEntities()
         {
             TWEntityCollection gameEntities = new();
+
+            gameEntities.AddEntity("misc", new("command", new() {
+                new CommandComponent("add command", "look")
+            }));
+            gameEntities.AddEntity("misc", new("output"));
 
             TWEntity playerEntity = new("player");
             List<TWEntity> roomEntities = new();
@@ -135,7 +137,7 @@ namespace TextWorld.Core.Data
                 if (!string.IsNullOrEmpty(Data.Player.Description)) playerEntity.AddComponent(new DescriptionComponent("player description", Data.Player.Description));
                 if (Data.Player.Currency != null) playerEntity.AddComponent(new CurrencyComponent("coins", Data.Player.Currency.Coins));
                 if (!string.IsNullOrEmpty(Data.Player.CurrentRoom)) playerEntity.AddComponent(new IdComponent("player current room", roomIds[Data.Player.CurrentRoom], IdType.Room));
-                if (Data.Player.Health != null) playerEntity.AddComponent(new HealthComponent("player health", Data.Player.Health.CurrentHealth, Data.Player.Health.MaxHealth));
+                if (Data.Player.Stats != null) playerEntity.AddComponent(new StatsComponent("player stats", Data.Player.Stats.Health, Data.Player.Stats.Magicka, Data.Player.Stats.Stamina));
 
                 var inventoryComponent = new InventoryComponent("player inventory");
                 playerEntity.AddComponent(inventoryComponent);
@@ -158,11 +160,6 @@ namespace TextWorld.Core.Data
                     }
                 }
 
-                var playerCurrentRoomComponent = playerEntity.GetComponentByType<IdComponent>();
-                var firstRoom = roomEntities.FirstOrDefault(room => room.Id == playerCurrentRoomComponent!.Id);
-                playerEntity.AddComponent(new ShowDescriptionComponent("show current room description", firstRoom!, DescriptionType.Room));
-                playerEntity.AddComponent(Helper.GetRoomExitInfoForRoom(playerEntity, roomEntities, firstRoom!));
-
                 gameEntities.AddEntity("players", playerEntity);
                 #endregion
 
@@ -172,9 +169,6 @@ namespace TextWorld.Core.Data
                     motdEntity.AddComponent(new DescriptionComponent("motd description", Data.MOTD));
                     gameEntities.AddEntity("misc", motdEntity);
                 }
-
-                gameEntities.AddEntity("misc", new TWEntity("command"));
-                gameEntities.AddEntity("misc", new TWEntity("output"));
             }
 
             return gameEntities;

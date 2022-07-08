@@ -1,17 +1,17 @@
 ﻿using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
-using TextWorld.Core.Misc;
+using TextWorld.Core.Data;
 
 namespace TextWorld.Core.Systems
 {
     public class InventorySystem : TWSystem
     {
         public override void Run(TWEntityCollection gameEntities)
-        {            
+        {
             var playerEntity = gameEntities.GetEntityByName("players", "player");
             var commandEntity = gameEntities.GetEntityByName("misc", "command");
             var outputEntity = gameEntities.GetEntityByName("misc", "output");
-           
+
             var processedComponents = new List<CommandComponent>();
 
             foreach (var commandComponent in commandEntity!.GetComponentsByType<CommandComponent>())

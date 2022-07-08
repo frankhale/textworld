@@ -3,11 +3,21 @@
   "Player": {
     "Description": "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!",
     "Currency": {
-      "Coins": 10
+      "Coins": 25
     },
-    "Health": {
-      "CurrentHealth": 50,
-      "MaxHealth": 100
+    "Stats": {
+      "Health": {
+        "CurrentValue": 50,
+        "MaxValue": 100
+      },
+      "Magicka": {
+        "CurrentValue": 50,
+        "MaxValue": 50
+      },
+      "Stamina": {
+        "CurrentValue": 50,
+        "MaxValue": 50
+      }
     },
     "Inventory": [
       {

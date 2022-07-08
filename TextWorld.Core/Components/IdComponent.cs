@@ -1,5 +1,5 @@
+using TextWorld.Core.Data;
 using TextWorld.Core.ECS;
-using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Components
 {

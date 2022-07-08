@@ -1,5 +1,6 @@
 ﻿using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
+using TextWorld.Core.Data;
 using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Systems
@@ -22,9 +23,6 @@ namespace TextWorld.Core.Systems
                     var roomEntity = Helper.GetPlayersCurrentRoom(playerEntity, roomEntities);
                     outputEntity.AddComponent(new ShowDescriptionComponent("show room description", roomEntity!, DescriptionType.Room));
 
-                    // Rooms having no exits is weird and shouldn't happen in a real game but in testing
-                    // where certain parts of rooms are tested we ought to check here and not add extra
-                    // components when they are not necessary.
                     var newRoomExits = roomEntity!.GetComponentsByType<ExitComponent>();
                     if(newRoomExits != null)
                     {
@@ -63,25 +61,29 @@ namespace TextWorld.Core.Systems
             var itemEntities = gameEntities["items"];
 
             var processedComponents = new List<CommandComponent>();
-            var commandComponent = commandEntity!.GetComponentsByType<CommandComponent>().FirstOrDefault();
 
-            if (commandComponent != null)
+            if (commandEntity != null && roomEntities != null && playerEntity != null)
             {
-                var foundAction = CommandActions.TryGetValue(commandComponent.CommandWithArgs, out Action<TWEntity, List<TWEntity>, CommandComponent, List<CommandComponent>, TWEntity>? action);
+                var commandComponent = commandEntity!.GetComponentsByType<CommandComponent>().FirstOrDefault();
 
-                if (!foundAction)
+                if (commandComponent != null)
                 {
-                    foundAction = CommandActions.TryGetValue(commandComponent.Command!, out action);
+                    var foundAction = CommandActions.TryGetValue(commandComponent.CommandWithArgs, out Action<TWEntity, List<TWEntity>, CommandComponent, List<CommandComponent>, TWEntity>? action);
+
+                    if (!foundAction)
+                    {
+                        foundAction = CommandActions.TryGetValue(commandComponent.Command, out action);
+                    }
+
+                    if (foundAction)
+                    {
+                        processedComponents.Add(commandComponent);
+                        action?.Invoke(playerEntity, roomEntities, commandComponent, processedComponents, playerEntity);
+                    }
                 }
 
-                if (foundAction)
-                {
-                    processedComponents.Add(commandComponent);
-                    action?.Invoke(playerEntity!, roomEntities!, commandComponent, processedComponents, playerEntity!);
-                }
+                commandEntity.RemoveComponents(processedComponents);
             }
-
-            commandEntity.RemoveComponents(processedComponents);
         }
     }
 }

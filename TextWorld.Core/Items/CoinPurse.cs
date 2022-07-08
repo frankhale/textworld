@@ -1,5 +1,6 @@
 ﻿using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
+using TextWorld.Core.Data;
 using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Items
@@ -14,7 +15,7 @@ namespace TextWorld.Core.Items
             NumberOfCoins = numberOfCoins;
             Consumable = true;
             IsContainer = true;
-            CanBeDestroyed = true;            
+            CanBeDestroyed = true;
         }
 
         public override void Use(TWEntity playerEntity, List<TWEntity> itemEntities, TWEntity outputEntity)
@@ -23,7 +24,7 @@ namespace TextWorld.Core.Items
 
             if (currencyComponent != null)
             {
-                currencyComponent.Coins += NumberOfCoins;                
+                currencyComponent.Coins += NumberOfCoins;
 
                 outputEntity.AddComponent(new OutputComponent("output for item used", $"{Name} used: +{NumberOfCoins} coins", OutputType.Regular));
             }

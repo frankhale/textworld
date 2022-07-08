@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using TextWorld.Core.Components;
 using TextWorld.Core.ECS;
+using TextWorld.Core.Data;
 using TextWorld.Core.Misc;
 
 namespace TextWorld.Core.Systems
