@@ -7,21 +7,21 @@ int main()
 	auto output_entity = std::make_shared<textworld::ecs::Entity>("output");
 	auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();
 
-	mk_it("Coin Purse", "An old leather coin purse", [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
+	mk_it("Coin Purse", "Extremely worn leather purse. The leather is soft and flexible and it's color has faded. There are 100 coins inside.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 		{
 			auto currency_component = player_entity->find_first_component_by_type<textworld::components::CurrencyComponent>();
 			if (currency_component != nullptr) {
-				currency_component->add(10);
+				currency_component->add(100);
 			}
 		});
-	mk_it("Health Potion", "A common health potion", [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
+	mk_it("Health Potion", "An oddly shaped bottle with a cool blue liquid inside. The liquid glows with an intense light.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 		{			
 			auto stats_component = player_entity->find_first_component_by_type<textworld::components::StatsComponent>();
 			if (stats_component != nullptr) {
 				stats_component->add_health(50);
 			}
 		});
-	mk_it("Lamp", "A rusty old oil lamp", [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
+	mk_it("Lamp", "A rusty old oil lamp", false, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 		{			
 			auto output_entity = entity_manager->get_entity_by_name("core", "output");
 			if (output_entity != nullptr) {				
@@ -31,15 +31,18 @@ int main()
 		});
 
 	begin_room_configuration()
-		mk_rm("Test Room 1", "This is a test room 1!!!");
-		mk_rm("Test Room 2", "This is a test room 2!!!");
-		mk_rm("Test Room 3", "This is a test room 3!!!");
+		mk_rm("Open Field", "You are standing in an open field. All around you stands tall vibrant green grass. You can hear the sound of flowing water off in the distance which you suspect is a stream.");
+		mk_rm("Stream", "A shallow rocky stream is swifty flowing from your west to east. The water looks approximately one foot deep from where you are standing.");
+		mk_rm("Large Rock", "You are standing beside a large rock. The rock looks out of place with respect to the rest of your surroundings.");
+		mk_rm("Old Forest", "Thick tall trees block your way but seem to have allowed the stream safe passage. It doesn't appear as though you can travel any further in this direction.");
 
-		mk_ex("Test Room 1", "Test Room 2", textworld::data::Direction::EAST);
-		mk_ex("Test Room 2", "Test Room 3", textworld::data::Direction::NORTH);
+		mk_ex("Open Field", "Stream", textworld::data::Direction::NORTH);
+		mk_ex("Stream", "Large Rock", textworld::data::Direction::EAST);
+		mk_ex("Large Rock", "Old Forest", textworld::data::Direction::EAST);
 
-		pl_it("Test Room 1", "Coin Purse", 1);
-		pl_it("Test Room 1", "Health Potion", 3);
+		pl_it("Open Field", "Coin Purse", 1);
+		pl_it("Open Field", "Health Potion", 3);
+		pl_it("Large Rock", "Lamp", 1);
 	end_room_configuration()
 
 	//for (const auto& r : room_info)
@@ -57,15 +60,18 @@ int main()
 		textworld::data::Stat{ .current_value = 10, .max_value = 100 },
 		textworld::data::Stat{ .current_value = 10, .max_value = 100 },
 		textworld::data::Stat{ .current_value = 10, .max_value = 100 });
-	auto player_description_component = std::make_shared<textworld::components::DescriptionComponent>("player description", "You are the hero!");
-	auto id_component = std::make_shared<textworld::components::IdComponent>("players current room", entity_manager->get_entity_by_name("rooms", "Test Room 1")->get_id(), textworld::data::IdType::ROOM);
+	auto player_description_component = std::make_shared<textworld::components::DescriptionComponent>("player description", "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!");
+	auto id_component = std::make_shared<textworld::components::IdComponent>("players current room", entity_manager->get_entity_by_name("rooms", "Open Field")->get_id(), textworld::data::IdType::ROOM);
 	auto currency_component = std::make_shared<textworld::components::CurrencyComponent>("gold", 10);
+	
+	auto motd_description_component = std::make_shared<textworld::components::DescriptionComponent>("motd", "Welcome to Textworld! TW was written using a custom entity component system based engine. Look around, have fun!");
 
 	player_entity->add_component(inventory_component);
 	player_entity->add_component(stat_component);
 	player_entity->add_component(player_description_component);
 	player_entity->add_component(id_component);
 	player_entity->add_component(currency_component);
+	player_entity->add_component(motd_description_component);
 
 	entity_manager->add_entity_to_group(output_entity, "core");
 	entity_manager->add_entity_to_group(player_entity, "players");
@@ -76,13 +82,14 @@ int main()
 	player_entity->add_component(show_description_component);
 	player_entity->add_component(textworld::helpers::get_room_exits(entity_manager, players_current_room));
 
+	textworld::systems::motd_system(player_id, entity_manager);
+	
 	while (true)
 	{
 		textworld::systems::command_action_system(player_id, entity_manager);
 		textworld::systems::quit_system(player_id, entity_manager);
 		textworld::systems::room_movement_system(player_id, entity_manager);
-		textworld::systems::description_system(player_id, entity_manager);
-		//textworld::systems::item_system(player_id, entity_manager);
+		textworld::systems::description_system(player_id, entity_manager);		
 		textworld::systems::inventory_system(player_id, entity_manager);
 		textworld::systems::unknown_command_system(player_id, entity_manager);
 		textworld::systems::console_output_system(player_id, entity_manager);

@@ -50,9 +50,11 @@ extern std::string generate_uuid();
 	auto item_drop_component = std::make_shared<textworld::components::ItemDropComponent>(item_name, item->id, item_name, quantity); \
 	r_info.entity->add_component(item_drop_component); }
 
-#define mk_it(n, d, a) { \
+#define mk_it(n, d, c, a) { \
 		auto acts = std::unordered_map<std::string, textworld::core::simple_action_func>{ { "default", a } }; \
-		auto i = textworld::helpers::make_consumable_item(n, d, acts); \
+		std::shared_ptr<textworld::data::Item> i{}; \
+		if(c) i = textworld::helpers::make_consumable_item(n, d, acts); \
+		else i = textworld::helpers::make_item(n, d, acts); \
 		auto item_entity = std::make_shared<textworld::ecs::Entity>(i->id, n); \
 		auto item_component = std::make_shared<textworld::components::ItemComponent>(n, i); \
 		item_entity->add_component(item_component); \
@@ -71,8 +73,7 @@ namespace textworld::ecs
 		auto get_name() const { return component_name; }
 		void set_name(std::string name) { component_name = name; }
 		auto get_id() const { return id; }
-
-		// protected:
+		
 		Component(std::string name, std::string id = generate_uuid()) : component_name(name)
 		{
 			this->id = id;
@@ -113,7 +114,43 @@ namespace textworld::ecs
 		}
 
 		template <typename T>
-		auto find_component_by_type()
+		std::shared_ptr<T> find_first_component_by_name(std::string name)
+		{
+			std::vector<std::shared_ptr<T>> matches{};
+
+			for (auto& c : *components)
+			{
+				auto casted = std::dynamic_pointer_cast<T>(c);
+
+				if (casted != nullptr && casted->get_name() == name)
+				{
+					return casted;
+				}
+			}
+
+			return nullptr;
+		}
+
+		template <typename T>
+		auto find_components_by_name(std::string name)
+		{
+			std::vector<std::shared_ptr<T>> matches{};
+
+			for (auto& c : *components)
+			{				
+				auto casted = std::dynamic_pointer_cast<T>(c);
+				
+				if (casted != nullptr && casted->get_name() == name)
+				{
+					matches.push_back(casted);
+				}
+			}
+
+			return matches;
+		}
+
+		template <typename T>
+		auto find_components_by_type()
 		{
 			std::vector<std::shared_ptr<T>> matches{};
 
@@ -131,7 +168,7 @@ namespace textworld::ecs
 		}
 
 		template <typename T>
-		auto find_component_by_type(std::function<bool(std::shared_ptr<T>)> predicate)
+		auto find_components_by_type(std::function<bool(std::shared_ptr<T>)> predicate)
 		{
 			std::vector<std::shared_ptr<T>> matches{};
 
@@ -391,6 +428,8 @@ namespace textworld::components
 		auto get_command_with_arguments() const { return command_with_arguments; }
 		auto get_arguments_as_string() const
 		{
+			if (arguments.size() == 0) return std::string{};
+
 			std::ostringstream oss;
 			std::copy(arguments.begin(), arguments.end() - 1, std::ostream_iterator<std::string>(oss, " "));
 			oss << arguments.back();
@@ -756,6 +795,7 @@ namespace textworld::helpers
 	extern void remove_or_decrement_item_in_inventory(std::shared_ptr<textworld::ecs::Entity> target_entity, std::shared_ptr<textworld::data::ItemPickup> inventory_item);
 	extern std::string join(const std::vector<std::string>& v, const std::string& c);
 	extern textworld::data::RoomInfo make_room(std::string name, std::string description);
+	extern std::shared_ptr<textworld::data::Item> make_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions);
 	extern std::shared_ptr<textworld::data::Item> make_consumable_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions);
 }
 

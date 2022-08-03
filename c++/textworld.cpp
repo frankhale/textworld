@@ -13,7 +13,7 @@ namespace textworld::helpers
 	{
 		if (player_entity != nullptr)
 		{
-			auto room_id_component = player_entity->find_component_by_type<textworld::components::IdComponent>([](std::shared_ptr<textworld::components::IdComponent> id_component)
+			auto room_id_component = player_entity->find_components_by_type<textworld::components::IdComponent>([](std::shared_ptr<textworld::components::IdComponent> id_component)
 				{ return id_component->get_id_type() == textworld::data::IdType::ROOM; });
 
 			if (room_id_component.size() > 0)
@@ -32,7 +32,7 @@ namespace textworld::helpers
 
 	std::shared_ptr<textworld::components::ShowDescriptionComponent> get_room_exits(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::shared_ptr<textworld::ecs::Entity> room_entity)
 	{
-		auto exits = room_entity->find_component_by_type<textworld::components::ExitComponent>();
+		auto exits = room_entity->find_components_by_type<textworld::components::ExitComponent>();
 
 		// if exits is not the end
 		if (exits.size() > 0)
@@ -76,8 +76,8 @@ namespace textworld::helpers
 
 	void add_item_to_player_inventory(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::shared_ptr<textworld::ecs::Entity> entity)
 	{
-		auto inventory_components = player_entity->find_component_by_type<textworld::components::InventoryComponent>();
-		auto item_drop_components = entity->find_component_by_type<textworld::components::ItemDropComponent>();
+		auto inventory_components = player_entity->find_components_by_type<textworld::components::InventoryComponent>();
+		auto item_drop_components = entity->find_components_by_type<textworld::components::ItemDropComponent>();
 
 		if (inventory_components.size() > 0 && item_drop_components.size() > 0)
 		{
@@ -104,7 +104,7 @@ namespace textworld::helpers
 
 	void remove_or_decrement_item_in_inventory(std::shared_ptr<textworld::ecs::Entity> target_entity, std::shared_ptr<textworld::data::ItemPickup> inventory_item)
 	{
-		auto inventory_components = target_entity->find_component_by_type<textworld::components::InventoryComponent>();
+		auto inventory_components = target_entity->find_components_by_type<textworld::components::InventoryComponent>();
 
 		if (inventory_components.size() > 0)
 		{
@@ -151,6 +151,24 @@ namespace textworld::helpers
 		room_entity->add_component(room_description_component);
 
 		return { .id = room_id, .entity = room_entity };
+	}
+
+	std::shared_ptr<textworld::data::Item> make_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions)
+	{
+		auto i = textworld::data::Item{
+			.id = generate_uuid(),
+			.name = name,
+			.description = description,
+			.synonyms = { name },
+			.quantity = 1,
+			.is_container = false,
+			.can_be_destroyed = true,
+			.consumable = false,
+			.lua_scripted_actions = {},
+			.actions = { actions }
+		};
+
+		return std::make_shared<textworld::data::Item>(i);
 	}
 
 	std::shared_ptr<textworld::data::Item> make_consumable_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions)
@@ -367,7 +385,7 @@ namespace textworld::core
 				if (item_entity != item_entities->end())
 				{
 					auto item_component = (*item_entity)->find_first_component_by_type<textworld::components::ItemComponent>();
-					auto item_drop_components = room_entity->find_component_by_type<textworld::components::ItemDropComponent>();
+					auto item_drop_components = room_entity->find_components_by_type<textworld::components::ItemDropComponent>();
 					auto item = item_component->get_item();
 
 					if (item_drop_components.size() > 0)
@@ -414,7 +432,7 @@ namespace textworld::core
 
 		if (room_entity != nullptr && output_entity != nullptr)
 		{
-			auto item_drop_components = room_entity->find_component_by_type<textworld::components::ItemDropComponent>();
+			auto item_drop_components = room_entity->find_components_by_type<textworld::components::ItemDropComponent>();
 
 			if (item_drop_components.size() > 0)
 			{
@@ -459,7 +477,7 @@ namespace textworld::core
 			if (item_entity != item_entities->end())
 			{
 				auto item_component = (*item_entity)->find_first_component_by_type<textworld::components::ItemComponent>();
-				auto item_drop_components = room_entity->find_component_by_type<textworld::components::ItemDropComponent>();
+				auto item_drop_components = room_entity->find_components_by_type<textworld::components::ItemDropComponent>();
 
 				if (item_drop_components.size() > 0)
 				{
@@ -503,7 +521,7 @@ namespace textworld::core
 	{
 		auto room_entity = textworld::helpers::get_players_current_room(player_entity, entity_manager);
 		auto output_entity = entity_manager->get_entity_by_name("core", "output");
-		auto item_drop_components = room_entity->find_component_by_type<textworld::components::ItemDropComponent>();
+		auto item_drop_components = room_entity->find_components_by_type<textworld::components::ItemDropComponent>();
 
 		if (room_entity != nullptr && output_entity != nullptr && item_drop_components.size() > 0)
 		{
@@ -512,7 +530,7 @@ namespace textworld::core
 			for (const auto& item_drop_component : item_drop_components)
 			{
 				auto item_entity = entity_manager->get_entity_by_id("items", item_drop_component->get_item_id());
-				auto item_component = item_entity->find_component_by_type<textworld::components::ItemComponent>().front();
+				auto item_component = item_entity->find_components_by_type<textworld::components::ItemComponent>().front();
 
 				textworld::helpers::add_item_to_player_inventory(player_entity, entity_manager, room_entity);
 
@@ -532,7 +550,7 @@ namespace textworld::core
 
 	void drop_item_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
-		auto inventory_components = player_entity->find_component_by_type<textworld::components::InventoryComponent>();
+		auto inventory_components = player_entity->find_components_by_type<textworld::components::InventoryComponent>();
 		auto room_entity = textworld::helpers::get_players_current_room(player_entity, entity_manager);
 		auto output_entity = entity_manager->get_entity_by_name("core", "output");
 		auto item_entities = entity_manager->get_entities_in_group("items");
@@ -554,7 +572,7 @@ namespace textworld::core
 				auto item = item_component->get_item();
 				auto inventory_component = inventory_components.front();
 				auto found_item_in_inventory = inventory_component->get_item(item->id);
-				auto item_drop_components = room_entity->find_component_by_type<textworld::components::ItemDropComponent>();
+				auto item_drop_components = room_entity->find_components_by_type<textworld::components::ItemDropComponent>();
 
 				if (found_item_in_inventory != nullptr && item != nullptr)
 				{
@@ -603,14 +621,14 @@ namespace textworld::core
 
 	void drop_all_items_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
-		auto inventory_components = player_entity->find_component_by_type<textworld::components::InventoryComponent>();
+		auto inventory_components = player_entity->find_components_by_type<textworld::components::InventoryComponent>();
 		auto room_entity = textworld::helpers::get_players_current_room(player_entity, entity_manager);
 		auto output_entity = entity_manager->get_entity_by_name("core", "output");
 
 		if (room_entity != nullptr && output_entity != nullptr && inventory_components.size() > 0)
 		{
 			auto inventory_component = inventory_components.front();
-			auto item_drop_components = room_entity->find_component_by_type<textworld::components::ItemDropComponent>();
+			auto item_drop_components = room_entity->find_components_by_type<textworld::components::ItemDropComponent>();
 
 			if (item_drop_components.size() > 0)
 			{
@@ -684,6 +702,9 @@ namespace textworld::core
 							auto actions = item->actions;
 							auto found_default_action = item->actions.find("default");
 
+							auto output_component = std::make_shared<textworld::components::OutputComponent>("output for item used", fmt::format("You've used {}", found_item_in_inventory->name), textworld::data::OutputType::REGULAR);
+							output_entity->add_component(output_component);
+
 							if (found_default_action != item->actions.end())
 							{
 								found_default_action->second(player_entity, entity_manager);
@@ -693,9 +714,6 @@ namespace textworld::core
 							{
 								textworld::helpers::remove_or_decrement_item_in_inventory(player_entity, found_item_in_inventory);
 							}
-
-							auto output_component = std::make_shared<textworld::components::OutputComponent>("output for item used", fmt::format("You've used {}", found_item_in_inventory->name), textworld::data::OutputType::REGULAR);
-							output_entity->add_component(output_component);
 						}
 
 					}
@@ -734,7 +752,7 @@ namespace textworld::core
 			auto show_description_component = std::make_shared<textworld::components::ShowDescriptionComponent>("show room description component", current_room_entity, textworld::data::DescriptionType::ROOM);
 			player_entity->add_component(show_description_component);
 
-			auto room_exits = current_room_entity->find_component_by_type<textworld::components::ExitComponent>();
+			auto room_exits = current_room_entity->find_components_by_type<textworld::components::ExitComponent>();
 
 			if (room_exits.size() > 0)
 			{
@@ -770,7 +788,7 @@ namespace textworld::systems
 	void command_action_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
 		auto player_entity = entity_manager->get_entity_by_id("players", player_id);
-		auto command_components = player_entity->find_component_by_type<textworld::components::CommandInputComponent>();
+		auto command_components = player_entity->find_components_by_type<textworld::components::CommandInputComponent>();
 
 		for (const auto& command_component : command_components)
 		{
@@ -795,7 +813,7 @@ namespace textworld::systems
 				player_entity->add_component(command_action_component);
 			}
 
-			auto command_action_components = player_entity->find_component_by_type<textworld::components::CommandActionComponent>();
+			auto command_action_components = player_entity->find_components_by_type<textworld::components::CommandActionComponent>();
 
 			if (command_action_components.size() > 0)
 			{
@@ -833,12 +851,12 @@ namespace textworld::systems
 		{
 			auto processed_components = std::vector<std::shared_ptr<textworld::ecs::Component>>{};
 
-			auto command_components = player_entity->find_component_by_type<textworld::components::CommandInputComponent>();
+			auto command_components = player_entity->find_components_by_type<textworld::components::CommandInputComponent>();
 
 			for (const auto& cc : command_components)
 			{
 				auto current_room_entity = textworld::helpers::get_players_current_room(player_entity, entity_manager);
-				auto exits = current_room_entity->find_component_by_type<textworld::components::ExitComponent>();
+				auto exits = current_room_entity->find_components_by_type<textworld::components::ExitComponent>();
 				auto exit = std::find_if(exits.begin(), exits.end(), [&](const std::shared_ptr<textworld::components::ExitComponent>& e)
 					{ return e->get_direction_as_string() == cc->get_command(); });
 
@@ -856,7 +874,7 @@ namespace textworld::systems
 
 						if (new_room_entity != nullptr)
 						{
-							auto room_id_components = player_entity->find_component_by_type<textworld::components::IdComponent>([](std::shared_ptr<textworld::components::IdComponent> id_component)
+							auto room_id_components = player_entity->find_components_by_type<textworld::components::IdComponent>([](std::shared_ptr<textworld::components::IdComponent> id_component)
 								{ return id_component->get_id_type() == textworld::data::IdType::ROOM; });
 
 							if (room_id_components.size() > 0)
@@ -886,7 +904,7 @@ namespace textworld::systems
 	{
 		auto player_entity = entity_manager->get_entity_by_id("players", player_id);
 		auto output_entity = entity_manager->get_entity_by_name("core", "output");
-		auto command_components = player_entity->find_component_by_type<textworld::components::CommandInputComponent>();
+		auto command_components = player_entity->find_components_by_type<textworld::components::CommandInputComponent>();
 		std::vector<std::shared_ptr<textworld::components::UnknownCommandComponent>> unknown_command_components;
 
 		for (const auto& cc : command_components)
@@ -915,7 +933,7 @@ namespace textworld::systems
 
 		if (player_entity != nullptr)
 		{
-			auto show_description_components = player_entity->find_component_by_type<textworld::components::ShowDescriptionComponent>();
+			auto show_description_components = player_entity->find_components_by_type<textworld::components::ShowDescriptionComponent>();
 			processed_components.insert(processed_components.end(), show_description_components.begin(), show_description_components.end());
 
 			for (const auto& sc : show_description_components)
@@ -924,7 +942,7 @@ namespace textworld::systems
 
 				if (sc->get_description_type() == textworld::data::DescriptionType::ROOM)
 				{
-					auto description_components = sc->get_entity()->find_component_by_type<textworld::components::DescriptionComponent>();
+					auto description_components = sc->get_entity()->find_components_by_type<textworld::components::DescriptionComponent>();
 
 					if (description_components.size() > 0 && description_components.front() != nullptr)
 					{
@@ -949,7 +967,7 @@ namespace textworld::systems
 	void quit_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
 		auto player_entity = entity_manager->get_entity_by_id("players", player_id);
-		auto quit_components = player_entity->find_component_by_type<textworld::components::QuitComponent>();
+		auto quit_components = player_entity->find_components_by_type<textworld::components::QuitComponent>();
 
 		if (quit_components.size() > 0)
 		{
@@ -963,13 +981,13 @@ namespace textworld::systems
 		auto player_entity = entity_manager->get_entity_by_id("players", player_id);
 		auto output_entity = entity_manager->get_entity_by_name("core", "output");
 
-		auto motd_description_components = player_entity->find_component_by_type<textworld::components::DescriptionComponent>();
+		auto motd_description_component = player_entity->find_first_component_by_name<textworld::components::DescriptionComponent>("motd");
 
-		if (motd_description_components.size() > 0)
+		if (motd_description_component != nullptr)
 		{
-			auto output_component = std::make_shared<textworld::components::OutputComponent>("motd output for description", motd_description_components.front()->get_description(), textworld::data::OutputType::MESSAGEOFTHEDAY);
+			auto output_component = std::make_shared<textworld::components::OutputComponent>("motd output for description", motd_description_component->get_description(), textworld::data::OutputType::MESSAGEOFTHEDAY);
 			output_entity->add_component(output_component);
-			player_entity->remove_component(motd_description_components.front());
+			player_entity->remove_component(motd_description_component);
 		}
 	}
 
@@ -980,13 +998,13 @@ namespace textworld::systems
 		if (output_entity != nullptr)
 		{
 			// find output components on the output entity
-			auto output_components = output_entity->find_component_by_type<textworld::components::OutputComponent>();
+			auto output_components = output_entity->find_components_by_type<textworld::components::OutputComponent>();
 
 			for (const auto& output_component : output_components)
 			{
 				if (output_component->get_output_type() == textworld::data::OutputType::REGULAR)
 				{
-					fmt::print("{}\n", output_component->get_value());
+					fmt::print("{}\n\n", output_component->get_value());
 				}
 				/*else if (output_component->get_output_type() == textworld::data::OutputType::COMMAND)
 				{
@@ -1011,8 +1029,8 @@ namespace textworld::systems
 		auto player_entity = entity_manager->get_entity_by_id("players", player_id);
 		auto output_entity = entity_manager->get_entity_by_name("core", "output");
 
-		auto stats_components = player_entity->find_component_by_type<textworld::components::StatsComponent>();
-		auto currency_components = player_entity->find_component_by_type<textworld::components::CurrencyComponent>();
+		auto stats_components = player_entity->find_components_by_type<textworld::components::StatsComponent>();
+		auto currency_components = player_entity->find_components_by_type<textworld::components::CurrencyComponent>();
 
 		if (stats_components.size() > 0 && currency_components.size() > 0)
 		{
@@ -1047,7 +1065,7 @@ namespace textworld::systems
 
 		std::vector<std::shared_ptr<textworld::ecs::Component>> processed_components{};
 
-		auto command_components = player_entity->find_component_by_type<textworld::components::CommandInputComponent>();
+		auto command_components = player_entity->find_components_by_type<textworld::components::CommandInputComponent>();
 
 		for (const auto& command_component : command_components)
 		{
@@ -1057,7 +1075,7 @@ namespace textworld::systems
 			{
 				processed_components.push_back(command_component);
 
-				auto inventory_components = player_entity->find_component_by_type<textworld::components::InventoryComponent>();
+				auto inventory_components = player_entity->find_components_by_type<textworld::components::InventoryComponent>();
 
 				if (inventory_components.size() > 0)
 				{

@@ -53,7 +53,7 @@ TEST(Tests, CanProcessCommandActionComponentsOnPlayers)
 	textworld::systems::command_action_system(player_id, entity_manager);
 
 	// check if output component was added to player
-	auto output_components = player_entity->find_component_by_type<textworld::components::OutputComponent>();
+	auto output_components = player_entity->find_components_by_type<textworld::components::OutputComponent>();
 
 	EXPECT_EQ(output_components.size(), 1);
 
@@ -223,7 +223,7 @@ TEST(Tests, RoomDescriptionSystemOutputsRoomDescription)
 	textworld::systems::room_movement_system(player_id, entity_manager);
 	textworld::systems::description_system(player_id, entity_manager);
 
-	auto output_components = output_entity->find_component_by_type<textworld::components::OutputComponent>();
+	auto output_components = output_entity->find_components_by_type<textworld::components::OutputComponent>();
 
 	EXPECT_GT(output_components.size(), 0);
 	EXPECT_EQ(output_components.front()->get_value(), "This is a room");
@@ -245,7 +245,7 @@ TEST(Tests, CanShowMOTD)
 
 	textworld::systems::motd_system(player_id, entity_manager);
 
-	auto output_components = output_entity->find_component_by_type<textworld::components::OutputComponent>();
+	auto output_components = output_entity->find_components_by_type<textworld::components::OutputComponent>();
 
 	EXPECT_GT(output_components.size(), 0);
 	EXPECT_EQ(output_components.front()->get_value(), "This is the MOTD");
@@ -692,9 +692,9 @@ TEST(Tests, CanProcessLookActionCommandOnSelf)
 
 	textworld::systems::command_action_system(player_id, entity_manager);
 
-	auto show_description_component = player_entity->find_component_by_type<textworld::components::ShowDescriptionComponent>().front();
+	auto show_description_component = player_entity->find_components_by_type<textworld::components::ShowDescriptionComponent>().front();
 
-	auto description_component_from_output = show_description_component->get_entity()->find_component_by_type<textworld::components::DescriptionComponent>().front();
+	auto description_component_from_output = show_description_component->get_entity()->find_components_by_type<textworld::components::DescriptionComponent>().front();
 
 	EXPECT_EQ(description_component->get_description(), "You are the hero!");
 }
@@ -726,8 +726,8 @@ TEST(Tests, CanProcessLookActionCommandOnRoom)
 
 	textworld::systems::command_action_system(player_id, entity_manager);
 
-	auto show_description_component = player_entity->find_component_by_type<textworld::components::ShowDescriptionComponent>().front();
-	auto description_component_from_output = show_description_component->get_entity()->find_component_by_type<textworld::components::DescriptionComponent>().front();
+	auto show_description_component = player_entity->find_components_by_type<textworld::components::ShowDescriptionComponent>().front();
+	auto description_component_from_output = show_description_component->get_entity()->find_components_by_type<textworld::components::DescriptionComponent>().front();
 
 	EXPECT_EQ(show_description_component->get_entity(), room_entity);
 	EXPECT_EQ(description_component_from_output->get_description(), "This is a test room");
