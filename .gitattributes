@@ -1,4 +1,0 @@
-*.cs    linguist-language=C#
-*.js    linguist-detectable=false
-*.jsx   linguist-detectable=false
-*.ts    linguist-detectable=false
