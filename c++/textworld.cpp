@@ -55,7 +55,9 @@ namespace textworld::helpers
 
 			for (const auto& room_entity : *exit_room_entities)
 			{
-				exit_info.push_back(fmt::format("{} : {}", magic_enum::enum_name(exit_map[room_entity->get_id()]->get_direction()), room_entity->get_name()));
+				auto direction = std::string{ magic_enum::enum_name(exit_map[room_entity->get_id()]->get_direction()) };
+				to_titlecase(direction);
+				exit_info.push_back(fmt::format("{} : {}", direction, room_entity->get_name()));
 			}
 
 			auto full_exit_info = fmt::format("Exits: {}", exit_info);
@@ -729,11 +731,6 @@ namespace textworld::core
 				auto output_component = std::make_shared<textworld::components::OutputComponent>("output for item in inventory", "You don't have that item", textworld::data::OutputType::REGULAR);
 				output_entity->add_component(output_component);
 			}
-		}
-		else
-		{
-			auto output_component = std::make_shared<textworld::components::OutputComponent>("output for item in inventory", "You don't have that item", textworld::data::OutputType::REGULAR);
-			output_entity->add_component(output_component);
 		}
 	}
 

@@ -19,6 +19,7 @@
 
 #define to_lower(s) transform(s.begin(), s.end(), s.begin(), ::tolower);
 #define to_upper(s) transform(s.begin(), s.end(), s.begin(), ::toupper);
+#define to_titlecase(s) to_lower(s); s[0] = toupper(s[0]);
 
 extern std::string generate_uuid();
 

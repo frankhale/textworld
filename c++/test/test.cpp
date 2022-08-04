@@ -194,9 +194,9 @@ TEST(Tests, CanGetExitInfoFromRoom)
 	// room_2 = "Exits: [\"West : room_1\", \"East : room_3\"]"
 	// room_3 = "Exits: [\"West : room_2\"]"
 
-	EXPECT_EQ(exit_info_description_component_for_room_1->get_name(), "Exits: [\"EAST : room_2\"]");
-	EXPECT_EQ(exit_info_description_component_for_room_2->get_name(), "Exits: [\"WEST : room_1\", \"EAST : room_3\"]");
-	EXPECT_EQ(exit_info_description_component_for_room_3->get_name(), "Exits: [\"WEST : room_2\"]");
+	EXPECT_EQ(exit_info_description_component_for_room_1->get_name(), "Exits: [\"East : room_2\"]");
+	EXPECT_EQ(exit_info_description_component_for_room_2->get_name(), "Exits: [\"West : room_1\", \"East : room_3\"]");
+	EXPECT_EQ(exit_info_description_component_for_room_3->get_name(), "Exits: [\"West : room_2\"]");
 }
 
 TEST(Tests, RoomDescriptionSystemOutputsRoomDescription)
@@ -234,7 +234,7 @@ TEST(Tests, CanShowMOTD)
 	auto player_id = generate_uuid();
 	auto player_entity = std::make_shared<textworld::ecs::Entity>(player_id, "player_1");
 
-	auto motd_component = std::make_shared<textworld::components::DescriptionComponent>("motd_component", "This is the MOTD");
+	auto motd_component = std::make_shared<textworld::components::DescriptionComponent>("motd", "This is the MOTD");
 	player_entity->add_component(motd_component);
 
 	auto output_entity = std::make_shared<textworld::ecs::Entity>("output");
@@ -665,9 +665,9 @@ TEST(Tests, CanUseItem)
 
 	textworld::systems::command_action_system(player_id, entity_manager);
 
-	auto output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
-
-	EXPECT_EQ(output_component->get_value(), "You've used the item");
+	auto output_components = output_entity->find_components_by_type<textworld::components::OutputComponent>();
+		
+	EXPECT_EQ(output_components.back()->get_value(), "You've used the item");
 
 	auto inv_size = inventory_component->get_size();
 
