@@ -18,7 +18,7 @@ namespace textworld::helpers
 
 			if (room_id_component.size() > 0)
 			{
-				auto current_room_id = room_id_component[0]->get_id();
+				auto current_room_id = room_id_component[0]->get_target_id();
 				if (current_room_id != "")
 				{
 					// get current room entity from entity manager
@@ -194,10 +194,10 @@ namespace textworld::helpers
 
 namespace textworld::ecs
 {
-	std::shared_ptr<EntityGroup> EntityManager::create_entity_group(std::string name)
+	std::shared_ptr<EntityGroup> EntityManager::create_entity_group(std::string group_name)
 	{
 		auto entityGroup = std::make_shared<EntityGroup>();
-		entityGroup->name = name;
+		entityGroup->name = group_name;
 		entityGroup->entities = std::make_shared<std::vector<std::shared_ptr<Entity>>>();
 		entity_groups->emplace_back(entityGroup);
 		return entityGroup;
@@ -256,12 +256,12 @@ namespace textworld::ecs
 		return result;
 	}
 
-	std::shared_ptr<EntityGroup> EntityManager::get_entity_group(std::string name)
+	std::shared_ptr<EntityGroup> EntityManager::get_entity_group(std::string group_name)
 	{
 		auto group = std::ranges::find_if(*entity_groups,
 			[&](const std::shared_ptr<EntityGroup>& eg)
 			{
-				return eg->name == name;
+				return eg->name == group_name;
 			});
 
 		if (group != entity_groups->end())
@@ -272,9 +272,9 @@ namespace textworld::ecs
 		return nullptr;
 	}
 
-	std::shared_ptr<std::vector<std::shared_ptr<Entity>>> EntityManager::get_entities_in_group(std::string name)
+	std::shared_ptr<std::vector<std::shared_ptr<Entity>>> EntityManager::get_entities_in_group(std::string group_name)
 	{
-		auto entity_group = get_entity_group(name);
+		auto entity_group = get_entity_group(group_name);
 
 		if (entity_group != nullptr)
 		{
@@ -736,7 +736,7 @@ namespace textworld::core
 
 	void look_self_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
-		auto show_description_component = std::make_shared<textworld::components::ShowDescriptionComponent>("show description component", player_entity, textworld::data::DescriptionType::ROOM);
+		auto show_description_component = std::make_shared<textworld::components::ShowDescriptionComponent>("show description component", player_entity, textworld::data::DescriptionType::SELF);
 		player_entity->add_component(show_description_component);
 	}
 
@@ -753,6 +753,7 @@ namespace textworld::core
 
 			if (room_exits.size() > 0)
 			{
+				player_entity->add_component(std::make_shared<textworld::components::ShowDescriptionComponent>("show NPCs in current room", player_entity, textworld::data::DescriptionType::NPC));
 				player_entity->add_component(textworld::helpers::get_room_exits(entity_manager, current_room_entity));
 			}
 		}
@@ -876,10 +877,11 @@ namespace textworld::systems
 
 							if (room_id_components.size() > 0)
 							{
-								room_id_components[0]->set_id(new_room_entity->get_id());
+								room_id_components[0]->set_target_id(new_room_entity->get_id());
 
 								auto show_description_component = std::make_shared<textworld::components::ShowDescriptionComponent>("show_description", new_room_entity, textworld::data::DescriptionType::ROOM);
 								player_entity->add_component(show_description_component);
+								player_entity->add_component(std::make_shared<textworld::components::ShowDescriptionComponent>("show NPCs in current room", player_entity, textworld::data::DescriptionType::NPC));
 								player_entity->add_component(textworld::helpers::get_room_exits(entity_manager, new_room_entity));
 							}
 						}
@@ -926,6 +928,8 @@ namespace textworld::systems
 		auto output_entity = entity_manager->get_entity_by_name("core", "output");
 		auto room_entities = entity_manager->get_entities_in_group("rooms");
 
+		auto players_current_room = textworld::helpers::get_players_current_room(player_entity, entity_manager);
+
 		std::vector<std::shared_ptr<textworld::ecs::Component>> processed_components{};
 
 		if (player_entity != nullptr)
@@ -937,19 +941,55 @@ namespace textworld::systems
 			{
 				processed_components.push_back(sc);
 
-				if (sc->get_description_type() == textworld::data::DescriptionType::ROOM)
+				if (sc->get_entity() != nullptr)
 				{
-					auto description_components = sc->get_entity()->find_components_by_type<textworld::components::DescriptionComponent>();
+					auto description_component = sc->get_entity()->find_first_component_by_type<textworld::components::DescriptionComponent>();
 
-					if (description_components.size() > 0 && description_components.front() != nullptr)
+					if (description_component != nullptr)
 					{
-						auto& dc = description_components.front();
-						auto output_component = std::make_shared<textworld::components::OutputComponent>("output", dc->get_description(), textworld::data::OutputType::REGULAR);
-						output_entity->add_component(output_component);
+						if (sc->get_description_type() == textworld::data::DescriptionType::ROOM)
+						{
+							auto output_component = std::make_shared<textworld::components::OutputComponent>("output", description_component->get_description(), textworld::data::OutputType::REGULAR);
+							output_entity->add_component(output_component);
+						}
+						else if (sc->get_description_type() == textworld::data::DescriptionType::SELF)
+						{
+							auto output_component = std::make_shared<textworld::components::OutputComponent>("output",
+								fmt::format("looking intently at yourself: {}", description_component->get_description()), textworld::data::OutputType::REGULAR);
+							output_entity->add_component(output_component);
+						}
+						else if (sc->get_description_type() == textworld::data::DescriptionType::NPC)
+						{
+							auto npcs = entity_manager->get_entities_in_group(textworld::ecs::EntityGroupName::NPCS);
+
+							if (npcs->size() > 0)
+							{
+								std::vector<std::string> names{};
+								for (const auto& npc : *npcs)
+								{
+									auto room_id_component = npc->find_first_component_by_type<textworld::components::IdComponent>();
+									if (room_id_component != nullptr && 
+											room_id_component->get_id_type() == textworld::data::IdType::ROOM &&
+											room_id_component->get_target_id() == players_current_room->get_id())
+									{
+										names.push_back(npc->get_name());
+									}
+								}
+
+								if (names.size() > 0)
+								{
+									std::ostringstream oss;
+									std::copy(names.begin(), names.end() - 1, std::ostream_iterator<std::string>(oss, ", "));
+									oss << names.back();
+
+									auto output_component = std::make_shared<textworld::components::OutputComponent>("output", fmt::format("The following NPCs are here: {}", oss.str()), textworld::data::OutputType::REGULAR);
+									output_entity->add_component(output_component);
+								}
+							}
+						}
 					}
 				}
-				else if (sc->get_description_type() == textworld::data::DescriptionType::EXIT &&
-					sc->get_entities().size() > 0)
+				else if (sc->get_description_type() == textworld::data::DescriptionType::EXIT)
 				{
 					auto output_component = std::make_shared<textworld::components::OutputComponent>("exit description output", sc->get_name(), textworld::data::OutputType::REGULAR);
 					output_entity->add_component(output_component);
@@ -1026,20 +1066,12 @@ namespace textworld::systems
 		auto player_entity = entity_manager->get_entity_by_id("players", player_id);
 		auto output_entity = entity_manager->get_entity_by_name("core", "output");
 
-		auto stats_components = player_entity->find_components_by_type<textworld::components::StatsComponent>();
-		auto currency_components = player_entity->find_components_by_type<textworld::components::CurrencyComponent>();
+		auto health_component = player_entity->find_first_component_by_name<textworld::components::ValueComponent<int>>("health");
+		auto gold_component = player_entity->find_first_component_by_name<textworld::components::ValueComponent<int>>("gold");
 
-		if (stats_components.size() > 0 && currency_components.size() > 0)
+		if (health_component != nullptr && gold_component != nullptr)
 		{
-			// FIXME: We don't need to do all this
-			auto currency = &currency_components.front();
-			auto stats = &stats_components.front();
-			auto coins = (*currency)->get();
-			auto health = (*stats)->get_health();
-			auto mana = (*stats)->get_mana();
-			auto stamina = (*stats)->get_stamina();
-
-			fmt::print("[Stats:{}/{}/{}|G{}]> ", health.current_value, mana.current_value, stamina.current_value, coins);
+			fmt::print("H{}:G{} > ", health_component->get_value(), gold_component->get_value());
 		}
 		else
 		{
@@ -1095,5 +1127,25 @@ namespace textworld::systems
 
 		if (processed_components.size() > 0)
 			player_entity->remove_components(processed_components);
+	}
+
+	void npc_dialog_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
+	{
+		auto player_entity = entity_manager->get_entity_by_id("players", player_id);
+		auto output_entity = entity_manager->get_entity_by_name("core", "output");
+		auto command_component = player_entity->find_first_component_by_type<textworld::components::CommandInputComponent>();
+
+		if (command_component != nullptr)
+		{
+			auto command = command_component->get_command_with_arguments();
+
+			if (command == "talk" || command == "converse" || command == "converse with")
+			{				
+				auto output_component = std::make_shared<textworld::components::OutputComponent>("npc dialog output", "I'd talk to an NPC if one were here...", textworld::data::OutputType::REGULAR);
+				output_entity->add_component(output_component);
+
+				player_entity->remove_component(command_component);
+			}
+		}		
 	}
 }

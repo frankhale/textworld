@@ -7,20 +7,8 @@ int main()
 	auto output_entity = std::make_shared<textworld::ecs::Entity>("output");
 	auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();
 
-	mk_it("Coin Purse", "Extremely worn leather purse. The leather is soft and flexible and it's color has faded. There are 100 coins inside.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
-		{
-			auto currency_component = player_entity->find_first_component_by_type<textworld::components::CurrencyComponent>();
-			if (currency_component != nullptr) {
-				currency_component->add(100);
-			}
-		});
-	mk_it("Health Potion", "An oddly shaped bottle with a cool blue liquid inside. The liquid glows with an intense light.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
-		{			
-			auto stats_component = player_entity->find_first_component_by_type<textworld::components::StatsComponent>();
-			if (stats_component != nullptr) {
-				stats_component->add_health(50);
-			}
-		});
+	mk_it("Coin Purse", "Extremely worn leather purse. The leather is soft and flexible and it's color has faded. There are 100 coins inside.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager) { textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "gold", 100); });
+	mk_it("Health Potion", "An oddly shaped bottle with a cool blue liquid inside. The liquid glows with an intense light.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager) { textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "health", 25); });
 	mk_it("Lamp", "A rusty old oil lamp", false, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 		{			
 			auto output_entity = entity_manager->get_entity_by_name("core", "output");
@@ -29,6 +17,12 @@ int main()
 				output_entity->add_component(output_component);
 			}
 		});
+	
+	mk_npc("Old Man", "A really old man", (std::unordered_map<std::string, std::string>{
+		{"foo", "bar"},
+		{ "bar", "foo" },
+		{ "baz", "boz" } 
+	}));
 
 	begin_room_configuration()
 		mk_rm("Open Field", "You are standing in an open field. All around you stands tall vibrant green grass. You can hear the sound of flowing water off in the distance which you suspect is a stream.");
@@ -43,6 +37,8 @@ int main()
 		pl_it("Open Field", "Coin Purse", 1);
 		pl_it("Open Field", "Health Potion", 3);
 		pl_it("Large Rock", "Lamp", 1);
+
+		pl_npc("Stream", "Old Man");
 	end_room_configuration()
 
 	//for (const auto& r : room_info)
@@ -56,30 +52,29 @@ int main()
 	//}
 
 	auto inventory_component = std::make_shared<textworld::components::InventoryComponent>("player inventory");
-	auto stat_component = std::make_shared<textworld::components::StatsComponent>("player stats",
-		textworld::data::Stat{ .current_value = 10, .max_value = 100 },
-		textworld::data::Stat{ .current_value = 10, .max_value = 100 },
-		textworld::data::Stat{ .current_value = 10, .max_value = 100 });
+	auto health_component = std::make_shared<textworld::components::ValueComponent<int>>("health", 10, 100);	
 	auto player_description_component = std::make_shared<textworld::components::DescriptionComponent>("player description", "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!");
 	auto id_component = std::make_shared<textworld::components::IdComponent>("players current room", entity_manager->get_entity_by_name("rooms", "Open Field")->get_id(), textworld::data::IdType::ROOM);
-	auto currency_component = std::make_shared<textworld::components::CurrencyComponent>("gold", 10);
-	
+	auto currency_component = std::make_shared<textworld::components::ValueComponent<int>>("gold", 10);
 	auto motd_description_component = std::make_shared<textworld::components::DescriptionComponent>("motd", "Welcome to Textworld! TW was written using a custom entity component system based engine. Look around, have fun!");
 
 	player_entity->add_component(inventory_component);
-	player_entity->add_component(stat_component);
+	player_entity->add_component(health_component);
 	player_entity->add_component(player_description_component);
 	player_entity->add_component(id_component);
 	player_entity->add_component(currency_component);
 	player_entity->add_component(motd_description_component);
 
-	entity_manager->add_entity_to_group(output_entity, "core");
-	entity_manager->add_entity_to_group(player_entity, "players");
+	entity_manager->add_entity_to_group(output_entity, textworld::ecs::EntityGroupName::CORE);
+	entity_manager->add_entity_to_group(player_entity, textworld::ecs::EntityGroupName::PLAYERS);
 
 	auto players_current_room = textworld::helpers::get_players_current_room(player_entity, entity_manager);
 
-	auto show_description_component = std::make_shared<textworld::components::ShowDescriptionComponent>("show current room description", players_current_room, textworld::data::DescriptionType::ROOM);
-	player_entity->add_component(show_description_component);
+	auto show_current_room_description_component = std::make_shared<textworld::components::ShowDescriptionComponent>("show current room description", players_current_room, textworld::data::DescriptionType::ROOM);
+	auto show_npcs_in_room_description_component = std::make_shared<textworld::components::ShowDescriptionComponent>("show NPCs in current room", player_entity, textworld::data::DescriptionType::NPC);
+
+	player_entity->add_component(show_current_room_description_component);
+	player_entity->add_component(show_npcs_in_room_description_component);	
 	player_entity->add_component(textworld::helpers::get_room_exits(entity_manager, players_current_room));
 
 	textworld::systems::motd_system(player_id, entity_manager);
@@ -87,6 +82,7 @@ int main()
 	while (true)
 	{
 		textworld::systems::command_action_system(player_id, entity_manager);
+		textworld::systems::npc_dialog_system(player_id, entity_manager);
 		textworld::systems::quit_system(player_id, entity_manager);
 		textworld::systems::room_movement_system(player_id, entity_manager);
 		textworld::systems::description_system(player_id, entity_manager);		

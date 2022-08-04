@@ -156,7 +156,7 @@ TEST(Tests, CanChangePlayerCurrentRoomToNewRoom)
 	EXPECT_NE(current_room_1, nullptr);
 	EXPECT_EQ(current_room_1->get_id(), room_1_id);
 
-	id_component->set_id(room_2_id);
+	id_component->set_target_id(room_2_id);
 
 	textworld::systems::room_movement_system(player_id, entity_manager);
 
@@ -746,4 +746,17 @@ TEST(Tests, CanMakeConsumableItem)
 	EXPECT_EQ(i->description, "a leather coin purse");
 	EXPECT_TRUE(i->consumable);
 	EXPECT_EQ(i->actions.size(), 1);
+}
+
+TEST(Tests, CanIncreaseValueOfValueComponent)
+{	
+	auto player_entity = std::make_shared<textworld::ecs::Entity>("player_1");
+
+	auto value_component = std::make_shared<textworld::components::ValueComponent<int>>("value_component", 10);
+
+	player_entity->add_component(value_component);
+
+	textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "value_component", 10);
+
+	EXPECT_EQ(value_component->get_value(), 20);
 }

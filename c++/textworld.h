@@ -4,6 +4,7 @@
 
 #define SOL_ALL_SAFETIES_ON 1
 
+#include <concepts>
 #include <ranges>
 #include <map>
 #include <numeric>
@@ -33,22 +34,22 @@ extern std::string generate_uuid();
 	room_entity->add_component(room_description); \
   room_info[n] = { .id = id, .name = n, .description = d, .entity = room_entity }; }
 
-#define mk_ex(from_name, to_name, dir) { \
-	auto from_room_info = room_info[from_name]; \
-	auto to_room_info = room_info[to_name]; \
-	auto from_exit_component = std::make_shared<textworld::components::ExitComponent>(from_name, dir, to_room_info.id); \
-	auto to_exit_component = std::make_shared<textworld::components::ExitComponent>(to_room_info.name, textworld::core::get_opposite_direction(dir), from_room_info.id); \
+#define mk_ex(fn, tn, d) { \
+	auto from_room_info = room_info[fn]; \
+	auto to_room_info = room_info[tn]; \
+	auto from_exit_component = std::make_shared<textworld::components::ExitComponent>(fn, d, to_room_info.id); \
+	auto to_exit_component = std::make_shared<textworld::components::ExitComponent>(to_room_info.name, textworld::core::get_opposite_direction(d), from_room_info.id); \
 	from_room_info.entity->add_component(from_exit_component); \
 	to_room_info.entity->add_component(to_exit_component); \
-  from_exit_component->set_room_name(to_name); \
-	to_exit_component->set_room_name(from_name); }
+  from_exit_component->set_room_name(tn); \
+	to_exit_component->set_room_name(fn); }
 
-#define pl_it(room_name, item_name, quantity) { \
-	auto r_info = room_info[room_name]; \
-	auto item_entity = entity_manager->get_entity_by_name("items", item_name); \
+#define pl_it(rn, in, q) { \
+	auto r_info = room_info[rn]; \
+	auto item_entity = entity_manager->get_entity_by_name("items", in); \
 	auto item_component = item_entity->find_first_component_by_type<textworld::components::ItemComponent>(); \
 	auto item = item_component->get_item(); \
-	auto item_drop_component = std::make_shared<textworld::components::ItemDropComponent>(item_name, item->id, item_name, quantity); \
+	auto item_drop_component = std::make_shared<textworld::components::ItemDropComponent>(in, item->id, in, q); \
 	r_info.entity->add_component(item_drop_component); }
 
 #define mk_it(n, d, c, a) { \
@@ -59,13 +60,36 @@ extern std::string generate_uuid();
 		auto item_entity = std::make_shared<textworld::ecs::Entity>(i->id, n); \
 		auto item_component = std::make_shared<textworld::components::ItemComponent>(n, i); \
 		item_entity->add_component(item_component); \
-		entity_manager->add_entity_to_group(item_entity, "items"); }
+		entity_manager->add_entity_to_group(item_entity, textworld::ecs::EntityGroupName::ITEMS); }
+
+#define mk_npc(n, d, r) { \
+	auto npc_entity = std::make_shared<textworld::ecs::Entity>(n); \
+	auto npc_description = std::make_shared<textworld::components::DescriptionComponent>(n, d); \
+	auto npc_dialog_sequence_component = std::make_shared<textworld::components::DialogSequenceComponent>(n, r); \
+	npc_entity->add_component(npc_description); \
+	npc_entity->add_component(npc_dialog_sequence_component); \
+	entity_manager->add_entity_to_group(npc_entity, textworld::ecs::EntityGroupName::NPCS); }
+
+#define pl_npc(ir, n) { \
+	auto r_info = room_info[ir]; \
+	auto npc_entity = entity_manager->get_entity_by_name("npcs", n); \
+	auto npc_id_component = std::make_shared<textworld::components::IdComponent>("npc current room", r_info.id, textworld::data::IdType::ROOM); \
+	npc_entity->add_component(npc_id_component); }
 
 #define end_room_configuration() \
-	for (const auto& r : room_info) { entity_manager->add_entity_to_group(r.second.entity, "rooms"); } }
+	for (const auto& r : room_info) { entity_manager->add_entity_to_group(r.second.entity, textworld::ecs::EntityGroupName::ROOMS); } }
 
 namespace textworld::ecs
 {
+	enum class EntityGroupName
+	{
+		PLAYERS,
+		NPCS,
+		CORE,
+		ROOMS,
+		ITEMS
+	};
+
 	class Component
 	{
 	public:
@@ -74,7 +98,7 @@ namespace textworld::ecs
 		auto get_name() const { return component_name; }
 		void set_name(std::string name) { component_name = name; }
 		auto get_id() const { return id; }
-		
+
 		Component(std::string name, std::string id = generate_uuid()) : component_name(name)
 		{
 			this->id = id;
@@ -138,9 +162,9 @@ namespace textworld::ecs
 			std::vector<std::shared_ptr<T>> matches{};
 
 			for (auto& c : *components)
-			{				
+			{
 				auto casted = std::dynamic_pointer_cast<T>(c);
-				
+
 				if (casted != nullptr && casted->get_name() == name)
 				{
 					matches.push_back(casted);
@@ -244,7 +268,14 @@ namespace textworld::ecs
 		}
 
 		void add_entity_to_group(std::shared_ptr<Entity> e, std::string group_name);
-		std::shared_ptr<EntityGroup> create_entity_group(std::string name);
+		void add_entity_to_group(std::shared_ptr<Entity> e, EntityGroupName group_name)
+		{
+			auto gn = std::string(magic_enum::enum_name(group_name));
+			to_lower(gn);
+			add_entity_to_group(e, gn);
+		}
+
+		std::shared_ptr<EntityGroup> create_entity_group(std::string group_name);
 		std::shared_ptr<Entity> create_entity_in_group(std::string group_name, std::string entity_name);
 		bool remove_entity(std::string entity_group_name, std::string entity_id);
 
@@ -257,8 +288,15 @@ namespace textworld::ecs
 			}
 			return results;
 		}
-		std::shared_ptr<EntityGroup> get_entity_group(std::string name);
-		std::shared_ptr<std::vector<std::shared_ptr<Entity>>> get_entities_in_group(std::string name);
+		std::shared_ptr<EntityGroup> get_entity_group(std::string group_name);
+		std::shared_ptr<std::vector<std::shared_ptr<Entity>>> get_entities_in_group(std::string group_name);
+		std::shared_ptr<std::vector<std::shared_ptr<Entity>>> get_entities_in_group(EntityGroupName group_name)
+		{
+			auto gn = std::string(magic_enum::enum_name(group_name));
+			to_lower(gn);			
+			return get_entities_in_group(gn);
+		}
+
 		std::shared_ptr<Entity> get_entity_by_name(std::string entity_group, std::string entity_name);
 		std::shared_ptr<Entity> get_entity_by_id(std::string entity_group, std::string entity_id);
 
@@ -318,7 +356,8 @@ namespace textworld::data
 		ROOM,
 		EXIT,
 		ITEM,
-		SELF
+		SELF,
+		NPC
 	};
 
 	enum class OutputType
@@ -329,29 +368,12 @@ namespace textworld::data
 		SEPARATOR
 	};
 
-	enum class ItemActionType
-	{
-		SHOW,
-		SHOWALL,
-		TAKE,
-		TAKEALL,
-		DROP,
-		DROPALL,
-		USE
-	};
-
 	enum class IdType
 	{
 		ROOM,
 		ITEM,
 		PLAYER,
 		ZONE
-	};
-
-	struct Stat
-	{
-		int current_value{};
-		int max_value{};
 	};
 
 	struct Item
@@ -440,7 +462,7 @@ namespace textworld::components
 	protected:
 		std::string command{};
 		std::vector<std::string> arguments{};
-		std::string command_with_arguments{};		
+		std::string command_with_arguments{};
 	};
 
 	class CommandActionComponent : public CommandInputComponent
@@ -455,19 +477,6 @@ namespace textworld::components
 
 	private:
 		textworld::core::simple_action_func action{};
-	};
-
-	class CurrencyComponent : public textworld::ecs::Component
-	{
-	public:
-		CurrencyComponent(std::string name, int currency) : Component(name), currency(currency) { }
-
-		auto get() const { return currency; }
-		void set(int currency) { this->currency = currency; }
-		void add(int currency) { this->currency += currency; }
-
-	private:
-		int currency{};
 	};
 
 	class DisplayNameComponent : public textworld::ecs::Component
@@ -525,7 +534,7 @@ namespace textworld::components
 		textworld::data::Direction direction{};
 		std::string room_name{};
 		std::string room_id{};
-		bool hidden{};
+		bool  hidden{};
 	};
 
 	class IdComponent : public textworld::ecs::Component
@@ -538,8 +547,8 @@ namespace textworld::components
 		}
 
 		auto get_id_type() const { return id_type; }
-		auto get_id() const { return target_id; }
-		void set_id(std::string target_id) { this->target_id = target_id; }
+		auto get_target_id() const { return target_id; }
+		void set_target_id(std::string target_id) { this->target_id = target_id; }
 
 	private:
 		std::string target_id{};
@@ -613,13 +622,13 @@ namespace textworld::components
 
 		auto get_items_string() const
 		{
-			std::stringstream ss;		
+			std::stringstream ss;
 			auto first = begin(*items), last = end(*items);
-			if (first != last) {                
+			if (first != last) {
 				while (true) {
 					ss << (*first)->name << ": (" << (*first)->quantity << ")";
 					if (++first == last) break;
-					ss << std::endl;					
+					ss << std::endl;
 				}
 			}
 
@@ -745,32 +754,29 @@ namespace textworld::components
 		textworld::data::DescriptionType description_type{};
 	};
 
-	class StatsComponent : public textworld::ecs::Component
+	template<class T>
+	concept Value = std::floating_point<T> || std::integral<T>;
+
+	template<Value T>
+	class ValueComponent : public textworld::ecs::Component
 	{
 	public:
-		StatsComponent(std::string name, textworld::data::Stat health, textworld::data::Stat mana, textworld::data::Stat stamina) : Component(name)
-		{
-			this->health = health;
-			this->mana = mana;
-			this->stamina = stamina;
-		}
+		void add(T value) { this->value += value; }
+		void sub(T value) { this->value -= value; }
+		void set_value(T value) { this->value = value; }
+		T get_value() const { return value; }
 
-		auto get_health() const { return health; }
-		auto get_mana() const { return mana; }
-		auto get_stamina() const { return stamina; }
+		void add_max(T value) { this->max_value += value; }
+		void sub_max(T value) { this->max_value -= value; }
+		void set_max_value(T max_value) { this->max_value = max_value; }
+		T get_max_value() const { return max_value; }
 
-		void set_health(textworld::data::Stat health) { this->health = health; }
-		void set_mana(textworld::data::Stat mana) { this->mana = mana; }
-		void set_stamina(textworld::data::Stat stamina) { this->stamina = stamina; }
+		ValueComponent(std::string name, T value) : Component(name), value(value) { }
+		ValueComponent(std::string name, T value, T max_value) : Component(name), value(value), max_value(max_value) { }
 
-		void add_health(int health) { this->health.current_value += health; }
-		void add_mana(int mana) { this->mana.current_value += mana; }
-		void add_stamina(int stamina) { this->stamina.current_value += stamina; }
-		
 	private:
-		textworld::data::Stat health{};
-		textworld::data::Stat mana{};
-		textworld::data::Stat stamina{};
+		T value{};
+		T max_value{};
 	};
 
 	class UnknownCommandComponent : public textworld::ecs::Component
@@ -786,6 +792,27 @@ namespace textworld::components
 	private:
 		std::string command{};
 	};
+
+	class DialogSequenceComponent : public textworld::ecs::Component
+	{
+	public:
+		DialogSequenceComponent(std::string name, std::unordered_map<std::string, std::string> responses) : Component(name), responses(responses) { }
+
+		void add_response(std::string trigger, std::string response) { responses[trigger] = response; }
+		auto get_response(std::string trigger) const
+		{
+			auto it = responses.find(trigger);
+
+			if(it != responses.end())
+				return it->second;
+			
+			return std::string{};
+		}
+		auto get_responses() const { return responses; }
+
+	private:
+		std::unordered_map<std::string, std::string> responses{};
+	};
 }
 
 namespace textworld::helpers
@@ -798,6 +825,17 @@ namespace textworld::helpers
 	extern textworld::data::RoomInfo make_room(std::string name, std::string description);
 	extern std::shared_ptr<textworld::data::Item> make_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions);
 	extern std::shared_ptr<textworld::data::Item> make_consumable_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions);
+
+	template<typename T>
+	void increase_value_on_entity_value_component(std::shared_ptr<textworld::ecs::Entity> player_entity, std::string component_name, T value)
+	{
+		auto component = player_entity->find_first_component_by_name<textworld::components::ValueComponent<T>>(component_name);
+
+		if (component != nullptr)
+		{
+			component->add(value);
+		}
+	}
 }
 
 namespace textworld::core
@@ -825,6 +863,7 @@ namespace textworld::systems
 	extern void quit_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void motd_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void console_output_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
-	extern void console_input_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);	
+	extern void console_input_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void inventory_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void npc_dialog_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 }
