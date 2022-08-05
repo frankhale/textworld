@@ -65,8 +65,8 @@ int main()
 	player_entity->add_component(currency_component);
 	player_entity->add_component(motd_description_component);
 
-	entity_manager->add_entity_to_group(output_entity, textworld::ecs::EntityGroupName::CORE);
-	entity_manager->add_entity_to_group(player_entity, textworld::ecs::EntityGroupName::PLAYERS);
+	entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::CORE, output_entity);
+	entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::PLAYERS, player_entity);
 
 	auto players_current_room = textworld::helpers::get_players_current_room(player_entity, entity_manager);
 

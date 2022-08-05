@@ -60,7 +60,7 @@ extern std::string generate_uuid();
 		auto item_entity = std::make_shared<textworld::ecs::Entity>(i->id, n); \
 		auto item_component = std::make_shared<textworld::components::ItemComponent>(n, i); \
 		item_entity->add_component(item_component); \
-		entity_manager->add_entity_to_group(item_entity, textworld::ecs::EntityGroupName::ITEMS); }
+		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::ITEMS, item_entity); }
 
 #define mk_npc(n, d, r) { \
 	auto npc_entity = std::make_shared<textworld::ecs::Entity>(n); \
@@ -68,7 +68,7 @@ extern std::string generate_uuid();
 	auto npc_dialog_sequence_component = std::make_shared<textworld::components::DialogSequenceComponent>(n, r); \
 	npc_entity->add_component(npc_description); \
 	npc_entity->add_component(npc_dialog_sequence_component); \
-	entity_manager->add_entity_to_group(npc_entity, textworld::ecs::EntityGroupName::NPCS); }
+	entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::NPCS, npc_entity); }
 
 #define pl_npc(ir, n) { \
 	auto r_info = room_info[ir]; \
@@ -77,7 +77,7 @@ extern std::string generate_uuid();
 	npc_entity->add_component(npc_id_component); }
 
 #define end_room_configuration() \
-	for (const auto& r : room_info) { entity_manager->add_entity_to_group(r.second.entity, textworld::ecs::EntityGroupName::ROOMS); } }
+	for (const auto& r : room_info) { entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::ROOMS, r.second.entity); } }
 
 namespace textworld::ecs
 {
@@ -267,12 +267,12 @@ namespace textworld::ecs
 			entity_groups = std::make_unique<std::vector<std::shared_ptr<EntityGroup>>>();
 		}
 
-		void add_entity_to_group(std::shared_ptr<Entity> e, std::string group_name);
-		void add_entity_to_group(std::shared_ptr<Entity> e, EntityGroupName group_name)
+		void add_entity_to_group(std::string group_name, std::shared_ptr<Entity> e);
+		void add_entity_to_group(EntityGroupName group_name, std::shared_ptr<Entity> e)
 		{
 			auto gn = std::string(magic_enum::enum_name(group_name));
 			to_lower(gn);
-			add_entity_to_group(e, gn);
+			add_entity_to_group(gn, e);
 		}
 
 		std::shared_ptr<EntityGroup> create_entity_group(std::string group_name);

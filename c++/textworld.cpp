@@ -203,7 +203,7 @@ namespace textworld::ecs
 		return entityGroup;
 	}
 
-	void EntityManager::add_entity_to_group(std::shared_ptr<Entity> e, std::string group_name)
+	void EntityManager::add_entity_to_group(std::string group_name, std::shared_ptr<Entity> e)
 	{
 		auto group = get_entity_group(group_name);
 		if (group == nullptr)
@@ -1139,6 +1139,8 @@ namespace textworld::systems
 		{
 			auto command = command_component->get_command_with_arguments();
 
+			// This code is just temporary and is here to prove that commands that 
+			// aren't consumed by the command action system will pass on to us here
 			if (command == "talk" || command == "converse" || command == "converse with")
 			{				
 				auto output_component = std::make_shared<textworld::components::OutputComponent>("npc dialog output", "I'd talk to an NPC if one were here...", textworld::data::OutputType::REGULAR);
