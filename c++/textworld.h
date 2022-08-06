@@ -20,64 +20,85 @@
 
 #define to_lower(s) transform(s.begin(), s.end(), s.begin(), ::tolower);
 #define to_upper(s) transform(s.begin(), s.end(), s.begin(), ::toupper);
-#define to_titlecase(s) to_lower(s); s[0] = toupper(s[0]);
+#define to_titlecase(s) \
+	to_lower(s);          \
+	s[0] = toupper(s[0]);
 
 extern std::string generate_uuid();
 
-#define begin_room_configuration() { \
-	std::unordered_map<std::string, textworld::data::RoomInfo> room_info{};
+#define begin_room_configuration() \
+	{                                \
+		std::unordered_map<std::string, textworld::data::RoomInfo> room_info{};
 
-#define mk_rm(n, d) { \
-	auto id = generate_uuid(); \
-	auto room_entity = std::make_shared<textworld::ecs::Entity>(id, n); \
-	auto room_description = std::make_shared<textworld::components::DescriptionComponent>(n, d); \
-	room_entity->add_component(room_description); \
-  room_info[n] = { .id = id, .name = n, .description = d, .entity = room_entity }; }
+#define mk_rm(n, d)                                                                              \
+	{                                                                                              \
+		auto id = generate_uuid();                                                                   \
+		auto room_entity = std::make_shared<textworld::ecs::Entity>(id, n);                          \
+		auto room_description = std::make_shared<textworld::components::DescriptionComponent>(n, d); \
+		room_entity->add_component(room_description);                                                \
+		room_info[n] = {.id = id, .name = n, .description = d, .entity = room_entity};               \
+	}
 
-#define mk_ex(fn, tn, d) { \
-	auto from_room_info = room_info[fn]; \
-	auto to_room_info = room_info[tn]; \
-	auto from_exit_component = std::make_shared<textworld::components::ExitComponent>(fn, d, to_room_info.id); \
-	auto to_exit_component = std::make_shared<textworld::components::ExitComponent>(to_room_info.name, textworld::core::get_opposite_direction(d), from_room_info.id); \
-	from_room_info.entity->add_component(from_exit_component); \
-	to_room_info.entity->add_component(to_exit_component); \
-  from_exit_component->set_room_name(tn); \
-	to_exit_component->set_room_name(fn); }
+#define mk_ex(fn, tn, d)                                                                                                                                               \
+	{                                                                                                                                                                    \
+		auto from_room_info = room_info[fn];                                                                                                                               \
+		auto to_room_info = room_info[tn];                                                                                                                                 \
+		auto from_exit_component = std::make_shared<textworld::components::ExitComponent>(fn, d, to_room_info.id);                                                         \
+		auto to_exit_component = std::make_shared<textworld::components::ExitComponent>(to_room_info.name, textworld::core::get_opposite_direction(d), from_room_info.id); \
+		from_room_info.entity->add_component(from_exit_component);                                                                                                         \
+		to_room_info.entity->add_component(to_exit_component);                                                                                                             \
+		from_exit_component->set_room_name(tn);                                                                                                                            \
+		to_exit_component->set_room_name(fn);                                                                                                                              \
+	}
 
-#define pl_it(rn, in, q) { \
-	auto r_info = room_info[rn]; \
-	auto item_entity = entity_manager->get_entity_by_name("items", in); \
-	auto item_component = item_entity->find_first_component_by_type<textworld::components::ItemComponent>(); \
-	auto item = item_component->get_item(); \
-	auto item_drop_component = std::make_shared<textworld::components::ItemDropComponent>(in, item->id, in, q); \
-	r_info.entity->add_component(item_drop_component); }
+#define pl_it(rn, in, q)                                                                                        \
+	{                                                                                                             \
+		auto r_info = room_info[rn];                                                                                \
+		auto item_entity = entity_manager->get_entity_by_name("items", in);                                         \
+		auto item_component = item_entity->find_first_component_by_type<textworld::components::ItemComponent>();    \
+		auto item = item_component->get_item();                                                                     \
+		auto item_drop_component = std::make_shared<textworld::components::ItemDropComponent>(in, item->id, in, q); \
+		r_info.entity->add_component(item_drop_component);                                                          \
+	}
 
-#define mk_it(n, d, c, a) { \
-		auto acts = std::unordered_map<std::string, textworld::core::simple_action_func>{ { "default", a } }; \
-		std::shared_ptr<textworld::data::Item> i{}; \
-		if(c) i = textworld::helpers::make_consumable_item(n, d, acts); \
-		else i = textworld::helpers::make_item(n, d, acts); \
-		auto item_entity = std::make_shared<textworld::ecs::Entity>(i->id, n); \
-		auto item_component = std::make_shared<textworld::components::ItemComponent>(n, i); \
-		item_entity->add_component(item_component); \
-		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::ITEMS, item_entity); }
+#define mk_it(n, d, c, a)                                                                             \
+	{                                                                                                   \
+		auto acts = std::unordered_map<std::string, textworld::core::simple_action_func>{{"default", a}}; \
+		std::shared_ptr<textworld::data::Item> i{};                                                       \
+		if (c)                                                                                            \
+			i = textworld::helpers::make_consumable_item(n, d, acts);                                       \
+		else                                                                                              \
+			i = textworld::helpers::make_item(n, d, acts);                                                  \
+		auto item_entity = std::make_shared<textworld::ecs::Entity>(i->id, n);                            \
+		auto item_component = std::make_shared<textworld::components::ItemComponent>(n, i);               \
+		item_entity->add_component(item_component);                                                       \
+		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::ITEMS, item_entity);         \
+	}
 
-#define mk_npc(n, d, r) { \
-	auto npc_entity = std::make_shared<textworld::ecs::Entity>(n); \
-	auto npc_description = std::make_shared<textworld::components::DescriptionComponent>(n, d); \
-	auto npc_dialog_sequence_component = std::make_shared<textworld::components::DialogSequenceComponent>(n, r); \
-	npc_entity->add_component(npc_description); \
-	npc_entity->add_component(npc_dialog_sequence_component); \
-	entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::NPCS, npc_entity); }
+#define mk_npc(n, d, r)                                                                                          \
+	{                                                                                                              \
+		auto npc_entity = std::make_shared<textworld::ecs::Entity>(n);                                               \
+		auto npc_description = std::make_shared<textworld::components::DescriptionComponent>(n, d);                  \
+		auto npc_dialog_sequence_component = std::make_shared<textworld::components::DialogSequenceComponent>(n, r); \
+		npc_entity->add_component(npc_description);                                                                  \
+		npc_entity->add_component(npc_dialog_sequence_component);                                                    \
+		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::NPCS, npc_entity);                      \
+	}
 
-#define pl_npc(ir, n) { \
-	auto r_info = room_info[ir]; \
-	auto npc_entity = entity_manager->get_entity_by_name("npcs", n); \
-	auto npc_id_component = std::make_shared<textworld::components::IdComponent>("npc current room", r_info.id, textworld::data::IdType::ROOM); \
-	npc_entity->add_component(npc_id_component); }
+#define pl_npc(ir, n)                                                                                                                           \
+	{                                                                                                                                             \
+		auto r_info = room_info[ir];                                                                                                                \
+		auto npc_entity = entity_manager->get_entity_by_name("npcs", n);                                                                            \
+		auto npc_id_component = std::make_shared<textworld::components::IdComponent>("npc current room", r_info.id, textworld::data::IdType::ROOM); \
+		npc_entity->add_component(npc_id_component);                                                                                                \
+	}
 
-#define end_room_configuration() \
-	for (const auto& r : room_info) { entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::ROOMS, r.second.entity); } }
+#define end_room_configuration()                                                                  \
+	for (const auto &r : room_info)                                                                 \
+	{                                                                                               \
+		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::ROOMS, r.second.entity); \
+	}                                                                                               \
+	}
 
 namespace textworld::ecs
 {
@@ -289,16 +310,34 @@ namespace textworld::ecs
 			return results;
 		}
 		std::shared_ptr<EntityGroup> get_entity_group(std::string group_name);
+		std::shared_ptr<EntityGroup> get_entity_group(EntityGroupName group_name)
+		{
+			auto gn = std::string(magic_enum::enum_name(group_name));
+			to_lower(gn);
+			return get_entity_group(gn);
+		}
 		std::shared_ptr<std::vector<std::shared_ptr<Entity>>> get_entities_in_group(std::string group_name);
 		std::shared_ptr<std::vector<std::shared_ptr<Entity>>> get_entities_in_group(EntityGroupName group_name)
 		{
 			auto gn = std::string(magic_enum::enum_name(group_name));
-			to_lower(gn);			
+			to_lower(gn);
 			return get_entities_in_group(gn);
 		}
 
-		std::shared_ptr<Entity> get_entity_by_name(std::string entity_group, std::string entity_name);
-		std::shared_ptr<Entity> get_entity_by_id(std::string entity_group, std::string entity_id);
+		std::shared_ptr<Entity> get_entity_by_name(std::string group_name, std::string entity_name);
+		std::shared_ptr<Entity> get_entity_by_name(EntityGroupName group_name, std::string entity_name)
+		{
+			auto gn = std::string(magic_enum::enum_name(group_name));
+			to_lower(gn);
+			return get_entity_by_name(gn, entity_name);
+		}
+		std::shared_ptr<Entity> get_entity_by_id(std::string group_name, std::string entity_id);
+		std::shared_ptr<Entity> get_entity_by_id(EntityGroupName group_name, std::string entity_id)
+		{
+			auto gn = std::string(magic_enum::enum_name(group_name));
+			to_lower(gn);
+			return get_entity_by_id(gn, entity_id);
+		}
 
 		template <typename T>
 		auto find_entities_by_component_type(std::string entity_group, std::function<bool(std::shared_ptr<T>)> predicate)
@@ -411,10 +450,7 @@ namespace textworld::components
 	class LuaScriptActionComponent : public textworld::ecs::Component
 	{
 	public:
-		LuaScriptActionComponent(std::string name, std::string script) : Component(name)
-		{
-			this->script = script;
-		}
+		LuaScriptActionComponent(std::string name, std::string script) : Component(name), script(script) { }
 
 		auto get_script() const { return script; }
 
@@ -451,7 +487,8 @@ namespace textworld::components
 		auto get_command_with_arguments() const { return command_with_arguments; }
 		auto get_arguments_as_string() const
 		{
-			if (arguments.size() == 0) return std::string{};
+			if (arguments.size() == 0)
+				return std::string{};
 
 			std::ostringstream oss;
 			std::copy(arguments.begin(), arguments.end() - 1, std::ostream_iterator<std::string>(oss, " "));
@@ -468,7 +505,7 @@ namespace textworld::components
 	class CommandActionComponent : public CommandInputComponent
 	{
 	public:
-		CommandActionComponent(std::string name, std::string command, textworld::core::simple_action_func action) : CommandInputComponent(name, command), action(action) { }
+		CommandActionComponent(std::string name, std::string command, textworld::core::simple_action_func action) : CommandInputComponent(name, command), action(action) {}
 
 		void run_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::string command, std::vector<std::string> arguments, std::shared_ptr<textworld::ecs::EntityManager> em)
 		{
@@ -482,10 +519,7 @@ namespace textworld::components
 	class DisplayNameComponent : public textworld::ecs::Component
 	{
 	public:
-		DisplayNameComponent(std::string name, std::string display_name) : Component(name)
-		{
-			this->display_name = display_name;
-		}
+		DisplayNameComponent(std::string name, std::string display_name) : Component(name), display_name(display_name) { }
 
 		auto get_display_name() const { return display_name; }
 
@@ -496,10 +530,7 @@ namespace textworld::components
 	class DescriptionComponent : public textworld::ecs::Component
 	{
 	public:
-		DescriptionComponent(std::string name, std::string description) : Component(name)
-		{
-			this->description = description;
-		}
+		DescriptionComponent(std::string name, std::string description) : Component(name), description(description) { }
 
 		auto get_description() const { return description; }
 
@@ -510,12 +541,8 @@ namespace textworld::components
 	class ExitComponent : public textworld::ecs::Component
 	{
 	public:
-		ExitComponent(std::string name, textworld::data::Direction direction, std::string room_id, bool hidden = false) : Component(name)
-		{
-			this->direction = direction;
-			this->room_id = room_id;
-			this->hidden = hidden;
-		}
+		ExitComponent(std::string name, textworld::data::Direction direction, std::string room_id, bool hidden = false) 
+			: Component(name), direction(direction), room_id(room_id), hidden(hidden) { }
 
 		auto get_direction() const { return direction; }
 		auto get_direction_as_string()
@@ -534,17 +561,14 @@ namespace textworld::components
 		textworld::data::Direction direction{};
 		std::string room_name{};
 		std::string room_id{};
-		bool  hidden{};
+		bool hidden{};
 	};
 
 	class IdComponent : public textworld::ecs::Component
 	{
 	public:
-		IdComponent(std::string name, std::string target_id, textworld::data::IdType id_type) : Component(name)
-		{
-			this->target_id = target_id;
-			this->id_type = id_type;
-		}
+		IdComponent(std::string name, std::string target_id, textworld::data::IdType id_type) 
+			: Component(name), target_id(target_id), id_type(id_type) { }
 
 		auto get_id_type() const { return id_type; }
 		auto get_target_id() const { return target_id; }
@@ -624,10 +648,13 @@ namespace textworld::components
 		{
 			std::stringstream ss;
 			auto first = begin(*items), last = end(*items);
-			if (first != last) {
-				while (true) {
+			if (first != last)
+			{
+				while (true)
+				{
 					ss << (*first)->name << ": (" << (*first)->quantity << ")";
-					if (++first == last) break;
+					if (++first == last)
+						break;
 					ss << std::endl;
 				}
 			}
@@ -650,10 +677,8 @@ namespace textworld::components
 	class ItemComponent : public textworld::ecs::Component
 	{
 	public:
-		ItemComponent(std::string name, std::shared_ptr<textworld::data::Item> item) : Component(name)
-		{
-			this->item = item;
-		}
+		ItemComponent(std::string name, std::shared_ptr<textworld::data::Item> item) 
+			: Component(name), item(item) { }
 
 		auto get_item() const { return item; }
 
@@ -683,10 +708,8 @@ namespace textworld::components
 	class JsonComponent : public textworld::ecs::Component
 	{
 	public:
-		JsonComponent(std::string name, std::string json) : Component(name)
-		{
-			this->json = json;
-		}
+		JsonComponent(std::string name, std::string json) 
+			: Component(name), json(json) { }
 
 		auto get_json() const { return json; }
 
@@ -697,11 +720,8 @@ namespace textworld::components
 	class OutputComponent : public textworld::ecs::Component
 	{
 	public:
-		OutputComponent(std::string name, std::string value, textworld::data::OutputType output_type = textworld::data::OutputType::REGULAR) : Component(name)
-		{
-			this->output_type = output_type;
-			this->value = value;
-		}
+		OutputComponent(std::string name, std::string value, textworld::data::OutputType output_type = textworld::data::OutputType::REGULAR) 
+			: Component(name), value(value), output_type(output_type) { }
 
 		auto get_output_type() const { return output_type; }
 		auto get_value() const { return value; }
@@ -714,10 +734,8 @@ namespace textworld::components
 	class QuitComponent : public textworld::ecs::Component
 	{
 	public:
-		QuitComponent(std::string name, std::function<void()> action) : Component(name)
-		{
-			this->action = action;
-		}
+		QuitComponent(std::string name, std::function<void()> action) 
+			: Component(name), action(action) { }
 
 		void run_action() { action(); }
 
@@ -730,19 +748,13 @@ namespace textworld::components
 	public:
 		ShowDescriptionComponent(std::string name,
 			std::shared_ptr<textworld::ecs::Entity> entity,
-			textworld::data::DescriptionType description_type) : Component(name)
-		{
-			this->entity = entity;
-			this->description_type = description_type;
-		}
+			textworld::data::DescriptionType description_type) 
+			: Component(name), entity(entity), description_type(description_type) { }
 
 		ShowDescriptionComponent(std::string name,
 			std::vector<std::shared_ptr<textworld::ecs::Entity>> entities,
-			textworld::data::DescriptionType description_type) : Component(name)
-		{
-			this->description_type = description_type;
-			this->entities = entities;
-		}
+			textworld::data::DescriptionType description_type) 
+			: Component(name), entities(entities), description_type(description_type) { }
 
 		auto get_description_type() const { return description_type; }
 		auto get_entity() const { return entity; }
@@ -754,10 +766,10 @@ namespace textworld::components
 		textworld::data::DescriptionType description_type{};
 	};
 
-	template<class T>
+	template <class T>
 	concept Value = std::floating_point<T> || std::integral<T>;
 
-	template<Value T>
+	template <Value T>
 	class ValueComponent : public textworld::ecs::Component
 	{
 	public:
@@ -771,8 +783,8 @@ namespace textworld::components
 		void set_max_value(T max_value) { this->max_value = max_value; }
 		T get_max_value() const { return max_value; }
 
-		ValueComponent(std::string name, T value) : Component(name), value(value) { }
-		ValueComponent(std::string name, T value, T max_value) : Component(name), value(value), max_value(max_value) { }
+		ValueComponent(std::string name, T value) : Component(name), value(value) {}
+		ValueComponent(std::string name, T value, T max_value) : Component(name), value(value), max_value(max_value) {}
 
 	private:
 		T value{};
@@ -782,10 +794,8 @@ namespace textworld::components
 	class UnknownCommandComponent : public textworld::ecs::Component
 	{
 	public:
-		UnknownCommandComponent(std::string name, std::string command) : Component(name)
-		{
-			this->command = command;
-		}
+		UnknownCommandComponent(std::string name, std::string command) 
+			: Component(name), command(command) {}
 
 		auto get_command() const { return command; }
 
@@ -796,22 +806,52 @@ namespace textworld::components
 	class DialogSequenceComponent : public textworld::ecs::Component
 	{
 	public:
-		DialogSequenceComponent(std::string name, std::unordered_map<std::string, std::string> responses) : Component(name), responses(responses) { }
+		DialogSequenceComponent(std::string name, std::unordered_map<std::string, std::string> responses) : Component(name), responses(responses) {}
 
 		void add_response(std::string trigger, std::string response) { responses[trigger] = response; }
 		auto get_response(std::string trigger) const
 		{
 			auto it = responses.find(trigger);
 
-			if(it != responses.end())
+			if (it != responses.end())
 				return it->second;
-			
+
 			return std::string{};
 		}
 		auto get_responses() const { return responses; }
 
 	private:
 		std::unordered_map<std::string, std::string> responses{};
+	};
+
+	class InConversationWithNPCComponent : public textworld::ecs::Component
+	{
+	public:
+		InConversationWithNPCComponent(std::string name, std::string npc_id) : Component(name), npc_id(npc_id) {}
+
+		auto get_npc_id() const { return npc_id; }
+
+	private:
+		std::string npc_id{};
+	};
+
+	class InputResponseSequenceComponent : public textworld::ecs::Component
+	{
+	public:
+		InputResponseSequenceComponent(std::string name, std::string question, int total_responses) :
+			Component(name), total_responses(total_responses), question(question) {}
+
+		void add_response(std::string response)
+		{
+			if (responses.size() == total_responses) return;
+
+			responses.push_back(response);
+		}
+
+	private:
+		std::vector<std::string> responses{};
+		std::string question{};
+		int total_responses{};
 	};
 }
 
@@ -825,8 +865,9 @@ namespace textworld::helpers
 	extern textworld::data::RoomInfo make_room(std::string name, std::string description);
 	extern std::shared_ptr<textworld::data::Item> make_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions);
 	extern std::shared_ptr<textworld::data::Item> make_consumable_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions);
+	extern std::shared_ptr<std::vector<std::shared_ptr<textworld::ecs::Entity>>> get_npcs_in_room(std::string room_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 
-	template<typename T>
+	template <typename T>
 	void increase_value_on_entity_value_component(std::shared_ptr<textworld::ecs::Entity> player_entity, std::string component_name, T value)
 	{
 		auto component = player_entity->find_first_component_by_name<textworld::components::ValueComponent<T>>(component_name);
@@ -866,4 +907,5 @@ namespace textworld::systems
 	extern void console_input_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void inventory_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void npc_dialog_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void input_response_sequence_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 }
