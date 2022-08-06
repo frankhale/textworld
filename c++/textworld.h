@@ -422,7 +422,8 @@ namespace textworld::data
 		ROOM,
 		ITEM,
 		PLAYER,
-		ZONE
+		ZONE,
+		DATA
 	};
 
 	struct Item
@@ -902,7 +903,7 @@ namespace textworld::components
 			on_hold_entity->clear_components();
 		}
 
-		auto total_components_on_hold() const { return on_hold_entity->get_component_count(); }
+		auto get_component_count() const { return on_hold_entity->get_component_count(); }
 
 	private:
 		std::unique_ptr<textworld::ecs::Entity> on_hold_entity{};

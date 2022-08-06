@@ -785,11 +785,19 @@ TEST(Tests, CanMakeNPC)
 
 TEST(Tests, CanPlaceComponentsOnHold)
 {
-	// IMPLEMENT ME!
+	auto entity = std::make_shared<textworld::ecs::Entity>("entity");	
+	auto description_component = std::make_shared<textworld::components::DescriptionComponent>("description_component", "This is a test room");
+	
+	entity->add_component(description_component);	
+	
+	auto on_hold_component = std::make_shared<textworld::components::ComponentsOnHoldComponent>("on_hold_component");
+	on_hold_component->place_component_on_hold<textworld::components::DescriptionComponent>(entity);
 
-	// create an entity and give it some components
-	// place some components on hold
-	// check entity to make sure components have been removed and are on hold
-	// release components from hold
-	// make sure they have been added back to entity
+	EXPECT_EQ(entity->get_component_count(), 0);
+	EXPECT_EQ(on_hold_component->get_component_count(), 1);
+	
+	on_hold_component->release_all_components_from_hold(entity);
+
+	EXPECT_EQ(entity->get_component_count(), 1);
+	EXPECT_EQ(on_hold_component->get_component_count(), 0);
 }
