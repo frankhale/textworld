@@ -76,19 +76,20 @@ int main()
 	player_entity->add_component(show_npcs_in_room_description_component);
 	player_entity->add_component(textworld::helpers::get_room_exits(entity_manager, players_current_room));
 
-	textworld::systems::motd_system(player_id, entity_manager);
+	textworld::systems::motd_system(player_entity, entity_manager);
 
 	while (true)
 	{
-		textworld::systems::command_action_system(player_id, entity_manager);
-		textworld::systems::npc_dialog_system(player_id, entity_manager);
-		textworld::systems::quit_system(player_id, entity_manager);
-		textworld::systems::room_movement_system(player_id, entity_manager);
-		textworld::systems::description_system(player_id, entity_manager);
-		textworld::systems::inventory_system(player_id, entity_manager);
-		textworld::systems::unknown_command_system(player_id, entity_manager);
-		textworld::systems::console_output_system(player_id, entity_manager);
-		textworld::systems::console_input_system(player_id, entity_manager);
+		textworld::systems::command_action_system(player_entity, entity_manager);
+		textworld::systems::question_response_sequence_system(player_entity, entity_manager);
+		textworld::systems::npc_dialog_system(player_entity, entity_manager);
+		textworld::systems::quit_system(player_entity, entity_manager);
+		textworld::systems::room_movement_system(player_entity, entity_manager);
+		textworld::systems::description_system(player_entity, entity_manager);
+		textworld::systems::inventory_system(player_entity, entity_manager);
+		textworld::systems::unknown_command_system(player_entity, entity_manager);
+		textworld::systems::console_output_system(player_entity, entity_manager);
+		textworld::systems::console_input_system(player_entity, entity_manager);
 	}
 
 	return 0;

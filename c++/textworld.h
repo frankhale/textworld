@@ -18,6 +18,8 @@
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
 
+#define CONSOLE
+
 #define to_lower(s) transform(s.begin(), s.end(), s.begin(), ::tolower);
 #define to_upper(s) transform(s.begin(), s.end(), s.begin(), ::toupper);
 #define to_titlecase(s) \
@@ -132,6 +134,9 @@ namespace textworld::ecs
 		std::string id{};
 	};
 
+	template <class T>
+	concept ComponentType = std::is_base_of<textworld::ecs::Component, T>::value;
+	
 	class Entity
 	{
 	public:
@@ -143,7 +148,7 @@ namespace textworld::ecs
 			components = std::make_unique<std::vector<std::shared_ptr<Component>>>();
 		}
 
-		template <typename T>
+		template <ComponentType T>
 		std::shared_ptr<T> find_first_component_by_type()
 		{
 			for (auto& c : *components)
@@ -159,7 +164,7 @@ namespace textworld::ecs
 			return nullptr;
 		}
 
-		template <typename T>
+		template <ComponentType T>
 		std::shared_ptr<T> find_first_component_by_name(std::string name)
 		{
 			std::vector<std::shared_ptr<T>> matches{};
@@ -177,7 +182,7 @@ namespace textworld::ecs
 			return nullptr;
 		}
 
-		template <typename T>
+		template <ComponentType T>
 		auto find_components_by_name(std::string name)
 		{
 			std::vector<std::shared_ptr<T>> matches{};
@@ -195,7 +200,7 @@ namespace textworld::ecs
 			return matches;
 		}
 
-		template <typename T>
+		template <ComponentType T>
 		auto find_components_by_type()
 		{
 			std::vector<std::shared_ptr<T>> matches{};
@@ -213,7 +218,7 @@ namespace textworld::ecs
 			return matches;
 		}
 
-		template <typename T>
+		template <ComponentType T>
 		auto find_components_by_type(std::function<bool(std::shared_ptr<T>)> predicate)
 		{
 			std::vector<std::shared_ptr<T>> matches{};
@@ -236,7 +241,7 @@ namespace textworld::ecs
 		void add_component(std::shared_ptr<Component> c) { components->emplace_back(c); }
 		void add_components(std::shared_ptr<std::vector<std::shared_ptr<Component>>> c) { components->insert(components->end(), c->begin(), c->end()); }
 
-		template <typename T>
+		template <ComponentType T>
 		void remove_components(std::vector<std::shared_ptr<T>> c)
 		{
 			for (auto& component : c)
@@ -249,7 +254,8 @@ namespace textworld::ecs
 			}
 		}
 
-		void remove_component(std::shared_ptr<Component> component)
+		template <ComponentType T>
+		void remove_component(std::shared_ptr<T> component)
 		{
 			auto it = std::find(components->begin(), components->end(), component);
 			if (it != components->end())
@@ -261,10 +267,14 @@ namespace textworld::ecs
 		void for_each_component(std::function<void(std::shared_ptr<Component>&)> fc)
 		{
 			for (auto& c : *components)
+			{
 				fc(c);
+			}
 		}
 
 		void clear_components() { components->clear(); }
+
+		auto get_component_count() const { return components->size(); }
 
 	private:
 		std::string id;
@@ -835,23 +845,67 @@ namespace textworld::components
 		std::string npc_id{};
 	};
 
-	class InputResponseSequenceComponent : public textworld::ecs::Component
+	class QuestionResponseSequenceComponent : public textworld::ecs::Component
 	{
 	public:
-		InputResponseSequenceComponent(std::string name, std::string question, int total_responses) :
-			Component(name), total_responses(total_responses), question(question) {}
+		QuestionResponseSequenceComponent(std::string name, std::vector<std::string> questions) :
+			Component(name), questions(questions) { }
 
 		void add_response(std::string response)
 		{
-			if (responses.size() == total_responses) return;
-
 			responses.push_back(response);
 		}
 
 	private:
 		std::vector<std::string> responses{};
-		std::string question{};
-		int total_responses{};
+		std::vector<std::string> questions{};
+	};
+
+	class ComponentsOnHoldComponent : public textworld::ecs::Component
+	{
+	public:
+		ComponentsOnHoldComponent(std::string name) : Component(name) 
+		{	
+			on_hold_entity = std::make_unique<textworld::ecs::Entity>("on hold");
+		}
+
+		template <textworld::ecs::ComponentType T>
+		void place_component_on_hold(std::shared_ptr<textworld::ecs::Entity> entity)
+		{
+			auto components = entity->find_components_by_type<T>();
+
+			for(auto& component : components)
+			{
+				on_hold_entity->add_component(component);					
+				entity->remove_component(component);
+			}
+		}
+
+		template <textworld::ecs::ComponentType T>
+		void release_component_from_hold(std::shared_ptr<textworld::ecs::Entity> entity)
+		{
+			auto components = on_hold_entity->find_components_by_type<T>();
+
+			for (auto& component : components)
+			{
+				entity->add_component(component);
+				on_hold_entity->remove_component(component);
+			}
+		}
+
+		void release_all_components_from_hold(std::shared_ptr<textworld::ecs::Entity> entity)
+		{
+			on_hold_entity->for_each_component([entity](std::shared_ptr<Component>& component) {
+				entity->add_component(component);
+			});
+			
+			on_hold_entity->clear_components();
+		}
+
+		auto total_components_on_hold() const { return on_hold_entity->get_component_count(); }
+
+	private:
+		std::unique_ptr<textworld::ecs::Entity> on_hold_entity{};
 	};
 }
 
@@ -874,7 +928,29 @@ namespace textworld::helpers
 
 		if (component != nullptr)
 		{
-			component->add(value);
+			auto current_value = component->get_value();
+			auto max_value = component->get_max_value();
+
+			if (max_value > 0 && current_value + value > max_value)
+				component->set_value(max_value);
+			else
+				component->add(value);
+		}
+	}
+	
+	template <typename T>
+	void decrease_value_on_entity_value_component(std::shared_ptr<textworld::ecs::Entity> player_entity, std::string component_name, T value)
+	{
+		auto component = player_entity->find_first_component_by_name<textworld::components::ValueComponent<T>>(component_name);
+
+		if (component != nullptr)
+		{
+			auto current_value = component->get_value();			
+
+			if (current_value - value < 0)
+				component->set_value(0);
+			else
+				component->sub(value);
 		}
 	}
 }
@@ -897,15 +973,15 @@ namespace textworld::core
 
 namespace textworld::systems
 {
-	extern void command_action_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
-	extern void room_movement_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
-	extern void unknown_command_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
-	extern void description_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
-	extern void quit_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
-	extern void motd_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
-	extern void console_output_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
-	extern void console_input_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
-	extern void inventory_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
-	extern void npc_dialog_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
-	extern void input_response_sequence_system(std::string player_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void command_action_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void room_movement_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void unknown_command_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void description_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void quit_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void motd_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void console_output_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void console_input_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void inventory_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void npc_dialog_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void question_response_sequence_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 }

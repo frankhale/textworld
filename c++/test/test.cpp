@@ -50,7 +50,7 @@ TEST(Tests, CanProcessCommandActionComponentsOnPlayers)
 	entity_manager->add_entity_to_group("players", player_entity);
 
 	// run command system
-	textworld::systems::command_action_system(player_id, entity_manager);
+	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	// check if output component was added to player
 	auto output_components = player_entity->find_components_by_type<textworld::components::OutputComponent>();
@@ -113,7 +113,7 @@ TEST(Tests, PlayerCanNavigateToNewRoom)
 	player_entity->add_component(std::make_shared<textworld::components::IdComponent>("id_component", room_1_id, textworld::data::IdType::ROOM));
 	player_entity->add_component(command_component_1);
 
-	textworld::systems::room_movement_system(player_id, entity_manager);
+	textworld::systems::room_movement_system(player_entity, entity_manager);
 
 	auto current_room_1 = textworld::helpers::get_players_current_room(player_entity, entity_manager);
 	EXPECT_EQ(current_room_1->get_id(), room_2_id);
@@ -121,7 +121,7 @@ TEST(Tests, PlayerCanNavigateToNewRoom)
 	auto command_component_2 = std::make_shared<textworld::components::CommandInputComponent>("command_component", "west");
 	player_entity->add_component(command_component_2);
 
-	textworld::systems::room_movement_system(player_id, entity_manager);
+	textworld::systems::room_movement_system(player_entity, entity_manager);
 
 	auto current_room_2 = textworld::helpers::get_players_current_room(player_entity, entity_manager);
 	EXPECT_EQ(current_room_2->get_id(), room_1_id);
@@ -148,7 +148,7 @@ TEST(Tests, CanChangePlayerCurrentRoomToNewRoom)
 	entity_manager->add_entity_to_group("rooms", room_1_entity);
 	entity_manager->add_entity_to_group("rooms", room_2_entity);
 
-	textworld::systems::room_movement_system(player_id, entity_manager);
+	textworld::systems::room_movement_system(player_entity, entity_manager);
 
 	// get player's current room
 	auto current_room_1 = textworld::helpers::get_players_current_room(player_entity, entity_manager);
@@ -158,7 +158,7 @@ TEST(Tests, CanChangePlayerCurrentRoomToNewRoom)
 
 	id_component->set_target_id(room_2_id);
 
-	textworld::systems::room_movement_system(player_id, entity_manager);
+	textworld::systems::room_movement_system(player_entity, entity_manager);
 
 	auto current_room_2 = textworld::helpers::get_players_current_room(player_entity, entity_manager);
 
@@ -220,8 +220,8 @@ TEST(Tests, RoomDescriptionSystemOutputsRoomDescription)
 	auto room_description_component = std::make_shared<textworld::components::DescriptionComponent>("room_description_component", "This is a room");
 	room_entity->add_component(room_description_component);
 
-	textworld::systems::room_movement_system(player_id, entity_manager);
-	textworld::systems::description_system(player_id, entity_manager);
+	textworld::systems::room_movement_system(player_entity, entity_manager);
+	textworld::systems::description_system(player_entity, entity_manager);
 
 	auto output_components = output_entity->find_components_by_type<textworld::components::OutputComponent>();
 
@@ -243,7 +243,7 @@ TEST(Tests, CanShowMOTD)
 	entity_manager->add_entity_to_group("players", player_entity);
 	entity_manager->add_entity_to_group("core", output_entity);
 
-	textworld::systems::motd_system(player_id, entity_manager);
+	textworld::systems::motd_system(player_entity, entity_manager);
 
 	auto output_components = output_entity->find_components_by_type<textworld::components::OutputComponent>();
 
@@ -373,7 +373,7 @@ TEST(Tests, CanShowItem)
 																																																	textworld::core::show_item_action);
 	player_entity->add_component(command_action_component);
 
-	textworld::systems::command_action_system(player_id, entity_manager);
+	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
 
@@ -418,7 +418,7 @@ TEST(Tests, CanShowAllItems)
 
 	player_entity->add_component(item_action_component);
 
-	textworld::systems::command_action_system(player_id, entity_manager);
+	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
 
@@ -459,7 +459,7 @@ TEST(Tests, CanTakeItem)
 																																																	textworld::core::take_item_action);
 	player_entity->add_component(command_action_component);
 
-	textworld::systems::command_action_system(player_id, entity_manager);
+	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
 
@@ -507,7 +507,7 @@ TEST(Tests, CanTakeAllItems)
 
 	player_entity->add_component(command_action_component);
 
-	textworld::systems::command_action_system(player_id, entity_manager);
+	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
 
@@ -556,7 +556,7 @@ TEST(Tests, CanDropItem)
 																																																	textworld::core::drop_item_action);
 	player_entity->add_component(command_action_component);
 
-	textworld::systems::command_action_system(player_id, entity_manager);
+	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
 
@@ -607,7 +607,7 @@ TEST(Tests, CanDropAllItems)
 
 	player_entity->add_component(command_action_component);
 
-	textworld::systems::command_action_system(player_id, entity_manager);
+	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
 
@@ -662,7 +662,7 @@ TEST(Tests, CanUseItem)
 	auto command_action_component = std::make_shared<textworld::components::CommandActionComponent>("command action component", "use item_1", textworld::core::use_item_from_inventory_action);
 	player_entity->add_component(command_action_component);
 
-	textworld::systems::command_action_system(player_id, entity_manager);
+	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto output_components = output_entity->find_components_by_type<textworld::components::OutputComponent>();
 
@@ -689,7 +689,7 @@ TEST(Tests, CanProcessLookActionCommandOnSelf)
 	entity_manager->add_entity_to_group("players", player_entity);
 	entity_manager->add_entity_to_group("core", output_entity);
 
-	textworld::systems::command_action_system(player_id, entity_manager);
+	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto show_description_component = player_entity->find_components_by_type<textworld::components::ShowDescriptionComponent>().front();
 
@@ -723,7 +723,7 @@ TEST(Tests, CanProcessLookActionCommandOnRoom)
 	entity_manager->add_entity_to_group("core", output_entity);
 	entity_manager->add_entity_to_group("rooms", room_entity);
 
-	textworld::systems::command_action_system(player_id, entity_manager);
+	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto show_description_component = player_entity->find_components_by_type<textworld::components::ShowDescriptionComponent>().front();
 	auto description_component_from_output = show_description_component->get_entity()->find_components_by_type<textworld::components::DescriptionComponent>().front();
@@ -781,4 +781,15 @@ TEST(Tests, CanMakeNPC)
 
 	EXPECT_EQ(npcs->entities->size(), 1);
 	EXPECT_EQ(old_man->get_name(), "Old Man");
+}
+
+TEST(Tests, CanPlaceComponentsOnHold)
+{
+	// IMPLEMENT ME!
+
+	// create an entity and give it some components
+	// place some components on hold
+	// check entity to make sure components have been removed and are on hold
+	// release components from hold
+	// make sure they have been added back to entity
 }
