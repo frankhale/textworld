@@ -824,19 +824,70 @@ TEST(Tests, CanSetFlagsOnEntity)
 	EXPECT_TRUE(flag_component->is_set(textworld::data::Flag::COMMAND_ACTION_SYSTEM_BYPASS));
 }
 
-//TEST(Tests, CanCompleteQuestionResponseSequence)
-//{
-//	auto player_entity = std::make_shared<textworld::ecs::Entity>("player");
-//	auto room_entity = std::make_shared<textworld::ecs::Entity>("room");
-//
-//	auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();
-//
-//	entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::PLAYERS, player_entity);
-//	entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::ROOMS, room_entity);
-//
-//	auto question_response_sequence = std::make_shared<textworld::components::QuestionResponseSequenceComponent>("question_response_sequence_component", std::vector<std::string>{{"What is your name?"}});
-//
-//	room_entity->add_component(question_response_sequence);
-//
-//	textworld::systems::question_response_sequence_system(player_entity, entity_manager);
-//}
+TEST(Tests, CanCompleteQuestionResponseSequence)
+{
+	auto player_entity = std::make_shared<textworld::ecs::Entity>("player");
+	auto room_entity = std::make_shared<textworld::ecs::Entity>("room");	
+	auto output_entity = std::make_shared<textworld::ecs::Entity>("output");
+
+	auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();	
+
+	entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::PLAYERS, player_entity);
+	entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::ROOMS, room_entity);
+	entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::CORE, output_entity);
+
+	auto question_response_sequence_component = std::make_shared<textworld::components::QuestionResponseSequenceComponent>("question_response_sequence_component", 
+		std::vector<std::string>{
+			{ "What is your name?" },
+			{ "What is your favorite color?" },
+	});
+
+	//auto flag_component = std::make_shared<textworld::components::FlagComponent>("flag", std::vector<textworld::data::Flag>{
+	//	textworld::data::Flag::COMMAND_ACTION_SYSTEM_BYPASS,
+	//	textworld::data::Flag::ROOM_DESCRIPTION_SYSTEM_BYPASS,
+	//	textworld::data::Flag::ROOM_MOVEMENT_SYSTEM_BYPASS,
+	//	textworld::data::Flag::INVENTORY_SYSTEM_BYPASS,
+	//	textworld::data::Flag::NPC_DIALOG_SYSTEM_BYPASS,
+	//	textworld::data::Flag::DESCRIPTION_SYSTEM_BYPASS
+	//});
+
+	//player_entity->add_component(flag_component);
+	player_entity->add_component(question_response_sequence_component);
+
+	textworld::systems::question_response_sequence_system(player_entity, entity_manager);
+
+	auto output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
+	EXPECT_NE(output_component, nullptr);
+	EXPECT_EQ(output_component->get_value(), "What is your name?");
+
+	output_entity->clear_components();
+
+	auto command_component = std::make_shared<textworld::components::CommandInputComponent>("command", "Frank");
+	player_entity->add_component(command_component);
+
+	textworld::systems::question_response_sequence_system(player_entity, entity_manager);
+	
+	output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
+	EXPECT_NE(output_component, nullptr);
+	EXPECT_EQ(output_component->get_value(), "You answered with: Frank");
+
+	player_entity->remove_component(command_component);
+	output_entity->clear_components();
+
+	textworld::systems::question_response_sequence_system(player_entity, entity_manager);
+
+	output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
+	EXPECT_NE(output_component, nullptr);
+	EXPECT_EQ(output_component->get_value(), "What is your favorite color?");
+
+	output_entity->clear_components();
+
+	command_component = std::make_shared<textworld::components::CommandInputComponent>("command", "red");
+	player_entity->add_component(command_component);
+
+	textworld::systems::question_response_sequence_system(player_entity, entity_manager);
+
+	output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
+	EXPECT_NE(output_component, nullptr);
+	EXPECT_EQ(output_component->get_value(), "You answered with: red");
+}

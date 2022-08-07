@@ -857,12 +857,23 @@ namespace textworld::components
 
 		void add_response(std::string response)
 		{
+			waiting_for_answer = false;
 			responses.push_back(response);
 		}
+		
+		auto get_response_count() const { return responses.size(); }		
+		auto get_question_count() const { return questions.size(); }
+
+		auto get_question(size_t index) const { return questions[index]; }
+		auto get_response(size_t index) const { return responses[index]; }
+		
+		void set_waiting_for_answer(bool waiting_for_answer) { this->waiting_for_answer = waiting_for_answer; }		
+		auto get_waiting_for_answer() const { return waiting_for_answer; }
 
 	private:
 		std::vector<std::string> responses{};
 		std::vector<std::string> questions{};
+		bool waiting_for_answer = false;
 	};
 
 	class ComponentsOnHoldComponent : public textworld::ecs::Component

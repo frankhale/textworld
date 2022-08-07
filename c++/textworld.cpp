@@ -1193,13 +1193,32 @@ namespace textworld::systems
 		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::QUESTION_RESPONSE_SEQUENCE_SYSTEM_BYPASS)) return;
 
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
-		auto command_component = player_entity->find_first_component_by_type<textworld::components::CommandInputComponent>();
-
 		auto question_response_sequence_component = player_entity->find_first_component_by_type<textworld::components::QuestionResponseSequenceComponent>();
 
 		if (question_response_sequence_component != nullptr)
 		{
-
+			if (!question_response_sequence_component->get_waiting_for_answer() &&
+				(question_response_sequence_component->get_question_count() >=
+				question_response_sequence_component->get_response_count()))
+			{
+				question_response_sequence_component->set_waiting_for_answer(true);
+				auto question = question_response_sequence_component->get_question(question_response_sequence_component->get_response_count());
+				auto output_component = std::make_shared<textworld::components::OutputComponent>("question response sequence output", question, textworld::data::OutputType::REGULAR);
+				output_entity->add_component(output_component);
+			}
+			else 
+			{
+				auto command_component = player_entity->find_first_component_by_type<textworld::components::CommandInputComponent>();
+				if (command_component != nullptr)
+				{
+					question_response_sequence_component->set_waiting_for_answer(false);
+					question_response_sequence_component->add_response(command_component->get_command_with_arguments());
+					auto output_component = std::make_shared<textworld::components::OutputComponent>("question response sequence output", 
+						fmt::format("You answered with: {}", question_response_sequence_component->get_response(question_response_sequence_component->get_response_count()-1)), 
+						textworld::data::OutputType::REGULAR);
+					output_entity->add_component(output_component);
+				}
+			}			
 		}
 	}
 }
