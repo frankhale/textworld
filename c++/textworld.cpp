@@ -221,6 +221,13 @@ namespace textworld::helpers
 
 namespace textworld::ecs
 {
+	std::string entity_group_name_to_string(textworld::ecs::EntityGroupName group_name)
+	{
+		auto gn = std::string(magic_enum::enum_name(group_name));
+		to_lower(gn);
+		return gn;
+	}
+
 	std::shared_ptr<EntityGroup> EntityManager::create_entity_group(std::string group_name)
 	{
 		auto entityGroup = std::make_shared<EntityGroup>();
@@ -814,8 +821,10 @@ namespace textworld::core
 namespace textworld::systems
 {
 	void command_action_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
-	{
-		//auto player_entity = entity_manager->get_entity_by_id(textworld::ecs::EntityGroupName::PLAYERS, player_id);
+	{		
+		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
+		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::COMMAND_ACTION_SYSTEM_BYPASS)) return;
+
 		auto command_components = player_entity->find_components_by_type<textworld::components::CommandInputComponent>();
 
 		for (const auto& command_component : command_components)
@@ -871,7 +880,9 @@ namespace textworld::systems
 
 	void room_movement_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
-		//auto player_entity = entity_manager->get_entity_by_id(textworld::ecs::EntityGroupName::PLAYERS, player_id);
+		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
+		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::ROOM_MOVEMENT_SYSTEM_BYPASS)) return;
+
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 
 		if (player_entity != nullptr)
@@ -931,7 +942,6 @@ namespace textworld::systems
 
 	void unknown_command_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
-		//auto player_entity = entity_manager->get_entity_by_id(textworld::ecs::EntityGroupName::PLAYERS, player_id);
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 		auto command_components = player_entity->find_components_by_type<textworld::components::CommandInputComponent>();
 		std::vector<std::shared_ptr<textworld::components::UnknownCommandComponent>> unknown_command_components;
@@ -954,7 +964,9 @@ namespace textworld::systems
 
 	void description_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
-		//auto player_entity = entity_manager->get_entity_by_id(textworld::ecs::EntityGroupName::PLAYERS, player_id);
+		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
+		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::DESCRIPTION_SYSTEM_BYPASS)) return;
+
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 		auto room_entities = entity_manager->get_entities_in_group(textworld::ecs::EntityGroupName::ROOMS);
 
@@ -1027,7 +1039,6 @@ namespace textworld::systems
 
 	void quit_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
-		//auto player_entity = entity_manager->get_entity_by_id(textworld::ecs::EntityGroupName::PLAYERS, player_id);
 		auto quit_components = player_entity->find_components_by_type<textworld::components::QuitComponent>();
 
 		if (quit_components.size() > 0)
@@ -1039,7 +1050,6 @@ namespace textworld::systems
 
 	void motd_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
-		//auto player_entity = entity_manager->get_entity_by_id(textworld::ecs::EntityGroupName::PLAYERS, player_id);
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 
 		auto motd_description_component = player_entity->find_first_component_by_name<textworld::components::DescriptionComponent>("motd");
@@ -1057,8 +1067,7 @@ namespace textworld::systems
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 
 		if (output_entity != nullptr)
-		{
-			// find output components on the output entity
+		{			
 			auto output_components = output_entity->find_components_by_type<textworld::components::OutputComponent>();
 
 			for (const auto& output_component : output_components)
@@ -1087,7 +1096,6 @@ namespace textworld::systems
 
 	void console_input_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
-		//auto player_entity = entity_manager->get_entity_by_id(textworld::ecs::EntityGroupName::PLAYERS, player_id);
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 
 		auto health_component = player_entity->find_first_component_by_name<textworld::components::ValueComponent<int>>("health");
@@ -1113,7 +1121,9 @@ namespace textworld::systems
 
 	void inventory_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
-		//auto player_entity = entity_manager->get_entity_by_id(textworld::ecs::EntityGroupName::PLAYERS, player_id);
+		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
+		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::INVENTORY_SYSTEM_BYPASS)) return;
+
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 
 		std::vector<std::shared_ptr<textworld::ecs::Component>> processed_components{};
@@ -1155,7 +1165,9 @@ namespace textworld::systems
 
 	void npc_dialog_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
-		//auto player_entity = entity_manager->get_entity_by_id(textworld::ecs::EntityGroupName::PLAYERS, player_id);
+		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
+		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::NPC_DIALOG_SYSTEM_BYPASS)) return;
+
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 		auto command_component = player_entity->find_first_component_by_type<textworld::components::CommandInputComponent>();
 		auto players_current_room = textworld::helpers::get_players_current_room(player_entity, entity_manager);
@@ -1177,7 +1189,9 @@ namespace textworld::systems
 
 	void question_response_sequence_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
-		//auto player_entity = entity_manager->get_entity_by_id(textworld::ecs::EntityGroupName::PLAYERS, player_id);
+		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
+		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::QUESTION_RESPONSE_SEQUENCE_SYSTEM_BYPASS)) return;
+
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 		auto command_component = player_entity->find_first_component_by_type<textworld::components::CommandInputComponent>();
 

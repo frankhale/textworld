@@ -113,6 +113,8 @@ namespace textworld::ecs
 		ITEMS
 	};
 
+	extern std::string entity_group_name_to_string(textworld::ecs::EntityGroupName group_name);
+
 	class Component
 	{
 	public:
@@ -136,7 +138,7 @@ namespace textworld::ecs
 
 	template <class T>
 	concept ComponentType = std::is_base_of<textworld::ecs::Component, T>::value;
-	
+
 	class Entity
 	{
 	public:
@@ -301,9 +303,7 @@ namespace textworld::ecs
 		void add_entity_to_group(std::string group_name, std::shared_ptr<Entity> e);
 		void add_entity_to_group(EntityGroupName group_name, std::shared_ptr<Entity> e)
 		{
-			auto gn = std::string(magic_enum::enum_name(group_name));
-			to_lower(gn);
-			add_entity_to_group(gn, e);
+			add_entity_to_group(entity_group_name_to_string(group_name), e);
 		}
 
 		std::shared_ptr<EntityGroup> create_entity_group(std::string group_name);
@@ -322,31 +322,23 @@ namespace textworld::ecs
 		std::shared_ptr<EntityGroup> get_entity_group(std::string group_name);
 		std::shared_ptr<EntityGroup> get_entity_group(EntityGroupName group_name)
 		{
-			auto gn = std::string(magic_enum::enum_name(group_name));
-			to_lower(gn);
-			return get_entity_group(gn);
+			return get_entity_group(entity_group_name_to_string(group_name));
 		}
 		std::shared_ptr<std::vector<std::shared_ptr<Entity>>> get_entities_in_group(std::string group_name);
 		std::shared_ptr<std::vector<std::shared_ptr<Entity>>> get_entities_in_group(EntityGroupName group_name)
 		{
-			auto gn = std::string(magic_enum::enum_name(group_name));
-			to_lower(gn);
-			return get_entities_in_group(gn);
+			return get_entities_in_group(entity_group_name_to_string(group_name));
 		}
 
 		std::shared_ptr<Entity> get_entity_by_name(std::string group_name, std::string entity_name);
 		std::shared_ptr<Entity> get_entity_by_name(EntityGroupName group_name, std::string entity_name)
 		{
-			auto gn = std::string(magic_enum::enum_name(group_name));
-			to_lower(gn);
-			return get_entity_by_name(gn, entity_name);
+			return get_entity_by_name(entity_group_name_to_string(group_name), entity_name);
 		}
 		std::shared_ptr<Entity> get_entity_by_id(std::string group_name, std::string entity_id);
 		std::shared_ptr<Entity> get_entity_by_id(EntityGroupName group_name, std::string entity_id)
 		{
-			auto gn = std::string(magic_enum::enum_name(group_name));
-			to_lower(gn);
-			return get_entity_by_id(gn, entity_id);
+			return get_entity_by_id(entity_group_name_to_string(group_name), entity_id);
 		}
 
 		template <typename T>
@@ -386,6 +378,18 @@ namespace textworld::core
 
 namespace textworld::data
 {
+	enum class Flag
+	{
+		NONE,
+		COMMAND_ACTION_SYSTEM_BYPASS,
+		ROOM_DESCRIPTION_SYSTEM_BYPASS,
+		ROOM_MOVEMENT_SYSTEM_BYPASS,
+		INVENTORY_SYSTEM_BYPASS,
+		NPC_DIALOG_SYSTEM_BYPASS,
+		DESCRIPTION_SYSTEM_BYPASS,
+		QUESTION_RESPONSE_SEQUENCE_SYSTEM_BYPASS
+	};
+
 	enum class Direction
 	{
 		NORTH,
@@ -461,7 +465,7 @@ namespace textworld::components
 	class LuaScriptActionComponent : public textworld::ecs::Component
 	{
 	public:
-		LuaScriptActionComponent(std::string name, std::string script) : Component(name), script(script) { }
+		LuaScriptActionComponent(std::string name, std::string script) : Component(name), script(script) {}
 
 		auto get_script() const { return script; }
 
@@ -530,7 +534,7 @@ namespace textworld::components
 	class DisplayNameComponent : public textworld::ecs::Component
 	{
 	public:
-		DisplayNameComponent(std::string name, std::string display_name) : Component(name), display_name(display_name) { }
+		DisplayNameComponent(std::string name, std::string display_name) : Component(name), display_name(display_name) {}
 
 		auto get_display_name() const { return display_name; }
 
@@ -541,7 +545,7 @@ namespace textworld::components
 	class DescriptionComponent : public textworld::ecs::Component
 	{
 	public:
-		DescriptionComponent(std::string name, std::string description) : Component(name), description(description) { }
+		DescriptionComponent(std::string name, std::string description) : Component(name), description(description) {}
 
 		auto get_description() const { return description; }
 
@@ -552,8 +556,8 @@ namespace textworld::components
 	class ExitComponent : public textworld::ecs::Component
 	{
 	public:
-		ExitComponent(std::string name, textworld::data::Direction direction, std::string room_id, bool hidden = false) 
-			: Component(name), direction(direction), room_id(room_id), hidden(hidden) { }
+		ExitComponent(std::string name, textworld::data::Direction direction, std::string room_id, bool hidden = false)
+			: Component(name), direction(direction), room_id(room_id), hidden(hidden) {}
 
 		auto get_direction() const { return direction; }
 		auto get_direction_as_string()
@@ -578,8 +582,8 @@ namespace textworld::components
 	class IdComponent : public textworld::ecs::Component
 	{
 	public:
-		IdComponent(std::string name, std::string target_id, textworld::data::IdType id_type) 
-			: Component(name), target_id(target_id), id_type(id_type) { }
+		IdComponent(std::string name, std::string target_id, textworld::data::IdType id_type)
+			: Component(name), target_id(target_id), id_type(id_type) {}
 
 		auto get_id_type() const { return id_type; }
 		auto get_target_id() const { return target_id; }
@@ -688,8 +692,8 @@ namespace textworld::components
 	class ItemComponent : public textworld::ecs::Component
 	{
 	public:
-		ItemComponent(std::string name, std::shared_ptr<textworld::data::Item> item) 
-			: Component(name), item(item) { }
+		ItemComponent(std::string name, std::shared_ptr<textworld::data::Item> item)
+			: Component(name), item(item) {}
 
 		auto get_item() const { return item; }
 
@@ -719,8 +723,8 @@ namespace textworld::components
 	class JsonComponent : public textworld::ecs::Component
 	{
 	public:
-		JsonComponent(std::string name, std::string json) 
-			: Component(name), json(json) { }
+		JsonComponent(std::string name, std::string json)
+			: Component(name), json(json) {}
 
 		auto get_json() const { return json; }
 
@@ -731,8 +735,8 @@ namespace textworld::components
 	class OutputComponent : public textworld::ecs::Component
 	{
 	public:
-		OutputComponent(std::string name, std::string value, textworld::data::OutputType output_type = textworld::data::OutputType::REGULAR) 
-			: Component(name), value(value), output_type(output_type) { }
+		OutputComponent(std::string name, std::string value, textworld::data::OutputType output_type = textworld::data::OutputType::REGULAR)
+			: Component(name), value(value), output_type(output_type) {}
 
 		auto get_output_type() const { return output_type; }
 		auto get_value() const { return value; }
@@ -745,8 +749,8 @@ namespace textworld::components
 	class QuitComponent : public textworld::ecs::Component
 	{
 	public:
-		QuitComponent(std::string name, std::function<void()> action) 
-			: Component(name), action(action) { }
+		QuitComponent(std::string name, std::function<void()> action)
+			: Component(name), action(action) {}
 
 		void run_action() { action(); }
 
@@ -759,13 +763,13 @@ namespace textworld::components
 	public:
 		ShowDescriptionComponent(std::string name,
 			std::shared_ptr<textworld::ecs::Entity> entity,
-			textworld::data::DescriptionType description_type) 
-			: Component(name), entity(entity), description_type(description_type) { }
+			textworld::data::DescriptionType description_type)
+			: Component(name), entity(entity), description_type(description_type) {}
 
 		ShowDescriptionComponent(std::string name,
 			std::vector<std::shared_ptr<textworld::ecs::Entity>> entities,
-			textworld::data::DescriptionType description_type) 
-			: Component(name), entities(entities), description_type(description_type) { }
+			textworld::data::DescriptionType description_type)
+			: Component(name), entities(entities), description_type(description_type) {}
 
 		auto get_description_type() const { return description_type; }
 		auto get_entity() const { return entity; }
@@ -805,7 +809,7 @@ namespace textworld::components
 	class UnknownCommandComponent : public textworld::ecs::Component
 	{
 	public:
-		UnknownCommandComponent(std::string name, std::string command) 
+		UnknownCommandComponent(std::string name, std::string command)
 			: Component(name), command(command) {}
 
 		auto get_command() const { return command; }
@@ -849,8 +853,7 @@ namespace textworld::components
 	class QuestionResponseSequenceComponent : public textworld::ecs::Component
 	{
 	public:
-		QuestionResponseSequenceComponent(std::string name, std::vector<std::string> questions) :
-			Component(name), questions(questions) { }
+		QuestionResponseSequenceComponent(std::string name, std::vector<std::string> questions) : Component(name), questions(questions) {}
 
 		void add_response(std::string response)
 		{
@@ -865,8 +868,8 @@ namespace textworld::components
 	class ComponentsOnHoldComponent : public textworld::ecs::Component
 	{
 	public:
-		ComponentsOnHoldComponent(std::string name) : Component(name) 
-		{	
+		ComponentsOnHoldComponent(std::string name) : Component(name)
+		{
 			on_hold_entity = std::make_unique<textworld::ecs::Entity>("on hold");
 		}
 
@@ -875,9 +878,9 @@ namespace textworld::components
 		{
 			auto components = entity->find_components_by_type<T>();
 
-			for(auto& component : components)
+			for (auto& component : components)
 			{
-				on_hold_entity->add_component(component);					
+				on_hold_entity->add_component(component);
 				entity->remove_component(component);
 			}
 		}
@@ -896,10 +899,9 @@ namespace textworld::components
 
 		void release_all_components_from_hold(std::shared_ptr<textworld::ecs::Entity> entity)
 		{
-			on_hold_entity->for_each_component([entity](std::shared_ptr<Component>& component) {
-				entity->add_component(component);
-			});
-			
+			on_hold_entity->for_each_component([entity](std::shared_ptr<Component>& component)
+				{ entity->add_component(component); });
+
 			on_hold_entity->clear_components();
 		}
 
@@ -907,6 +909,21 @@ namespace textworld::components
 
 	private:
 		std::unique_ptr<textworld::ecs::Entity> on_hold_entity{};
+	};
+
+	class FlagComponent : public textworld::ecs::Component
+	{
+	public:
+		FlagComponent(std::string name, std::vector<textworld::data::Flag> flags) : Component(name), flags(flags) {}
+
+		bool is_set(textworld::data::Flag flag)
+		{
+			//auto fl = std::string(magic_enum::enum_name(flag));
+			return std::find(flags.begin(), flags.end(), flag) != flags.end();
+		}
+
+	private:
+		std::vector<textworld::data::Flag> flags{};
 	};
 }
 
@@ -938,7 +955,7 @@ namespace textworld::helpers
 				component->add(value);
 		}
 	}
-	
+
 	template <typename T>
 	void decrease_value_on_entity_value_component(std::shared_ptr<textworld::ecs::Entity> player_entity, std::string component_name, T value)
 	{
@@ -946,7 +963,7 @@ namespace textworld::helpers
 
 		if (component != nullptr)
 		{
-			auto current_value = component->get_value();			
+			auto current_value = component->get_value();
 
 			if (current_value - value < 0)
 				component->set_value(0);
