@@ -14,9 +14,9 @@ add_subdirectory(googletest)
 find_package(magic_enum CONFIG REQUIRED)
 find_package(Boost REQUIRED)
 find_package(fmt REQUIRED)
-find_package(unofficial-sqlite3 REQUIRED)
-find_package(sol2 REQUIRED)
-find_package(unofficial-lua REQUIRED)
+#find_package(unofficial-sqlite3 REQUIRED)
+#find_package(sol2 REQUIRED)
+#find_package(unofficial-lua REQUIRED)
 
 set(Sources textworld.cpp textworld.h)
 
@@ -28,8 +28,9 @@ target_link_libraries(textworld
 	PUBLIC
 	bcrypt.lib
 	fmt::fmt
-	lua
-	unofficial::sqlite3::sqlite3)
+	#lua
+	#unofficial::sqlite3::sqlite3
+)
 
 add_subdirectory(test)
 

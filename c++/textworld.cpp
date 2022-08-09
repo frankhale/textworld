@@ -14,7 +14,7 @@ namespace textworld::helpers
 		if (player_entity != nullptr)
 		{
 			auto room_id_component = player_entity->find_components_by_type<textworld::components::IdComponent>([](std::shared_ptr<textworld::components::IdComponent> id_component)
-				{ return id_component->get_id_type() == textworld::data::IdType::ROOM; });
+				{ return id_component->get_id_type() == textworld::data::IdType::CURRENT_ROOM; });
 
 			if (room_id_component.size() > 0)
 			{
@@ -34,7 +34,6 @@ namespace textworld::helpers
 	{
 		auto exits = room_entity->find_components_by_type<textworld::components::ExitComponent>();
 
-		// if exits is not the end
 		if (exits.size() > 0)
 		{
 			std::vector<std::string> exit_info{};
@@ -204,7 +203,7 @@ namespace textworld::helpers
 			{
 				auto room_id_component = npc->find_first_component_by_type<textworld::components::IdComponent>();
 				if (room_id_component != nullptr &&
-					room_id_component->get_id_type() == textworld::data::IdType::ROOM &&
+					room_id_component->get_id_type() == textworld::data::IdType::CURRENT_ROOM &&
 					room_id_component->get_target_id() == room->get_id())
 				{
 					results->push_back(npc);
@@ -821,7 +820,7 @@ namespace textworld::core
 namespace textworld::systems
 {
 	void command_action_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
-	{		
+	{
 		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
 		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::COMMAND_ACTION_SYSTEM_BYPASS)) return;
 
@@ -914,7 +913,7 @@ namespace textworld::systems
 						if (new_room_entity != nullptr)
 						{
 							auto room_id_components = player_entity->find_components_by_type<textworld::components::IdComponent>([](std::shared_ptr<textworld::components::IdComponent> id_component)
-								{ return id_component->get_id_type() == textworld::data::IdType::ROOM; });
+								{ return id_component->get_id_type() == textworld::data::IdType::CURRENT_ROOM; });
 
 							if (room_id_components.size() > 0)
 							{
@@ -1067,7 +1066,7 @@ namespace textworld::systems
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 
 		if (output_entity != nullptr)
-		{			
+		{
 			auto output_components = output_entity->find_components_by_type<textworld::components::OutputComponent>();
 
 			for (const auto& output_component : output_components)
@@ -1103,7 +1102,7 @@ namespace textworld::systems
 
 		if (health_component != nullptr && gold_component != nullptr)
 		{
-			fmt::print("H{}:G{} > ", health_component->get_value(), gold_component->get_value());
+			fmt::print("H{}:G{}> ", health_component->get_value(), gold_component->get_value());
 		}
 		else
 		{
@@ -1113,10 +1112,12 @@ namespace textworld::systems
 		std::string command;
 		std::getline(std::cin, command);
 
-		auto output_component = std::make_shared<textworld::components::OutputComponent>("command output", command, textworld::data::OutputType::COMMAND);
-		auto command_component = std::make_shared<textworld::components::CommandInputComponent>("command", command);
-		player_entity->add_component(command_component);
-		output_entity->add_component(output_component);
+		if (command != "") {
+			auto output_component = std::make_shared<textworld::components::OutputComponent>("command output", command, textworld::data::OutputType::COMMAND);
+			auto command_component = std::make_shared<textworld::components::CommandInputComponent>("command", command);
+			player_entity->add_component(command_component);
+			output_entity->add_component(output_component);
+		}
 	}
 
 	void inventory_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
@@ -1199,26 +1200,26 @@ namespace textworld::systems
 		{
 			if (!question_response_sequence_component->get_waiting_for_answer() &&
 				(question_response_sequence_component->get_question_count() >=
-				question_response_sequence_component->get_response_count()))
+					question_response_sequence_component->get_response_count()))
 			{
 				question_response_sequence_component->set_waiting_for_answer(true);
 				auto question = question_response_sequence_component->get_question(question_response_sequence_component->get_response_count());
 				auto output_component = std::make_shared<textworld::components::OutputComponent>("question response sequence output", question, textworld::data::OutputType::REGULAR);
 				output_entity->add_component(output_component);
 			}
-			else 
+			else
 			{
 				auto command_component = player_entity->find_first_component_by_type<textworld::components::CommandInputComponent>();
 				if (command_component != nullptr)
 				{
 					question_response_sequence_component->set_waiting_for_answer(false);
 					question_response_sequence_component->add_response(command_component->get_command_with_arguments());
-					auto output_component = std::make_shared<textworld::components::OutputComponent>("question response sequence output", 
-						fmt::format("You answered with: {}", question_response_sequence_component->get_response(question_response_sequence_component->get_response_count()-1)), 
+					auto output_component = std::make_shared<textworld::components::OutputComponent>("question response sequence output",
+						fmt::format("You answered with: {}", question_response_sequence_component->get_response(question_response_sequence_component->get_response_count() - 1)),
 						textworld::data::OutputType::REGULAR);
 					output_entity->add_component(output_component);
 				}
-			}			
+			}
 		}
 	}
 }

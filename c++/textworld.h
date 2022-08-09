@@ -91,9 +91,16 @@ extern std::string generate_uuid();
 	{                                                                                                                                             \
 		auto r_info = room_info[ir];                                                                                                                \
 		auto npc_entity = entity_manager->get_entity_by_name("npcs", n);                                                                            \
-		auto npc_id_component = std::make_shared<textworld::components::IdComponent>("npc current room", r_info.id, textworld::data::IdType::ROOM); \
+		auto npc_id_component = std::make_shared<textworld::components::IdComponent>("npc current room", r_info.id, textworld::data::IdType::CURRENT_ROOM); \
 		npc_entity->add_component(npc_id_component);                                                                                                \
 	}
+
+#define print_rooms() { \
+	for (const auto& r : room_info) { \
+		fmt::print("{} -> {}\n", r.first, r.second.id); \
+		fmt::print("Exits:\n"); \
+		for (const auto& e : r.second.entity->find_components_by_type<textworld::components::ExitComponent>()) \
+			fmt::print("\t{} -> {}\n", e->get_room_name(), e->get_direction_as_string()); } }
 
 #define end_room_configuration()                                                                  \
 	for (const auto &r : room_info)                                                                 \
@@ -423,9 +430,10 @@ namespace textworld::data
 
 	enum class IdType
 	{
-		ROOM,
+		CURRENT_ROOM,
 		ITEM,
 		PLAYER,
+		NPC,
 		ZONE,
 		DATA
 	};
@@ -467,8 +475,9 @@ namespace textworld::components
 	public:
 		LuaScriptActionComponent(std::string name, std::string script) : Component(name), script(script) {}
 
-		auto get_script() const { return script; }
-
+		auto get_script() const { return script; }		
+		void set_script(std::string script) { this->script = script; }
+		
 	private:
 		std::string script;
 	};
@@ -589,9 +598,24 @@ namespace textworld::components
 		auto get_target_id() const { return target_id; }
 		void set_target_id(std::string target_id) { this->target_id = target_id; }
 
+		void add_meta_data(std::string key, std::string value) { meta_data[key] = value; }
+		auto get_meta_data() const { return meta_data; }
+		auto get_meta_data(std::string key) const { return meta_data.at(key); }
+		auto has_meta_data(std::string key) const { return meta_data.find(key) != meta_data.end(); }
+		auto get_meta_data_as_string() const
+		{
+			std::ostringstream oss;
+			for (auto& [key, value] : meta_data)
+			{
+				oss << key << ": " << value << std::endl;
+			}
+			return oss.str();
+		}
+
 	private:
 		std::string target_id{};
 		textworld::data::IdType id_type{};
+		std::unordered_map<std::string, std::string> meta_data{};
 	};
 
 	class InventoryComponent : public textworld::ecs::Component
@@ -683,7 +707,7 @@ namespace textworld::components
 			{
 				func(item);
 			}
-		}
+		}	
 
 	private:
 		std::unique_ptr<std::vector<std::shared_ptr<textworld::data::ItemPickup>>> items{};
@@ -696,6 +720,7 @@ namespace textworld::components
 			: Component(name), item(item) {}
 
 		auto get_item() const { return item; }
+		void set_item(std::shared_ptr<textworld::data::Item> item) { this->item = item; }
 
 	private:
 		std::shared_ptr<textworld::data::Item> item{};
@@ -715,6 +740,7 @@ namespace textworld::components
 		auto get_quantity() const { return item_pickup.quantity; }
 		void set_quantity(int quantity) { item_pickup.quantity = quantity; }
 		auto get_item_name() const { return item_pickup.name; }
+		auto get_item_pickup() const { return item_pickup; }		
 
 	private:
 		textworld::data::ItemPickup item_pickup;
@@ -727,6 +753,7 @@ namespace textworld::components
 			: Component(name), json(json) {}
 
 		auto get_json() const { return json; }
+		void set_json(std::string json) { this->json = json; }
 
 	private:
 		std::string json{};
@@ -740,7 +767,9 @@ namespace textworld::components
 
 		auto get_output_type() const { return output_type; }
 		auto get_value() const { return value; }
-
+		void set_value(std::string value) { this->value = value; }		
+		void set_output_type(textworld::data::OutputType output_type) { this->output_type = output_type; }
+		
 	private:
 		textworld::data::OutputType output_type{};
 		std::string value{};
@@ -837,17 +866,6 @@ namespace textworld::components
 
 	private:
 		std::unordered_map<std::string, std::string> responses{};
-	};
-
-	class InConversationWithNPCComponent : public textworld::ecs::Component
-	{
-	public:
-		InConversationWithNPCComponent(std::string name, std::string npc_id) : Component(name), npc_id(npc_id) {}
-
-		auto get_npc_id() const { return npc_id; }
-
-	private:
-		std::string npc_id{};
 	};
 
 	class QuestionResponseSequenceComponent : public textworld::ecs::Component

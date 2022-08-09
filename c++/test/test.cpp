@@ -72,7 +72,7 @@ TEST(Tests, CanGetPlayersCurrentRoom)
 	auto room_entity = std::make_shared<textworld::ecs::Entity>(room_id, "room_1");
 
 	// add an id component to the player
-	player_entity->add_component(std::make_shared<textworld::components::IdComponent>("id_component", room_id, textworld::data::IdType::ROOM));
+	player_entity->add_component(std::make_shared<textworld::components::IdComponent>("id_component", room_id, textworld::data::IdType::CURRENT_ROOM));
 
 	// add player and room to entity manager
 	auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();
@@ -110,7 +110,7 @@ TEST(Tests, PlayerCanNavigateToNewRoom)
 
 	auto command_component_1 = std::make_shared<textworld::components::CommandInputComponent>("command_component", "east");
 
-	player_entity->add_component(std::make_shared<textworld::components::IdComponent>("id_component", room_1_id, textworld::data::IdType::ROOM));
+	player_entity->add_component(std::make_shared<textworld::components::IdComponent>("id_component", room_1_id, textworld::data::IdType::CURRENT_ROOM));
 	player_entity->add_component(command_component_1);
 
 	textworld::systems::room_movement_system(player_entity, entity_manager);
@@ -139,7 +139,7 @@ TEST(Tests, CanChangePlayerCurrentRoomToNewRoom)
 	auto room_2_entity = std::make_shared<textworld::ecs::Entity>(room_2_id, "room_2");
 
 	// add an id component to the player
-	auto id_component = std::make_shared<textworld::components::IdComponent>("id_component", room_1_id, textworld::data::IdType::ROOM);
+	auto id_component = std::make_shared<textworld::components::IdComponent>("id_component", room_1_id, textworld::data::IdType::CURRENT_ROOM);
 	player_entity->add_component(id_component);
 
 	// add player and room to entity manager
@@ -356,7 +356,7 @@ TEST(Tests, CanShowItem)
 	auto item_entity = std::make_shared<textworld::ecs::Entity>(item_entity_id, "item_1");
 	auto room_entity = std::make_shared<textworld::ecs::Entity>(room_entity_id, "room_entity");
 
-	player_entity->add_component(std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::ROOM)));
+	player_entity->add_component(std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::CURRENT_ROOM)));
 	item_entity->add_component(std::make_shared<textworld::components::ItemComponent>("item_component", item));
 
 	auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();
@@ -396,7 +396,7 @@ TEST(Tests, CanShowAllItems)
 	auto item_2_entity = std::make_shared<textworld::ecs::Entity>(item_2_entity_id, "item_2");
 	auto room_entity = std::make_shared<textworld::ecs::Entity>(room_entity_id, "room_entity");
 
-	player_entity->add_component(std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::ROOM)));
+	player_entity->add_component(std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::CURRENT_ROOM)));
 	item_1_entity->add_component(std::make_shared<textworld::components::ItemComponent>("item_component", item_1));
 	item_2_entity->add_component(std::make_shared<textworld::components::ItemComponent>("item_component", item_2));
 
@@ -442,7 +442,7 @@ TEST(Tests, CanTakeItem)
 	auto item_entity = std::make_shared<textworld::ecs::Entity>(item_entity_id, "item_1");
 	auto room_entity = std::make_shared<textworld::ecs::Entity>(room_entity_id, "room_entity");
 
-	player_entity->add_component(std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::ROOM)));
+	player_entity->add_component(std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::CURRENT_ROOM)));
 	item_entity->add_component(std::make_shared<textworld::components::ItemComponent>("item_component", item));
 
 	auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();
@@ -485,7 +485,7 @@ TEST(Tests, CanTakeAllItems)
 	auto inventory_component = std::make_shared<textworld::components::InventoryComponent>("inventory_component");
 	player_entity->add_component(inventory_component);
 
-	player_entity->add_component(std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::ROOM)));
+	player_entity->add_component(std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::CURRENT_ROOM)));
 	item_1_entity->add_component(std::make_shared<textworld::components::ItemComponent>("item_component", item_1));
 	item_2_entity->add_component(std::make_shared<textworld::components::ItemComponent>("item_component", item_2));
 
@@ -539,7 +539,7 @@ TEST(Tests, CanDropItem)
 
 	player_entity->add_component(inventory_component);
 
-	player_entity->add_component(std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::ROOM)));
+	player_entity->add_component(std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::CURRENT_ROOM)));
 	item_entity->add_component(std::make_shared<textworld::components::ItemComponent>("item_component", item));
 
 	auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();
@@ -579,7 +579,7 @@ TEST(Tests, CanDropAllItems)
 	auto item_2_entity = std::make_shared<textworld::ecs::Entity>(item_2_entity_id, "item_2");
 	auto room_entity = std::make_shared<textworld::ecs::Entity>(room_entity_id, "room_entity");
 
-	player_entity->add_component(std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::ROOM)));
+	player_entity->add_component(std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::CURRENT_ROOM)));
 
 	auto inventory_component = std::make_shared<textworld::components::InventoryComponent>("inventory_component");
 	inventory_component->add_item({ item_1->id, item_1->name, 1 });
@@ -648,7 +648,7 @@ TEST(Tests, CanUseItem)
 	item_entity->add_component(std::make_shared<textworld::components::ItemComponent>("item_component", item));
 
 	player_entity->add_component(inventory_component);
-	player_entity->add_component(std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::ROOM)));
+	player_entity->add_component(std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::CURRENT_ROOM)));
 
 	auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();
 	entity_manager->add_entity_to_group("players", player_entity);
@@ -709,7 +709,7 @@ TEST(Tests, CanProcessLookActionCommandOnRoom)
 	auto room_description_component = std::make_shared<textworld::components::DescriptionComponent>("description_component", "This is a test room");
 	room_entity->add_component(room_description_component);
 
-	auto id_component = std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::ROOM));
+	auto id_component = std::make_shared<textworld::components::IdComponent>(textworld::components::IdComponent("id_component", room_entity_id, textworld::data::IdType::CURRENT_ROOM));
 	player_entity->add_component(id_component);
 
 	auto description_component = std::make_shared<textworld::components::DescriptionComponent>("description_component", "You are the hero!");

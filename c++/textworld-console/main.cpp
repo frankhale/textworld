@@ -8,18 +8,18 @@ int main()
 	auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();
 
 	mk_it("Coin Purse", "Extremely worn leather purse. The leather is soft and flexible and it's color has faded. There are 100 coins inside.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
-				{ textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "gold", 100); });
+		{ textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "gold", 100); });
 	mk_it("Health Potion", "An oddly shaped bottle with a cool blue liquid inside. The liquid glows with an intense light.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
-				{ textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "health", 25); });
+		{ textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "health", 25); });
 	mk_it("Lamp", "A rusty old oil lamp", false, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
-				{
-					auto output_entity = entity_manager->get_entity_by_name("core", "output");
-					if (output_entity != nullptr) {
-						auto output_component = std::make_shared<textworld::components::OutputComponent>("lamp used", "The lamp flickers with a tiny flame");
-						output_entity->add_component(output_component);
-				} });
+		{
+			auto output_entity = entity_manager->get_entity_by_name("core", "output");
+			if (output_entity != nullptr) {
+				auto output_component = std::make_shared<textworld::components::OutputComponent>("lamp used", "The lamp flickers with a tiny flame");
+				output_entity->add_component(output_component);
+			} });
 
-	mk_npc("Old Man", "A really old man", (std::unordered_map<std::string, std::string>{{"foo", "bar"}, {"bar", "foo"}, {"baz", "boz"}}));
+	mk_npc("Old Man", "A really old man", (std::unordered_map<std::string, std::string>{ {"foo", "bar"}, { "bar", "foo" }, { "baz", "boz" }}));	
 
 	begin_room_configuration();
 
@@ -27,10 +27,12 @@ int main()
 	mk_rm("Stream", "A shallow rocky stream is swifty flowing from your west to east. The water looks approximately one foot deep from where you are standing.");
 	mk_rm("Large Rock", "You are standing beside a large rock. The rock looks out of place with respect to the rest of your surroundings.");
 	mk_rm("Old Forest", "Thick tall trees block your way but seem to have allowed the stream safe passage. It doesn't appear as though you can travel any further in this direction.");
+	mk_rm("Dark Passage", "Somehow you found a way to get into the forest. It's dark in here, the sound of the stream calms your nerves but you still feel a bit uneasy in here. The trunks of the trees stretch up into the heavens and the foliage above blocks most of the light.");
 
 	mk_ex("Open Field", "Stream", textworld::data::Direction::NORTH);
 	mk_ex("Stream", "Large Rock", textworld::data::Direction::EAST);
 	mk_ex("Large Rock", "Old Forest", textworld::data::Direction::EAST);
+	mk_ex("Old Forest", "Dark Passage", textworld::data::Direction::EAST);
 
 	pl_it("Open Field", "Coin Purse", 1);
 	pl_it("Open Field", "Health Potion", 3);
@@ -38,22 +40,14 @@ int main()
 
 	pl_npc("Stream", "Old Man");
 
+	//print_rooms();
+
 	end_room_configuration();
-
-	// for (const auto& r : room_info)
-	//{
-	//	fmt::print("{} -> {}\n", r.first, r.second.id);
-
-	//	for (const auto& e : r.second.entity->find_component_by_type<textworld::components::ExitComponent>())
-	//	{
-	//		fmt::print("\t{} -> {}\n", e->get_room_name(), e->get_direction_as_string());
-	//	}
-	//}
 
 	auto inventory_component = std::make_shared<textworld::components::InventoryComponent>("player inventory");
 	auto health_component = std::make_shared<textworld::components::ValueComponent<int>>("health", 10, 100);
 	auto player_description_component = std::make_shared<textworld::components::DescriptionComponent>("player description", "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!");
-	auto id_component = std::make_shared<textworld::components::IdComponent>("players current room", entity_manager->get_entity_by_name("rooms", "Open Field")->get_id(), textworld::data::IdType::ROOM);
+	auto id_component = std::make_shared<textworld::components::IdComponent>("players current room", entity_manager->get_entity_by_name("rooms", "Open Field")->get_id(), textworld::data::IdType::CURRENT_ROOM);
 	auto currency_component = std::make_shared<textworld::components::ValueComponent<int>>("gold", 10);
 	auto motd_description_component = std::make_shared<textworld::components::DescriptionComponent>("motd", "Welcome to Textworld! TW was written using a custom entity component system based engine. Look around, have fun!");
 
