@@ -12,14 +12,9 @@ int main()
 	mk_it("Health Potion", "An oddly shaped bottle with a cool blue liquid inside. The liquid glows with an intense light.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 		{ textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "health", 25); });
 	mk_it("Lamp", "A rusty old oil lamp", false, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
-		{
-			auto output_entity = entity_manager->get_entity_by_name("core", "output");
-			if (output_entity != nullptr) {
-				auto output_component = std::make_shared<textworld::components::OutputComponent>("lamp used", "The lamp flickers with a tiny flame");
-				output_entity->add_component(output_component);
-			} });
+		{ textworld::helpers::use_item_returns_message(player_entity, entity_manager, "The lamp flickers with a tiny flame"); });
 
-	mk_npc("Old Man", "A really old man", (std::unordered_map<std::string, std::string>{ {"foo", "bar"}, { "bar", "foo" }, { "baz", "boz" }}));	
+	mk_npc("Old Man", "A really old man", (std::unordered_map<std::string, std::string>{ {"hello", "Hi there!"} }));
 
 	begin_room_configuration();
 

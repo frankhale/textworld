@@ -27,6 +27,7 @@
 	s[0] = toupper(s[0]);
 
 extern std::string generate_uuid();
+extern std::string get_vector_of_strings_as_strings(std::vector<std::string> vec);
 
 #define begin_room_configuration() \
 	{                                \
@@ -369,6 +370,10 @@ namespace textworld::ecs
 		std::shared_ptr<std::vector<std::shared_ptr<Entity>>> find_entities_in_group(std::string entity_group, std::function<bool(std::shared_ptr<Entity>)> predicate);
 
 		std::shared_ptr<Entity> find_entity(std::string entity_group, std::function<bool(std::shared_ptr<Entity>)> predicate);
+		std::shared_ptr<Entity> find_entity(EntityGroupName entity_group, std::function<bool(std::shared_ptr<Entity>)> predicate)
+		{
+			return find_entity(entity_group_name_to_string(entity_group), predicate);
+		}
 
 	private:
 		std::unique_ptr<std::vector<std::shared_ptr<EntityGroup>>> entity_groups{};
@@ -422,7 +427,7 @@ namespace textworld::data
 
 	enum class OutputType
 	{
-		MESSAGEOFTHEDAY,
+		MESSAGE_OF_THE_DAY,
 		REGULAR,
 		COMMAND,
 		SEPARATOR
@@ -459,6 +464,15 @@ namespace textworld::data
 		int quantity{};
 	};
 
+	struct Quest
+	{
+		std::string id{};
+		std::string name{};
+		std::string description{};
+		std::string location_id{};
+		std::vector<std::string> steps{};
+	};
+
 	struct RoomInfo
 	{
 		std::string id{};
@@ -475,9 +489,9 @@ namespace textworld::components
 	public:
 		LuaScriptActionComponent(std::string name, std::string script) : Component(name), script(script) {}
 
-		auto get_script() const { return script; }		
+		auto get_script() const { return script; }
 		void set_script(std::string script) { this->script = script; }
-		
+
 	private:
 		std::string script;
 	};
@@ -504,26 +518,23 @@ namespace textworld::components
 					arguments.push_back(token);
 				}
 			}
+			
+			tokens.push_back(command);
+			tokens.insert(tokens.end(), arguments.begin(), arguments.end());
 		}
 
 		auto get_command() const { return command; }
 		auto get_arguments() const { return arguments; }
 		auto get_command_with_arguments() const { return command_with_arguments; }
-		auto get_arguments_as_string() const
-		{
-			if (arguments.size() == 0)
-				return std::string{};
-
-			std::ostringstream oss;
-			std::copy(arguments.begin(), arguments.end() - 1, std::ostream_iterator<std::string>(oss, " "));
-			oss << arguments.back();
-			return oss.str();
-		}
+		auto get_arguments_as_string() const { return get_vector_of_strings_as_strings(arguments); }
+				
+		auto get_tokens() const { return tokens; }
 
 	protected:
 		std::string command{};
 		std::vector<std::string> arguments{};
 		std::string command_with_arguments{};
+		std::vector<std::string> tokens{};
 	};
 
 	class CommandActionComponent : public CommandInputComponent
@@ -707,7 +718,7 @@ namespace textworld::components
 			{
 				func(item);
 			}
-		}	
+		}
 
 	private:
 		std::unique_ptr<std::vector<std::shared_ptr<textworld::data::ItemPickup>>> items{};
@@ -740,7 +751,7 @@ namespace textworld::components
 		auto get_quantity() const { return item_pickup.quantity; }
 		void set_quantity(int quantity) { item_pickup.quantity = quantity; }
 		auto get_item_name() const { return item_pickup.name; }
-		auto get_item_pickup() const { return item_pickup; }		
+		auto get_item_pickup() const { return item_pickup; }
 
 	private:
 		textworld::data::ItemPickup item_pickup;
@@ -767,9 +778,9 @@ namespace textworld::components
 
 		auto get_output_type() const { return output_type; }
 		auto get_value() const { return value; }
-		void set_value(std::string value) { this->value = value; }		
+		void set_value(std::string value) { this->value = value; }
 		void set_output_type(textworld::data::OutputType output_type) { this->output_type = output_type; }
-		
+
 	private:
 		textworld::data::OutputType output_type{};
 		std::string value{};
@@ -811,7 +822,7 @@ namespace textworld::components
 	};
 
 	template <class T>
-	concept Value = std::floating_point<T> || std::integral<T>;
+	concept Value = std::is_integral_v<T> || std::is_floating_point_v<T>;
 
 	template <Value T>
 	class ValueComponent : public textworld::ecs::Component
@@ -878,14 +889,14 @@ namespace textworld::components
 			waiting_for_answer = false;
 			responses.push_back(response);
 		}
-		
-		auto get_response_count() const { return responses.size(); }		
+
+		auto get_response_count() const { return responses.size(); }
 		auto get_question_count() const { return questions.size(); }
 
 		auto get_question(size_t index) const { return questions[index]; }
 		auto get_response(size_t index) const { return responses[index]; }
-		
-		void set_waiting_for_answer(bool waiting_for_answer) { this->waiting_for_answer = waiting_for_answer; }		
+
+		void set_waiting_for_answer(bool waiting_for_answer) { this->waiting_for_answer = waiting_for_answer; }
 		auto get_waiting_for_answer() const { return waiting_for_answer; }
 
 	private:
@@ -954,6 +965,15 @@ namespace textworld::components
 	private:
 		std::vector<textworld::data::Flag> flags{};
 	};
+
+	class QuestComponent : public textworld::ecs::Component
+	{
+	public:
+		QuestComponent(std::string name, std::shared_ptr<textworld::data::Quest> quest) : Component(name), quest(quest) {}
+
+	private:
+		std::shared_ptr<textworld::data::Quest> quest{};
+	};
 }
 
 namespace textworld::helpers
@@ -967,6 +987,38 @@ namespace textworld::helpers
 	extern std::shared_ptr<textworld::data::Item> make_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions);
 	extern std::shared_ptr<textworld::data::Item> make_consumable_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions);
 	extern std::shared_ptr<std::vector<std::shared_ptr<textworld::ecs::Entity>>> get_npcs_in_room(std::string room_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void use_item_returns_message(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message);
+	
+	template <typename T>
+	T find_key_in_map(std::unordered_map<std::string, T> map, std::string key, std::vector<std::string> keys)
+	{
+		auto found = map.find(key);
+		if (found != map.end()) return found->second;
+
+		int count = 0;
+		std::string command{};
+		for (const auto& k : keys)
+		{
+			if (count + 1 < keys.size())
+			{
+				command += k;
+
+				if (map[command] != nullptr)
+				{
+					return map[command];
+				}
+			}
+			else
+			{
+				return nullptr;
+			}
+			
+			command += " ";
+			count++;
+		}
+
+		return nullptr;
+	}
 
 	template <typename T>
 	void increase_value_on_entity_value_component(std::shared_ptr<textworld::ecs::Entity> player_entity, std::string component_name, T value)
@@ -1014,6 +1066,7 @@ namespace textworld::core
 	extern void use_item_from_inventory_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void look_self_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void look_room_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void talk_to_npc(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 
 	extern textworld::data::Direction get_opposite_direction(textworld::data::Direction dir);
 }

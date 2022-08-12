@@ -7,6 +7,17 @@ std::string generate_uuid()
 	return boost::uuids::to_string(id);
 }
 
+std::string get_vector_of_strings_as_strings(std::vector<std::string> vec)
+{
+	if (vec.size() == 0)
+		return std::string{};
+
+	std::ostringstream oss;
+	std::copy(vec.begin(), vec.end() - 1, std::ostream_iterator<std::string>(oss, " "));
+	oss << vec.back();
+	return oss.str();
+}
+
 namespace textworld::helpers
 {
 	std::shared_ptr<textworld::ecs::Entity> get_players_current_room(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
@@ -216,6 +227,15 @@ namespace textworld::helpers
 
 		return nullptr;
 	}
+
+	void use_item_returns_message(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message)
+	{
+		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
+		if (output_entity != nullptr) {
+			auto output_component = std::make_shared<textworld::components::OutputComponent>("item used", message);
+			output_entity->add_component(output_component);
+		}
+	}
 }
 
 namespace textworld::ecs
@@ -387,7 +407,9 @@ namespace textworld::core
 			{"take all", textworld::core::take_all_items_action},
 			{"drop", textworld::core::drop_item_action},
 			{"drop all", textworld::core::drop_all_items_action},
-			{"use", textworld::core::use_item_from_inventory_action} };
+			{"use", textworld::core::use_item_from_inventory_action},
+			{"talk to", textworld::core::talk_to_npc }
+	};
 
 	void quit_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
@@ -795,6 +817,42 @@ namespace textworld::core
 		}
 	}
 
+	void talk_to_npc(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
+	{
+		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");		
+		auto npc_entities = entity_manager->get_entities_in_group(textworld::ecs::EntityGroupName::NPCS);
+		
+		auto command_action_component = player_entity->find_first_component_by_type<textworld::components::CommandActionComponent>();
+		
+		if (command_action_component != nullptr) 
+		{
+			auto command_arguments = command_action_component->get_arguments();
+			command_arguments.erase(command_arguments.begin());
+
+			auto npc_name = get_vector_of_strings_as_strings(command_arguments);
+			auto npc_entity = entity_manager->find_entity(textworld::ecs::EntityGroupName::NPCS, [&](std::shared_ptr<textworld::ecs::Entity> entity)
+				{					
+					auto name = entity->get_name();
+					to_lower(name);
+
+					if (name == npc_name) return true;
+					
+					return false;
+				});
+
+			if (npc_entity != nullptr)
+			{
+				auto output_component = std::make_shared<textworld::components::OutputComponent>("output for talk to npc", fmt::format("I'd talk to {}, but this feature is not fully implemented.", npc_name), textworld::data::OutputType::REGULAR);
+				output_entity->add_component(output_component);
+			}
+			else
+			{
+				auto output_component = std::make_shared<textworld::components::OutputComponent>("output for talk to npc", "talking to NPCs is not currently implemented", textworld::data::OutputType::REGULAR);
+				output_entity->add_component(output_component);
+			}
+		}
+	}
+
 	textworld::data::Direction get_opposite_direction(textworld::data::Direction dir)
 	{
 		switch (dir)
@@ -828,19 +886,8 @@ namespace textworld::systems
 
 		for (const auto& command_component : command_components)
 		{
-			std::unordered_map<std::string, textworld::core::simple_action_func>::const_iterator command_actions_long_it = textworld::core::command_to_actions.find(command_component->get_command_with_arguments());
-			std::unordered_map<std::string, textworld::core::simple_action_func>::const_iterator command_actions_short_it = textworld::core::command_to_actions.find(command_component->get_command());
-
-			textworld::core::simple_action_func command_action;
-
-			if (command_actions_long_it != textworld::core::command_to_actions.end())
-			{
-				command_action = command_actions_long_it->second;
-			}
-			else if (command_actions_short_it != textworld::core::command_to_actions.end())
-			{
-				command_action = command_actions_short_it->second;
-			}
+			textworld::core::simple_action_func command_action = 
+				textworld::helpers::find_key_in_map<textworld::core::simple_action_func>(textworld::core::command_to_actions, command_component->get_command_with_arguments(), command_component->get_tokens());
 
 			if (command_action != nullptr)
 			{
@@ -1055,7 +1102,7 @@ namespace textworld::systems
 
 		if (motd_description_component != nullptr)
 		{
-			auto output_component = std::make_shared<textworld::components::OutputComponent>("motd output for description", motd_description_component->get_description(), textworld::data::OutputType::MESSAGEOFTHEDAY);
+			auto output_component = std::make_shared<textworld::components::OutputComponent>("motd output for description", motd_description_component->get_description(), textworld::data::OutputType::MESSAGE_OF_THE_DAY);
 			output_entity->add_component(output_component);
 			player_entity->remove_component(motd_description_component);
 		}
@@ -1083,7 +1130,7 @@ namespace textworld::systems
 				{
 					fmt::print("\n");
 				}
-				else if (output_component->get_output_type() == textworld::data::OutputType::MESSAGEOFTHEDAY)
+				else if (output_component->get_output_type() == textworld::data::OutputType::MESSAGE_OF_THE_DAY)
 				{
 					fmt::print("-[ {} ]-\n\n", output_component->get_value());
 				}
