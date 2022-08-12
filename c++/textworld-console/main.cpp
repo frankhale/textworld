@@ -1,9 +1,8 @@
 #include "../textworld.h"
 
 int main()
-{
-	auto player_id = generate_uuid();
-	auto player_entity = std::make_shared<textworld::ecs::Entity>(player_id, "player_1");
+{	
+	auto player_entity = std::make_shared<textworld::ecs::Entity>("player_1");
 	auto output_entity = std::make_shared<textworld::ecs::Entity>("output");
 	auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();
 

@@ -891,3 +891,10 @@ TEST(Tests, CanCompleteQuestionResponseSequence)
 	EXPECT_NE(output_component, nullptr);
 	EXPECT_EQ(output_component->get_value(), "You answered with: red");
 }
+
+TEST(Tests, CanStringifyVectorOfStrings)
+{
+	auto vector_of_strings = std::vector<std::string>{ "one", "two", "three" };
+	auto stringified_vector_of_strings = get_vector_of_strings_as_strings(vector_of_strings);
+	EXPECT_EQ(stringified_vector_of_strings, "one two three");
+}
