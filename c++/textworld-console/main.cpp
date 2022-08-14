@@ -1,6 +1,6 @@
 #include "../textworld.h"
 
-int main()
+int main(int argc, char* argv[])
 {	
 	auto entity_manager = textworld::helpers::make_entity_manager();
 	

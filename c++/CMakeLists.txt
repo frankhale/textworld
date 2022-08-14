@@ -14,24 +14,35 @@ add_subdirectory(googletest)
 find_package(magic_enum CONFIG REQUIRED)
 find_package(Boost REQUIRED)
 find_package(fmt REQUIRED)
+find_package(SDL2 REQUIRED)
+find_package(SDL2-image REQUIRED)
+find_package(SDL2_ttf REQUIRED)
+find_package(SDL2_mixer REQUIRED)
+find_package(sol2 REQUIRED)
+find_package(Lua REQUIRED)
 #find_package(unofficial-sqlite3 REQUIRED)
-#find_package(sol2 REQUIRED)
-#find_package(unofficial-lua REQUIRED)
 
 set(Sources textworld.cpp textworld.h)
 
 add_library(textworld ${Sources})
 target_compile_features(textworld PUBLIC cxx_std_20)
 
-target_include_directories(textworld PUBLIC ${Boost_INCLUDE_DIRS})
+target_include_directories(textworld PUBLIC 
+	${Boost_INCLUDE_DIRS}
+	${LUA_INCLUDE_DIR}
+)
+
 target_link_libraries(textworld
 	PUBLIC
 	bcrypt.lib
 	fmt::fmt
-	#lua
+	SDL2::SDL2 SDL2::SDL2main SDL2::SDL2-static
+	SDL2::SDL2_image
+	$<IF:$<TARGET_EXISTS:SDL2_ttf::SDL2_ttf>,SDL2_ttf::SDL2_ttf,SDL2_ttf::SDL2_ttf-static>
+	$<IF:$<TARGET_EXISTS:SDL2_mixer::SDL2_mixer>,SDL2_mixer::SDL2_mixer,SDL2_mixer::SDL2_mixer-static>
+	${LUA_LIBRARIES}
 	#unofficial::sqlite3::sqlite3
 )
 
 add_subdirectory(test)
-
 add_subdirectory(textworld-console)

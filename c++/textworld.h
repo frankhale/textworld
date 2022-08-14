@@ -14,9 +14,16 @@
 #include <magic_enum.hpp>
 #include <sol/sol.hpp>
 
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_image.h>
+#include <SDL2/SDL_keycode.h>
+#include <SDL2/SDL_mixer.h>
+#include <SDL2/SDL_ttf.h>
+
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/numeric/ublas/matrix.hpp>
 
 #define CONSOLE
 
@@ -479,6 +486,162 @@ namespace textworld::data
 		std::string name{};
 		std::string description{};
 		std::shared_ptr<textworld::ecs::Entity> entity{};
+	};
+}
+
+namespace textworld::gfx
+{
+	// ref: https://enginedev.stackexchange.com/a/163508/18014
+	struct Timer
+	{
+		Uint64 previous_ticks{};
+		float elapsed_seconds{};
+
+		void tick()
+		{
+			const Uint64 current_ticks{ SDL_GetPerformanceCounter() };
+			const Uint64 delta{ current_ticks - previous_ticks };
+			previous_ticks = current_ticks;
+			static const Uint64 TICKS_PER_SECOND{ SDL_GetPerformanceFrequency() };
+			elapsed_seconds = delta / static_cast<float>(TICKS_PER_SECOND);
+		}
+	};
+
+	struct TextExtents { int width, height; };
+
+	class Text
+	{
+	public:
+		Text(SDL_Renderer* renderer) : renderer(renderer) {}
+
+		int load_font(const char* path, int ptsize)
+		{
+			font = TTF_OpenFont(path, ptsize);
+
+			if (!font)
+			{
+				fmt::print("Unable to load font: {}\nSDL2_ttf Error : {}\n", path, TTF_GetError());
+				return -1;
+			}
+
+			return 0;
+		}
+		void draw_text(int x, int y, const char* text, SDL_Color color)
+		{
+			if (strlen(text) <= 0)
+				return;
+
+			text_texture = nullptr;
+
+			SDL_Surface* text_surface = TTF_RenderText_Blended(font, text, color);
+			SDL_Rect text_rect(x, y, text_surface->w, text_surface->h);
+
+			text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+			SDL_FreeSurface(text_surface);
+			SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
+			SDL_DestroyTexture(text_texture);
+		}
+		void draw_text(int x, int y, const char* text)
+		{
+			draw_text(x, y, text, text_color);
+		}
+		TextExtents get_text_extents(const char* text)
+		{
+			int w{}, h{};
+
+			if (TTF_SizeText(font, text, &w, &h) == 0)
+			{
+				return { w, h };
+			}
+
+			return { 0, 0 };
+		}
+
+	private:		
+		SDL_Renderer* renderer{};
+		TTF_Font* font{};
+		SDL_Texture* text_texture{};
+		SDL_Color text_color = { 0xFF, 0xFF, 0xFF, 0xFF };
+		SDL_Color text_background_color = { 0x00, 0x00, 0x00, 0xFF };
+	};
+
+	struct Point
+	{
+		Point() : x(-1), y(-1) {}
+		Point(int x, int y) : x(x), y(y) {}		
+
+		bool eq(Point p) { return p.x == x && p.y == y; }
+
+		int x{};
+		int y{};
+	};
+
+	struct Sound
+	{
+		std::string name{};
+		Mix_Chunk* sound{};
+	
+		void play() { Mix_PlayChannel(-1, sound, 0); }
+	};
+
+	struct Map
+	{	
+		Map(std::string name, int weight, int height, std::shared_ptr<boost::numeric::ublas::matrix<int>> map) :
+			name(name), width(width), height(height), map(map)
+		{
+			light_map = std::make_shared<boost::numeric::ublas::matrix<int>>(height, width);
+		}
+
+		std::string name{};
+		int width{};
+		int height{};
+		std::shared_ptr<boost::numeric::ublas::matrix<int>> map{};
+		std::shared_ptr<boost::numeric::ublas::matrix<int>> light_map{};
+	};
+
+	class SpriteSheet
+	{
+	public:
+		SpriteSheet(SDL_Renderer* renderer, std::string n, std::string p, int sw, int sh);
+		~SpriteSheet()
+		{
+			SDL_DestroyTexture(spritesheet_texture);
+		}
+
+		void draw_sprite(SDL_Renderer* renderer, int sprite_id, int x, int y);
+		void draw_sprite(SDL_Renderer* renderer, int sprite_id, int x, int y, int scaled_width, int scaled_height);
+
+		auto get_spritesheet_texture() const { return spritesheet_texture; }
+
+		auto get_name() const { return name; }
+
+		sol::table get_sprites_as_lua_table(sol::this_state s);
+
+	private:
+		std::string name;
+		std::string path;
+		int sprite_width = 0;
+		int sprite_height = 0;
+		std::unique_ptr<std::vector<std::shared_ptr<SDL_Rect>>> sprites{};
+		SDL_Texture* spritesheet_texture{};
+	};
+
+	class SpriteComponent : public textworld::ecs::Component
+	{
+	public:
+		SpriteComponent(std::string name,
+			std::string spritesheet_name,
+			int sprite_id,
+			std::string sprite_name) : Component(name), spritesheet_name(spritesheet_name), sprite_id(sprite_id), sprite_name(sprite_name) { }
+
+		auto get_sprite_id() const { return sprite_id; }
+		auto get_sprite_name() const { return sprite_name; }
+		auto get_spritesheet_name() const { return spritesheet_name; }
+
+	private:
+		std::string spritesheet_name{};
+		std::string sprite_name{};
+		int sprite_id{};
 	};
 }
 
