@@ -987,10 +987,12 @@ namespace textworld::helpers
 	extern std::shared_ptr<textworld::data::Item> make_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions);
 	extern std::shared_ptr<textworld::data::Item> make_consumable_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions);
 	extern std::shared_ptr<std::vector<std::shared_ptr<textworld::ecs::Entity>>> get_npcs_in_room(std::string room_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
-	extern void use_item_returns_message(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message);
-	
+	extern void use_item_and_return_message(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message);
+	extern std::shared_ptr<textworld::ecs::Entity> make_player(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string name, std::string room_id, std::string description);
+	extern std::shared_ptr<textworld::ecs::EntityManager> make_entity_manager();
+
 	template <typename T>
-	T find_key_in_map(std::unordered_map<std::string, T> map, std::string key, std::vector<std::string> keys)
+	T find_value_in_map(std::unordered_map<std::string, T> map, std::string key, std::vector<std::string> keys)
 	{
 		auto found = map.find(key);
 		if (found != map.end()) return found->second;

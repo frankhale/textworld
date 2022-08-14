@@ -228,13 +228,50 @@ namespace textworld::helpers
 		return nullptr;
 	}
 
-	void use_item_returns_message(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message)
+	void use_item_and_return_message(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message)
 	{
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 		if (output_entity != nullptr) {
 			auto output_component = std::make_shared<textworld::components::OutputComponent>("item used", message);
 			output_entity->add_component(output_component);
 		}
+	}
+
+	std::shared_ptr<textworld::ecs::Entity> make_player(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string name, std::string starting_room_id, std::string description)
+	{
+		auto player_entity = std::make_shared<textworld::ecs::Entity>(name);
+
+		auto id_component = std::make_shared<textworld::components::IdComponent>("room id component", starting_room_id, textworld::data::IdType::CURRENT_ROOM);
+		auto inventory_component = std::make_shared<textworld::components::InventoryComponent>("player inventory");
+		auto health_component = std::make_shared<textworld::components::ValueComponent<int>>("health", 10, 100);
+		auto description_component = std::make_shared<textworld::components::DescriptionComponent>("player description", description);
+		auto currency_component = std::make_shared<textworld::components::ValueComponent<int>>("gold", 10);
+
+		player_entity->add_component(id_component);
+		player_entity->add_component(inventory_component);
+		player_entity->add_component(health_component);
+		player_entity->add_component(description_component);
+		player_entity->add_component(currency_component);
+
+		auto players_current_room = textworld::helpers::get_players_current_room(player_entity, entity_manager);
+		auto show_current_room_description_component = std::make_shared<textworld::components::ShowDescriptionComponent>("show current room description", players_current_room, textworld::data::DescriptionType::ROOM);
+		auto show_npcs_in_room_description_component = std::make_shared<textworld::components::ShowDescriptionComponent>("show NPCs in current room", player_entity, textworld::data::DescriptionType::NPC);
+
+		player_entity->add_component(show_current_room_description_component);
+		player_entity->add_component(show_npcs_in_room_description_component);
+		player_entity->add_component(textworld::helpers::get_room_exits(entity_manager, players_current_room));
+
+		return player_entity;
+	}
+
+	std::shared_ptr<textworld::ecs::EntityManager> make_entity_manager()
+	{
+		auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();
+		auto output_entity = std::make_shared<textworld::ecs::Entity>("output");		
+		
+		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::CORE, output_entity);
+		
+		return entity_manager;
 	}
 }
 
@@ -819,24 +856,24 @@ namespace textworld::core
 
 	void talk_to_npc(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
-		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");		
+		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 		auto npc_entities = entity_manager->get_entities_in_group(textworld::ecs::EntityGroupName::NPCS);
-		
+
 		auto command_action_component = player_entity->find_first_component_by_type<textworld::components::CommandActionComponent>();
-		
-		if (command_action_component != nullptr) 
+
+		if (command_action_component != nullptr)
 		{
 			auto command_arguments = command_action_component->get_arguments();
 			command_arguments.erase(command_arguments.begin());
 
 			auto npc_name = get_vector_of_strings_as_strings(command_arguments);
 			auto npc_entity = entity_manager->find_entity(textworld::ecs::EntityGroupName::NPCS, [&](std::shared_ptr<textworld::ecs::Entity> entity)
-				{					
+				{
 					auto name = entity->get_name();
 					to_lower(name);
 
 					if (name == npc_name) return true;
-					
+
 					return false;
 				});
 
@@ -886,8 +923,8 @@ namespace textworld::systems
 
 		for (const auto& command_component : command_components)
 		{
-			textworld::core::simple_action_func command_action = 
-				textworld::helpers::find_key_in_map<textworld::core::simple_action_func>(textworld::core::command_to_actions, command_component->get_command_with_arguments(), command_component->get_tokens());
+			textworld::core::simple_action_func command_action =
+				textworld::helpers::find_value_in_map<textworld::core::simple_action_func>(textworld::core::command_to_actions, command_component->get_command_with_arguments(), command_component->get_tokens());
 
 			if (command_action != nullptr)
 			{
