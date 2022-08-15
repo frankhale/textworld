@@ -1307,3 +1307,93 @@ namespace textworld::systems
 		}
 	}
 }
+
+namespace textworld::gfx
+{
+	std::shared_ptr<std::queue<Point>> AStarPathFinder::find_path(Point start, Point end, int walkable_tile_id)
+	{
+		AStarNode none{};
+		auto path = std::make_shared<std::queue<Point>>();
+		auto start_node = std::make_shared<AStarNode>(none, start);
+		auto end_node = std::make_shared<AStarNode>(none, end);
+		auto open_list = std::make_shared<std::vector<std::shared_ptr<AStarNode>>>();
+		auto closed_list = std::make_shared<std::vector<std::shared_ptr<AStarNode>>>();
+
+		open_list->emplace_back(start_node);
+
+		while (open_list->size() > 0)
+		{
+				auto &current_node = open_list->front();
+				int current_index = 0;
+
+				int _index = 0;
+				for (const auto& item : *open_list)
+				{
+						if (item->f < current_node->f)
+						{
+								current_node = item;
+								current_index = _index;
+						}
+						_index++;
+				}
+
+				open_list->erase(open_list->begin() + current_index);
+				closed_list->emplace_back(current_node);
+
+				if (current_node->eq(*end_node))
+				{
+						auto &current = current_node;
+						while (current != nullptr && current->position != nullptr)
+						{
+								Point path_point = { current->position->x, current->position->y };
+								path->push(path_point);
+								current = current->parent;
+						}
+
+						return path;
+				}
+
+				auto children = std::make_shared<std::vector<std::shared_ptr<AStarNode>>>();
+
+				for (const auto& new_position : pos_array)
+				{
+						auto node_position = std::make_shared<Point>(current_node->position->x + new_position.x, current_node->position->y + new_position.y);
+
+						if (node_position->x > (map->size2() - 1) || node_position->x < 0 ||
+								node_position->y >(map->size1() - 1) || node_position->y < 0) continue;
+
+						if ((*map)(node_position->y, node_position->x) != walkable_tile_id) continue;
+
+						auto child = std::make_shared<AStarNode>(*current_node, *node_position);
+						children->emplace_back(child);
+				}
+
+				for (const auto& child : *children)
+				{
+						auto closed_list_result = std::find_if(closed_list->begin(), closed_list->end(),
+								[&](const std::shared_ptr<AStarNode>& c) {
+										return c->eq(*child);
+								});
+
+						if (closed_list_result != closed_list->end() && *closed_list_result != nullptr)
+								continue;
+
+						child->g = current_node->g + 1;
+						child->h = (int)pow(child->position->x - end_node->position->x, 2) + (int)pow(child->position->y - end_node->position->y, 2);
+						child->f = child->g + child->h;
+
+						auto open_node_result = std::find_if(open_list->begin(), open_list->end(),
+								[&](const std::shared_ptr<AStarNode>& o) {
+										return child->eq(*o) && child->g >= o->g;
+								});
+
+						if (open_node_result != open_list->end() && *open_node_result != nullptr)
+								continue;
+
+						open_list->emplace_back(child);
+				}
+		}
+
+		return path;
+	}
+}

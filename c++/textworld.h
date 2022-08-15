@@ -8,6 +8,7 @@
 #include <ranges>
 #include <map>
 #include <numeric>
+#include <queue>
 
 #include <fmt/core.h>
 #include <fmt/ranges.h>
@@ -642,6 +643,61 @@ namespace textworld::gfx
 		std::string spritesheet_name{};
 		std::string sprite_name{};
 		int sprite_id{};
+	};
+
+	struct AStarNode
+	{
+		AStarNode() {}
+		AStarNode(const AStarNode& p, const Point& pos)
+		{
+			if (&parent != nullptr)
+				parent = std::make_shared<AStarNode>(p);
+
+			if (&position != nullptr)
+				position = std::make_shared<Point>(pos);
+		}
+
+		bool eq(const AStarNode& x)
+		{
+			if (&x == nullptr)
+				return false;
+
+			return (position->x == x.position->x &&
+				position->y == x.position->y);
+		}
+
+		std::shared_ptr<AStarNode> parent{};
+		std::shared_ptr<Point> position{};
+		int f = 0;
+		int g = 0;
+		int h = 0;
+	};
+
+	class AStarPathFinder
+	{
+	public:
+		AStarPathFinder(std::shared_ptr<boost::numeric::ublas::matrix<int>> map)
+		{
+			this->map = map; // std::make_shared<boost::numeric::ublas::matrix<int>>(map);
+			max_iterations = (int)(this->map->size1() * this->map->size2());
+		}
+
+		std::shared_ptr<std::queue<Point>> find_path(Point start, Point end, int walkable_tile_id);
+
+	private:
+		std::shared_ptr<boost::numeric::ublas::matrix<int>> map;
+
+		Point pos_array[8] = {
+			{0, -1},
+			{0, 1},
+			{-1, 0},
+			{1, 0},
+			{-1, -1},
+			{-1, 1},
+			{1, -1},
+			{1, 1} };
+
+		int max_iterations = 0;
 	};
 }
 
