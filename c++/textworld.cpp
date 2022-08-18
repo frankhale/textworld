@@ -25,7 +25,7 @@ namespace textworld::helpers
 		if (player_entity != nullptr)
 		{
 			auto room_id_component = player_entity->find_components_by_type<textworld::components::IdComponent>([](std::shared_ptr<textworld::components::IdComponent> id_component)
-				{ return id_component->get_id_type() == textworld::data::IdType::CURRENT_ROOM; });
+																																																					{ return id_component->get_id_type() == textworld::data::IdType::CURRENT_ROOM; });
 
 			if (room_id_component.size() > 0)
 			{
@@ -51,31 +51,31 @@ namespace textworld::helpers
 			std::vector<std::string> exit_ids{};
 			std::unordered_map<std::string, std::shared_ptr<textworld::components::ExitComponent>> exit_map{};
 
-			for (const auto& exit : exits)
+			for (const auto &exit : exits)
 			{
-				exit_ids.push_back(exit->get_room_id());
+				exit_ids.emplace_back(exit->get_room_id());
 				exit_map[exit->get_room_id()] = exit;
 			}
 
 			auto exit_room_entities = entity_manager->find_entities_in_group("rooms",
-				[&](std::shared_ptr<textworld::ecs::Entity> entity)
-				{
-					return std::find(exit_ids.begin(), exit_ids.end(), entity->get_id()) != exit_ids.end();
-				});
+																																			 [&](std::shared_ptr<textworld::ecs::Entity> entity)
+																																			 {
+																																				 return std::find(exit_ids.begin(), exit_ids.end(), entity->get_id()) != exit_ids.end();
+																																			 });
 
-			for (const auto& room_entity : *exit_room_entities)
+			for (const auto &room_entity : *exit_room_entities)
 			{
-				auto direction = std::string{ magic_enum::enum_name(exit_map[room_entity->get_id()]->get_direction()) };
+				auto direction = std::string{magic_enum::enum_name(exit_map[room_entity->get_id()]->get_direction())};
 				to_titlecase(direction);
-				exit_info.push_back(fmt::format("{} : {}", direction, room_entity->get_name()));
+				exit_info.emplace_back(fmt::format("{} : {}", direction, room_entity->get_name()));
 			}
 
 			auto full_exit_info = fmt::format("Exits: {}", exit_info);
 
 			return std::make_shared<textworld::components::ShowDescriptionComponent>(
-				full_exit_info,
-				*exit_room_entities,
-				textworld::data::DescriptionType::EXIT);
+					full_exit_info,
+					*exit_room_entities,
+					textworld::data::DescriptionType::EXIT);
 		}
 		else
 		{
@@ -105,9 +105,9 @@ namespace textworld::helpers
 			else
 			{
 				// add item to inventory
-				inventory_component->add_item({ .id = item_drop_component->get_item_id(),
+				inventory_component->add_item({.id = item_drop_component->get_item_id(),
 																			 .name = item_drop_component->get_item_name(),
-																			 .quantity = item_drop_component->get_quantity() });
+																			 .quantity = item_drop_component->get_quantity()});
 			}
 
 			entity->remove_component(item_drop_component);
@@ -137,7 +137,7 @@ namespace textworld::helpers
 		}
 	}
 
-	std::string join(const std::vector<std::string>& v, const std::string& c)
+	std::string join(const std::vector<std::string> &v, const std::string &c)
 	{
 		std::stringstream ss;
 
@@ -165,7 +165,7 @@ namespace textworld::helpers
 		auto room_description_component = std::make_shared<textworld::components::DescriptionComponent>("description component", description);
 		room_entity->add_component(room_description_component);
 
-		return { .id = room_id, .entity = room_entity };
+		return {.id = room_id, .entity = room_entity};
 	}
 
 	std::shared_ptr<textworld::data::Item> make_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions)
@@ -180,7 +180,7 @@ namespace textworld::helpers
 				.can_be_destroyed = true,
 				.consumable = false,
 				.lua_scripted_actions = {},
-				.actions = {actions} };
+				.actions = {actions}};
 
 		return std::make_shared<textworld::data::Item>(i);
 	}
@@ -197,7 +197,7 @@ namespace textworld::helpers
 				.can_be_destroyed = true,
 				.consumable = true,
 				.lua_scripted_actions = {},
-				.actions = {actions} };
+				.actions = {actions}};
 
 		return std::make_shared<textworld::data::Item>(i);
 	}
@@ -210,14 +210,14 @@ namespace textworld::helpers
 		auto results = std::make_shared<std::vector<std::shared_ptr<textworld::ecs::Entity>>>();
 		if (npcs->size() > 0 && room != nullptr)
 		{
-			for (const auto& npc : *npcs)
+			for (const auto &npc : *npcs)
 			{
 				auto room_id_component = npc->find_first_component_by_type<textworld::components::IdComponent>();
 				if (room_id_component != nullptr &&
-					room_id_component->get_id_type() == textworld::data::IdType::CURRENT_ROOM &&
-					room_id_component->get_target_id() == room->get_id())
+						room_id_component->get_id_type() == textworld::data::IdType::CURRENT_ROOM &&
+						room_id_component->get_target_id() == room->get_id())
 				{
-					results->push_back(npc);
+					results->emplace_back(npc);
 				}
 			}
 		}
@@ -231,7 +231,8 @@ namespace textworld::helpers
 	void use_item_and_return_message(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message)
 	{
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
-		if (output_entity != nullptr) {
+		if (output_entity != nullptr)
+		{
 			auto output_component = std::make_shared<textworld::components::OutputComponent>("item used", message);
 			output_entity->add_component(output_component);
 		}
@@ -326,16 +327,16 @@ namespace textworld::ecs
 		if (entity_group != nullptr)
 		{
 			auto entity_to_remove_range = std::ranges::remove_if(*entity_group->entities,
-				[&](std::shared_ptr<Entity> e)
-				{
-					if (e->get_id() == entity_id)
-					{
-						result = true;
-						return true;
-					}
+																													 [&](std::shared_ptr<Entity> e)
+																													 {
+																														 if (e->get_id() == entity_id)
+																														 {
+																															 result = true;
+																															 return true;
+																														 }
 
-					return false;
-				});
+																														 return false;
+																													 });
 
 			if (!entity_to_remove_range.empty())
 			{
@@ -349,10 +350,10 @@ namespace textworld::ecs
 	std::shared_ptr<EntityGroup> EntityManager::get_entity_group(std::string group_name)
 	{
 		auto group = std::ranges::find_if(*entity_groups,
-			[&](const std::shared_ptr<EntityGroup>& eg)
-			{
-				return eg->name == group_name;
-			});
+																			[&](const std::shared_ptr<EntityGroup> &eg)
+																			{
+																				return eg->name == group_name;
+																			});
 
 		if (group != entity_groups->end())
 		{
@@ -376,14 +377,14 @@ namespace textworld::ecs
 
 	std::shared_ptr<Entity> EntityManager::get_entity_by_name(std::string entity_group, std::string entity_name)
 	{
-		return find_entity(entity_group, [&](const std::shared_ptr<Entity>& e)
-			{ return e->get_name() == entity_name; });
+		return find_entity(entity_group, [&](const std::shared_ptr<Entity> &e)
+											 { return e->get_name() == entity_name; });
 	}
 
 	std::shared_ptr<Entity> EntityManager::get_entity_by_id(std::string entity_group, std::string entity_id)
 	{
-		return find_entity(entity_group, [&](const std::shared_ptr<Entity>& e)
-			{ return e->get_id() == entity_id; });
+		return find_entity(entity_group, [&](const std::shared_ptr<Entity> &e)
+											 { return e->get_id() == entity_id; });
 	}
 
 	std::shared_ptr<std::vector<std::shared_ptr<Entity>>> EntityManager::find_entities_in_group(std::string entity_group, std::function<bool(std::shared_ptr<Entity>)> predicate)
@@ -395,11 +396,11 @@ namespace textworld::ecs
 
 		if (entity_group_ptr != nullptr)
 		{
-			for (const auto& e : *entity_group_ptr->entities)
+			for (const auto &e : *entity_group_ptr->entities)
 			{
 				if (predicate(e))
 				{
-					entities->push_back(e);
+					entities->emplace_back(e);
 				}
 			}
 
@@ -416,10 +417,10 @@ namespace textworld::ecs
 		if (entity_group_ptr != nullptr)
 		{
 			auto entity = std::find_if(entity_group_ptr->entities->begin(), entity_group_ptr->entities->end(),
-				[&](const std::shared_ptr<Entity>& e)
-				{
-					return predicate(e);
-				});
+																 [&](const std::shared_ptr<Entity> &e)
+																 {
+																	 return predicate(e);
+																 });
 
 			if (entity != entity_group_ptr->entities->end())
 			{
@@ -445,17 +446,17 @@ namespace textworld::core
 			{"drop", textworld::core::drop_item_action},
 			{"drop all", textworld::core::drop_all_items_action},
 			{"use", textworld::core::use_item_from_inventory_action},
-			{"talk to", textworld::core::talk_to_npc }
-	};
+			{"talk to", textworld::core::talk_to_npc}};
 
 	void quit_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
-#ifdef CONSOLE		
+#ifdef CONSOLE
 		auto quit_component = std::make_shared<textworld::components::QuitComponent>("quit",
-			[]() {
-				fmt::print("quitting...\n");
-				exit(0);
-			});
+																																								 []()
+																																								 {
+																																									 fmt::print("quitting...\n");
+																																									 exit(0);
+																																								 });
 		player_entity->add_component(quit_component);
 #endif
 	}
@@ -473,12 +474,12 @@ namespace textworld::core
 			if (command_action_component != nullptr)
 			{
 				auto item_entity = std::find_if(item_entities->begin(), item_entities->end(),
-					[&](std::shared_ptr<textworld::ecs::Entity> entity)
-					{
-						auto name = entity->get_name();
-						to_lower(name);
-						return name == command_action_component->get_arguments_as_string();
-					});
+																				[&](std::shared_ptr<textworld::ecs::Entity> entity)
+																				{
+																					auto name = entity->get_name();
+																					to_lower(name);
+																					return name == command_action_component->get_arguments_as_string();
+																				});
 
 				if (item_entity != item_entities->end())
 				{
@@ -489,10 +490,10 @@ namespace textworld::core
 					if (item_drop_components.size() > 0)
 					{
 						auto item_drop_component = std::find_if(item_drop_components.begin(), item_drop_components.end(),
-							[&](std::shared_ptr<textworld::components::ItemDropComponent> component)
-							{
-								return item->id == component->get_item_id();
-							});
+																										[&](std::shared_ptr<textworld::components::ItemDropComponent> component)
+																										{
+																											return item->id == component->get_item_id();
+																										});
 
 						if (item_drop_component != item_drop_components.end())
 						{
@@ -536,11 +537,11 @@ namespace textworld::core
 			{
 				std::vector<std::string> item_descriptions{};
 
-				for (const auto& item_drop_component : item_drop_components)
+				for (const auto &item_drop_component : item_drop_components)
 				{
 					auto item_entity = entity_manager->get_entity_by_id("items", item_drop_component->get_item_id());
 					auto item_component = item_entity->find_first_component_by_type<textworld::components::ItemComponent>();
-					item_descriptions.push_back(fmt::format("{} ({}) : {}", item_component->get_item()->name, item_drop_component->get_quantity(), item_component->get_item()->description));
+					item_descriptions.emplace_back(fmt::format("{} ({}) : {}", item_component->get_item()->name, item_drop_component->get_quantity(), item_component->get_item()->description));
 				}
 
 				auto all_item_descriptions = textworld::helpers::join(item_descriptions, "\n");
@@ -565,12 +566,12 @@ namespace textworld::core
 		if (room_entity != nullptr && output_entity != nullptr && item_entities != nullptr && command_action_component != nullptr)
 		{
 			auto item_entity = std::find_if(item_entities->begin(), item_entities->end(),
-				[&](std::shared_ptr<textworld::ecs::Entity> entity)
-				{
-					auto name = entity->get_name();
-					to_lower(name);
-					return name == command_action_component->get_arguments_as_string();
-				});
+																			[&](std::shared_ptr<textworld::ecs::Entity> entity)
+																			{
+																				auto name = entity->get_name();
+																				to_lower(name);
+																				return name == command_action_component->get_arguments_as_string();
+																			});
 
 			if (item_entity != item_entities->end())
 			{
@@ -582,10 +583,10 @@ namespace textworld::core
 					auto item = item_component->get_item();
 
 					auto item_drop_component = std::find_if(item_drop_components.begin(), item_drop_components.end(),
-						[&](std::shared_ptr<textworld::components::ItemDropComponent> component)
-						{
-							return item->id == component->get_item_id();
-						});
+																									[&](std::shared_ptr<textworld::components::ItemDropComponent> component)
+																									{
+																										return item->id == component->get_item_id();
+																									});
 
 					if (item_drop_component != item_drop_components.end())
 					{
@@ -625,14 +626,14 @@ namespace textworld::core
 		{
 			std::vector<std::string> item_descriptions{};
 
-			for (const auto& item_drop_component : item_drop_components)
+			for (const auto &item_drop_component : item_drop_components)
 			{
 				auto item_entity = entity_manager->get_entity_by_id("items", item_drop_component->get_item_id());
 				auto item_component = item_entity->find_components_by_type<textworld::components::ItemComponent>().front();
 
 				textworld::helpers::add_item_to_player_inventory(player_entity, entity_manager, room_entity);
 
-				item_descriptions.push_back(fmt::format("{} ({}) : {}", item_component->get_item()->name, item_drop_component->get_quantity(), item_component->get_item()->description));
+				item_descriptions.emplace_back(fmt::format("{} ({}) : {}", item_component->get_item()->name, item_drop_component->get_quantity(), item_component->get_item()->description));
 			}
 
 			auto all_item_descriptions = textworld::helpers::join(item_descriptions, "\n");
@@ -657,12 +658,12 @@ namespace textworld::core
 		if (room_entity != nullptr && output_entity != nullptr && item_entities != nullptr && command_action_component != nullptr && inventory_components.size() > 0)
 		{
 			auto item_entity = std::find_if(item_entities->begin(), item_entities->end(),
-				[&](std::shared_ptr<textworld::ecs::Entity> entity)
-				{
-					auto name = entity->get_name();
-					to_lower(name);
-					return name == command_action_component->get_arguments_as_string();
-				});
+																			[&](std::shared_ptr<textworld::ecs::Entity> entity)
+																			{
+																				auto name = entity->get_name();
+																				to_lower(name);
+																				return name == command_action_component->get_arguments_as_string();
+																			});
 
 			if (item_entity != item_entities->end())
 			{
@@ -675,10 +676,10 @@ namespace textworld::core
 				if (found_item_in_inventory != nullptr && item != nullptr)
 				{
 					auto item_found_in_room = std::find_if(item_drop_components.begin(), item_drop_components.end(),
-						[&](std::shared_ptr<textworld::components::ItemDropComponent> component)
-						{
-							return component->get_item_name() == item_component->get_item()->name;
-						});
+																								 [&](std::shared_ptr<textworld::components::ItemDropComponent> component)
+																								 {
+																									 return component->get_item_name() == item_component->get_item()->name;
+																								 });
 
 					if (item_found_in_room != item_drop_components.end())
 					{
@@ -687,10 +688,10 @@ namespace textworld::core
 					else
 					{
 						auto item_drop_component = std::make_shared<textworld::components::ItemDropComponent>(
-							"item drop component for new item in room",
-							item_component->get_item()->id,
-							item_component->get_item()->name,
-							found_item_in_inventory->quantity);
+								"item drop component for new item in room",
+								item_component->get_item()->id,
+								item_component->get_item()->name,
+								found_item_in_inventory->quantity);
 						room_entity->add_component(item_drop_component);
 					}
 
@@ -730,7 +731,7 @@ namespace textworld::core
 
 			if (item_drop_components.size() > 0)
 			{
-				for (const auto& item_drop_component : item_drop_components)
+				for (const auto &item_drop_component : item_drop_components)
 				{
 					auto found_item_in_room = inventory_component->get_item(item_drop_component->get_item_id());
 
@@ -742,10 +743,10 @@ namespace textworld::core
 					else
 					{
 						auto room_item_drop_component = std::make_shared<textworld::components::ItemDropComponent>(
-							"item drop component for new item in room",
-							item_drop_component->get_item_name(),
-							item_drop_component->get_item_id(),
-							item_drop_component->get_quantity());
+								"item drop component for new item in room",
+								item_drop_component->get_item_name(),
+								item_drop_component->get_item_id(),
+								item_drop_component->get_quantity());
 						room_entity->add_component(room_item_drop_component);
 					}
 				}
@@ -777,12 +778,12 @@ namespace textworld::core
 		if (output_entity != nullptr && item_entities != nullptr && command_action_component != nullptr && inventory_component != nullptr)
 		{
 			auto item_entity = std::find_if(item_entities->begin(), item_entities->end(),
-				[&](std::shared_ptr<textworld::ecs::Entity> entity)
-				{
-					auto name = entity->get_name();
-					to_lower(name);
-					return name == command_action_component->get_arguments_as_string();
-				});
+																			[&](std::shared_ptr<textworld::ecs::Entity> entity)
+																			{
+																				auto name = entity->get_name();
+																				to_lower(name);
+																				return name == command_action_component->get_arguments_as_string();
+																			});
 
 			if (item_entity != item_entities->end())
 			{
@@ -868,14 +869,13 @@ namespace textworld::core
 
 			auto npc_name = get_vector_of_strings_as_strings(command_arguments);
 			auto npc_entity = entity_manager->find_entity(textworld::ecs::EntityGroupName::NPCS, [&](std::shared_ptr<textworld::ecs::Entity> entity)
-				{
+																										{
 					auto name = entity->get_name();
 					to_lower(name);
 
 					if (name == npc_name) return true;
 
-					return false;
-				});
+					return false; });
 
 			if (npc_entity != nullptr)
 			{
@@ -906,8 +906,20 @@ namespace textworld::core
 			return textworld::data::Direction::DOWN;
 		case textworld::data::Direction::DOWN:
 			return textworld::data::Direction::UP;
+		case textworld::data::Direction::NORTHEAST:
+			return textworld::data::Direction::SOUTHWEST;
+		case textworld::data::Direction::NORTHWEST:
+			return textworld::data::Direction::SOUTHEAST;
+		case textworld::data::Direction::SOUTHEAST:
+			return textworld::data::Direction::NORTHWEST;
+		case textworld::data::Direction::SOUTHWEST:
+			return textworld::data::Direction::NORTHEAST;
+		case textworld::data::Direction::LEFT:
+			return textworld::data::Direction::RIGHT;
+		case textworld::data::Direction::RIGHT:
+			return textworld::data::Direction::LEFT;
 		default:
-			return textworld::data::Direction::EAST;
+			return textworld::data::Direction::UNKNOWN;
 		};
 	}
 }
@@ -917,14 +929,15 @@ namespace textworld::systems
 	void command_action_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
 		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
-		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::COMMAND_ACTION_SYSTEM_BYPASS)) return;
+		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::COMMAND_ACTION_SYSTEM_BYPASS))
+			return;
 
 		auto command_components = player_entity->find_components_by_type<textworld::components::CommandInputComponent>();
 
-		for (const auto& command_component : command_components)
+		for (const auto &command_component : command_components)
 		{
 			textworld::core::simple_action_func command_action =
-				textworld::helpers::find_value_in_map<textworld::core::simple_action_func>(textworld::core::command_to_actions, command_component->get_command_with_arguments(), command_component->get_tokens());
+					textworld::helpers::find_value_in_map<textworld::core::simple_action_func>(textworld::core::command_to_actions, command_component->get_command_with_arguments(), command_component->get_tokens());
 
 			if (command_action != nullptr)
 			{
@@ -936,7 +949,7 @@ namespace textworld::systems
 
 			if (command_action_components.size() > 0)
 			{
-				for (const auto& ca : command_action_components)
+				for (const auto &ca : command_action_components)
 				{
 					auto found_action = false;
 
@@ -964,7 +977,8 @@ namespace textworld::systems
 	void room_movement_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
 		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
-		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::ROOM_MOVEMENT_SYSTEM_BYPASS)) return;
+		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::ROOM_MOVEMENT_SYSTEM_BYPASS))
+			return;
 
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 
@@ -974,21 +988,21 @@ namespace textworld::systems
 
 			auto command_components = player_entity->find_components_by_type<textworld::components::CommandInputComponent>();
 
-			for (const auto& cc : command_components)
+			for (const auto &cc : command_components)
 			{
 				auto current_room_entity = textworld::helpers::get_players_current_room(player_entity, entity_manager);
 				auto exits = current_room_entity->find_components_by_type<textworld::components::ExitComponent>();
-				auto exit = std::find_if(exits.begin(), exits.end(), [&](const std::shared_ptr<textworld::components::ExitComponent>& e)
-					{ return e->get_direction_as_string() == cc->get_command(); });
+				auto exit = std::find_if(exits.begin(), exits.end(), [&](const std::shared_ptr<textworld::components::ExitComponent> &e)
+																 { return e->get_direction_as_string() == cc->get_command(); });
 
-				auto upper_case_command = std::string{ cc->get_command() };
+				auto upper_case_command = std::string{cc->get_command()};
 				to_upper(upper_case_command);
 
 				auto command_as_direction = magic_enum::enum_cast<textworld::data::Direction>(upper_case_command);
 
 				if (command_as_direction.has_value())
 				{
-					processed_components.push_back(cc);
+					processed_components.emplace_back(cc);
 
 					if (exit != exits.end())
 					{
@@ -997,7 +1011,7 @@ namespace textworld::systems
 						if (new_room_entity != nullptr)
 						{
 							auto room_id_components = player_entity->find_components_by_type<textworld::components::IdComponent>([](std::shared_ptr<textworld::components::IdComponent> id_component)
-								{ return id_component->get_id_type() == textworld::data::IdType::CURRENT_ROOM; });
+																																																									 { return id_component->get_id_type() == textworld::data::IdType::CURRENT_ROOM; });
 
 							if (room_id_components.size() > 0)
 							{
@@ -1029,10 +1043,10 @@ namespace textworld::systems
 		auto command_components = player_entity->find_components_by_type<textworld::components::CommandInputComponent>();
 		std::vector<std::shared_ptr<textworld::components::UnknownCommandComponent>> unknown_command_components;
 
-		for (const auto& cc : command_components)
+		for (const auto &cc : command_components)
 		{
 			auto unknown_command_component = std::make_shared<textworld::components::UnknownCommandComponent>("unknown_command", cc->get_command());
-			unknown_command_components.push_back(unknown_command_component);
+			unknown_command_components.emplace_back(unknown_command_component);
 		}
 
 		if (command_components.size() > 0)
@@ -1048,7 +1062,8 @@ namespace textworld::systems
 	void description_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
 		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
-		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::DESCRIPTION_SYSTEM_BYPASS)) return;
+		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::DESCRIPTION_SYSTEM_BYPASS))
+			return;
 
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 		auto room_entities = entity_manager->get_entities_in_group(textworld::ecs::EntityGroupName::ROOMS);
@@ -1062,9 +1077,9 @@ namespace textworld::systems
 			auto show_description_components = player_entity->find_components_by_type<textworld::components::ShowDescriptionComponent>();
 			processed_components.insert(processed_components.end(), show_description_components.begin(), show_description_components.end());
 
-			for (const auto& sc : show_description_components)
+			for (const auto &sc : show_description_components)
 			{
-				processed_components.push_back(sc);
+				processed_components.emplace_back(sc);
 
 				if (sc->get_entity() != nullptr)
 				{
@@ -1080,7 +1095,7 @@ namespace textworld::systems
 						else if (sc->get_description_type() == textworld::data::DescriptionType::SELF)
 						{
 							auto output_component = std::make_shared<textworld::components::OutputComponent>("output",
-								fmt::format("looking intently at yourself: {}", description_component->get_description()), textworld::data::OutputType::REGULAR);
+																																															 fmt::format("looking intently at yourself: {}", description_component->get_description()), textworld::data::OutputType::REGULAR);
 							output_entity->add_component(output_component);
 						}
 						else if (sc->get_description_type() == textworld::data::DescriptionType::NPC)
@@ -1090,9 +1105,9 @@ namespace textworld::systems
 							if (npcs != nullptr)
 							{
 								std::vector<std::string> names{};
-								for (const auto& npc : *npcs)
+								for (const auto &npc : *npcs)
 								{
-									names.push_back(npc->get_name());
+									names.emplace_back(npc->get_name());
 								}
 
 								if (names.size() > 0)
@@ -1153,7 +1168,7 @@ namespace textworld::systems
 		{
 			auto output_components = output_entity->find_components_by_type<textworld::components::OutputComponent>();
 
-			for (const auto& output_component : output_components)
+			for (const auto &output_component : output_components)
 			{
 				if (output_component->get_output_type() == textworld::data::OutputType::REGULAR)
 				{
@@ -1196,7 +1211,8 @@ namespace textworld::systems
 		std::string command;
 		std::getline(std::cin, command);
 
-		if (command != "") {
+		if (command != "")
+		{
 			auto output_component = std::make_shared<textworld::components::OutputComponent>("command output", command, textworld::data::OutputType::COMMAND);
 			auto command_component = std::make_shared<textworld::components::CommandInputComponent>("command", command);
 			player_entity->add_component(command_component);
@@ -1207,7 +1223,8 @@ namespace textworld::systems
 	void inventory_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
 		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
-		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::INVENTORY_SYSTEM_BYPASS)) return;
+		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::INVENTORY_SYSTEM_BYPASS))
+			return;
 
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 
@@ -1215,13 +1232,13 @@ namespace textworld::systems
 
 		auto command_components = player_entity->find_components_by_type<textworld::components::CommandInputComponent>();
 
-		for (const auto& command_component : command_components)
+		for (const auto &command_component : command_components)
 		{
 			auto command = command_component->get_command();
 
 			if (command == "inv" || command == "inventory")
 			{
-				processed_components.push_back(command_component);
+				processed_components.emplace_back(command_component);
 
 				auto inventory_components = player_entity->find_components_by_type<textworld::components::InventoryComponent>();
 
@@ -1251,7 +1268,8 @@ namespace textworld::systems
 	void npc_dialog_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
 		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
-		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::NPC_DIALOG_SYSTEM_BYPASS)) return;
+		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::NPC_DIALOG_SYSTEM_BYPASS))
+			return;
 
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 		auto command_component = player_entity->find_first_component_by_type<textworld::components::CommandInputComponent>();
@@ -1275,7 +1293,8 @@ namespace textworld::systems
 	void question_response_sequence_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
 		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
-		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::QUESTION_RESPONSE_SEQUENCE_SYSTEM_BYPASS)) return;
+		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::QUESTION_RESPONSE_SEQUENCE_SYSTEM_BYPASS))
+			return;
 
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 		auto question_response_sequence_component = player_entity->find_first_component_by_type<textworld::components::QuestionResponseSequenceComponent>();
@@ -1283,8 +1302,8 @@ namespace textworld::systems
 		if (question_response_sequence_component != nullptr)
 		{
 			if (!question_response_sequence_component->get_waiting_for_answer() &&
-				(question_response_sequence_component->get_question_count() >=
-					question_response_sequence_component->get_response_count()))
+					(question_response_sequence_component->get_question_count() >=
+					 question_response_sequence_component->get_response_count()))
 			{
 				question_response_sequence_component->set_waiting_for_answer(true);
 				auto question = question_response_sequence_component->get_question(question_response_sequence_component->get_response_count());
@@ -1299,8 +1318,8 @@ namespace textworld::systems
 					question_response_sequence_component->set_waiting_for_answer(false);
 					question_response_sequence_component->add_response(command_component->get_command_with_arguments());
 					auto output_component = std::make_shared<textworld::components::OutputComponent>("question response sequence output",
-						fmt::format("You answered with: {}", question_response_sequence_component->get_response(question_response_sequence_component->get_response_count() - 1)),
-						textworld::data::OutputType::REGULAR);
+																																													 fmt::format("You answered with: {}", question_response_sequence_component->get_response(question_response_sequence_component->get_response_count() - 1)),
+																																													 textworld::data::OutputType::REGULAR);
 					output_entity->add_component(output_component);
 				}
 			}
@@ -1337,7 +1356,7 @@ namespace textworld::gfx
 	{
 		for (int p = 0; p < passes; p++)
 		{
-			auto& temp_map = std::make_shared<boost::numeric::ublas::matrix<int>>() = map;
+			auto &temp_map = std::make_shared<boost::numeric::ublas::matrix<int>>() = map;
 
 			for (int rows = 0; rows < map_height; rows++)
 			{
@@ -1390,7 +1409,7 @@ namespace textworld::gfx
 			int current_index = 0;
 
 			int _index = 0;
-			for (const auto& item : *open_list)
+			for (const auto &item : *open_list)
 			{
 				if (item->f < current_node->f)
 				{
@@ -1405,10 +1424,10 @@ namespace textworld::gfx
 
 			if (current_node->eq(*end_node))
 			{
-				auto& current = current_node;
+				auto &current = current_node;
 				while (current != nullptr && current->position != nullptr)
 				{
-					Point path_point = { current->position->x, current->position->y };
+					Point path_point = {current->position->x, current->position->y};
 					path->push(path_point);
 					current = current->parent;
 				}
@@ -1418,25 +1437,28 @@ namespace textworld::gfx
 
 			auto children = std::make_shared<std::vector<std::shared_ptr<AStarNode>>>();
 
-			for (const auto& new_position : pos_array)
+			for (const auto &new_position : pos_array)
 			{
 				auto node_position = std::make_shared<Point>(current_node->position->x + new_position.x, current_node->position->y + new_position.y);
 
 				if (node_position->x > (map->size2() - 1) || node_position->x < 0 ||
-					node_position->y >(map->size1() - 1) || node_position->y < 0) continue;
+						node_position->y > (map->size1() - 1) || node_position->y < 0)
+					continue;
 
-				if ((*map)(node_position->y, node_position->x) != walkable_tile_id) continue;
+				if ((*map)(node_position->y, node_position->x) != walkable_tile_id)
+					continue;
 
 				auto child = std::make_shared<AStarNode>(*current_node, *node_position);
 				children->emplace_back(child);
 			}
 
-			for (const auto& child : *children)
+			for (const auto &child : *children)
 			{
 				auto closed_list_result = std::find_if(closed_list->begin(), closed_list->end(),
-					[&](const std::shared_ptr<AStarNode>& c) {
-						return c->eq(*child);
-					});
+																							 [&](const std::shared_ptr<AStarNode> &c)
+																							 {
+																								 return c->eq(*child);
+																							 });
 
 				if (closed_list_result != closed_list->end() && *closed_list_result != nullptr)
 					continue;
@@ -1446,9 +1468,10 @@ namespace textworld::gfx
 				child->f = child->g + child->h;
 
 				auto open_node_result = std::find_if(open_list->begin(), open_list->end(),
-					[&](const std::shared_ptr<AStarNode>& o) {
-						return child->eq(*o) && child->g >= o->g;
-					});
+																						 [&](const std::shared_ptr<AStarNode> &o)
+																						 {
+																							 return child->eq(*o) && child->g >= o->g;
+																						 });
 
 				if (open_node_result != open_list->end() && *open_node_result != nullptr)
 					continue;
@@ -1460,8 +1483,8 @@ namespace textworld::gfx
 		return path;
 	}
 
-	SpriteSheet::SpriteSheet(SDL_Renderer* renderer, std::string name, std::string path, int sprite_width, int sprite_height)
-		: renderer(renderer), name(name), path(path), sprite_width(sprite_width), sprite_height(sprite_height)
+	SpriteSheet::SpriteSheet(SDL_Renderer *renderer, std::string name, std::string path, int sprite_width, int sprite_height)
+			: renderer(renderer), name(name), path(path), sprite_width(sprite_width), sprite_height(sprite_height)
 	{
 		auto tileset = IMG_Load(path.c_str());
 		auto t_color = SDL_MapRGB(tileset->format, 0, 0, 0);
@@ -1474,7 +1497,7 @@ namespace textworld::gfx
 		{
 			for (int x = 0; x < total_sprites_on_sheet / (sprite_width / 2); x++)
 			{
-				SDL_Rect rect = { x * sprite_width, y * sprite_height, sprite_width, sprite_height };
+				SDL_Rect rect = {x * sprite_width, y * sprite_height, sprite_width, sprite_height};
 				auto r = std::make_shared<SDL_Rect>(rect);
 				sprites->emplace_back(r);
 			}
@@ -1489,12 +1512,11 @@ namespace textworld::gfx
 			return;
 
 		SDL_Rect dest = {
-			x,
-			y,
-			(scaled_width > 0) ? scaled_width : sprite_width,
-			(scaled_height > 0) ? scaled_height : sprite_height
-		};
-		auto& sprite_rect = sprites->at(sprite_id);
+				x,
+				y,
+				(scaled_width > 0) ? scaled_width : sprite_width,
+				(scaled_height > 0) ? scaled_height : sprite_height};
+		auto &sprite_rect = sprites->at(sprite_id);
 		SDL_RenderCopy(renderer, spritesheet_texture, &(*sprite_rect), &dest);
 	}
 
@@ -1505,7 +1527,7 @@ namespace textworld::gfx
 
 		for (std::size_t i = 0, sp = sprites->size(); i != sp; ++i)
 		{
-			auto& sprite_rect = sprites->at(i);
+			auto &sprite_rect = sprites->at(i);
 			sol::table rect_table = lua.create_table();
 
 			rect_table.set("x", sprite_rect->x);
@@ -1547,15 +1569,16 @@ namespace textworld::gfx
 
 		Uint32 flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC;
 
-		if (fullscreen) flags |= SDL_WINDOW_FULLSCREEN;
+		if (fullscreen)
+			flags |= SDL_WINDOW_FULLSCREEN;
 
 		window = SDL_CreateWindow(
-			title.c_str(),
-			SDL_WINDOWPOS_CENTERED,
-			SDL_WINDOWPOS_CENTERED,
-			width,
-			height,
-			flags);
+				title.c_str(),
+				SDL_WINDOWPOS_CENTERED,
+				SDL_WINDOWPOS_CENTERED,
+				width,
+				height,
+				flags);
 
 		if (window == nullptr)
 			throw std::runtime_error(std::string("SDL_CreateWindow Error: ") + SDL_GetError());
@@ -1563,11 +1586,17 @@ namespace textworld::gfx
 		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
 		SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
+		SDL_Surface *window_icon_surface = IMG_Load("assets/icon.png");
+		SDL_SetWindowIcon(window, window_icon_surface);
+		SDL_FreeSurface(window_icon_surface);
+
 		text = std::make_unique<Text>(renderer, "assets/VT323-Regular.ttf", 32);
+		spritesheet_manager = std::make_unique<SpriteSheetManager>(renderer);
 	}
 
 	void Engine::game_loop()
 	{
+		static Timer timer{};
 		bool quit = false;
 		SDL_Event event;
 
@@ -1596,27 +1625,180 @@ namespace textworld::gfx
 
 			frame_time = SDL_GetTicks() - elapsed_time;
 			if (frame_time < (1000 / FPS))
+			{
 				SDL_Delay((1000 / FPS) - frame_time);
+				timer.tick();
+			}
 		}
 	}
 
 	void Engine::render()
 	{
-		draw_text("Hello SDL2 World!", 10, 10);
+		draw_text(10, 10, "Hello SDL2 World!");
 	}
 
 	void Engine::switch_map(std::string name)
 	{
 		auto map = std::find_if(maps->begin(), maps->end(),
-			[&](const std::shared_ptr<Map>& m)
-			{
-				return m->name == name;
-			});
+														[&](const std::shared_ptr<Map> &m)
+														{
+															return m->name == name;
+														});
 
 		if (map != maps->end())
 		{
 			current_map = *map;
-			//path_finder = std::make_unique<AStarPathFinder>(current_map->map);
+			// path_finder = std::make_unique<AStarPathFinder>(current_map->map);
 		}
 	}
+
+	void Engine::generate_map(std::string name, int map_width, int map_height)
+	{
+		auto map = init_cellular_automata(map_width, map_height);
+		perform_cellular_automaton(map, map_width, map_height, 10);
+
+		maps->erase(std::remove_if(maps->begin(), maps->end(),
+															 [&](const auto &m)
+															 {
+																 if (m->name == name)
+																	 return true;
+
+																 return false;
+															 }),
+								maps->end());
+
+		maps->emplace_back(std::make_shared<Map>(name, map_width, map_height, map));
+	}
+
+	std::shared_ptr<Map> Engine::get_map(std::string name)
+	{
+		auto map = std::find_if(maps->begin(), maps->end(),
+														[&](const auto &m)
+														{
+															return m->name == name;
+														});
+
+		if (map != maps->end())
+		{
+			return *map;
+		}
+
+		return nullptr;
+	}
+
+	void Engine::play_sound(std::string name)
+	{
+		if (!(name.length() > 0))
+			return;
+
+		auto sound = std::find_if(sounds->begin(), sounds->end(),
+															[&](const auto &s)
+															{
+																return s->name == name;
+															});
+
+		if (sound != sounds->end())
+		{
+			(*sound)->play();
+		}
+	}
+
+	void Engine::render_graphic(std::string path, int window_width, int x, int y, bool centered, bool scaled, float scaled_factor)
+	{
+		auto graphic = IMG_Load(path.c_str());
+		auto graphic_texture = SDL_CreateTextureFromSurface(renderer, graphic);
+
+		SDL_Rect src = {0, 0, graphic->w, graphic->h};
+		SDL_Rect dest = {x, y, graphic->w, graphic->h};
+
+		if (centered)
+			dest = {((window_width / (2 + (int)scaled_factor)) - (graphic->w / 2)), y, graphic->w, graphic->h};
+
+		if (scaled)
+		{
+			SDL_RenderSetScale(renderer, scaled_factor, scaled_factor);
+			SDL_RenderCopy(renderer, graphic_texture, &src, &dest);
+			SDL_RenderSetScale(renderer, 1, 1);
+		}
+		else
+		{
+			SDL_RenderCopy(renderer, graphic_texture, &src, &dest);
+		}
+
+		SDL_FreeSurface(graphic);
+		SDL_DestroyTexture(graphic_texture);
+	}
+
+	bool Engine::is_xy_blocked(int x, int y)
+	{
+		// TODO: Implement me!!!
+		return true;
+	}
+
+	Point Engine::get_open_point_for_xy(int x, int y)
+	{
+		int left = x - 1;
+		int right = x + 1;
+		int up = y - 1;
+		int down = y + 1;
+
+		if (!is_xy_blocked(left, y))
+			return {left, y};
+		else if (!is_xy_blocked(right, y))
+			return {right, y};
+		else if (!is_xy_blocked(x, up))
+			return {x, up};
+		else if (!is_xy_blocked(x, down))
+			return {x, down};
+
+		return generate_random_point();
+	}
+
+	Point Engine::generate_random_point()
+	{
+		if (current_map->map == nullptr)
+		{
+			return {0, 0};
+		}
+
+		int c = 0;
+		int r = 0;
+
+		do
+		{
+			c = std::rand() % (current_map->width - 1);
+			r = std::rand() % (current_map->height - 1);
+		} while (is_xy_blocked(c, r));
+
+		return {c, r};
+	}
+
+	// Adapted from http://www.roguebasin.com/index.php?title=Eligloscode
+	void Engine::rb_fov(Point from_point)
+	{
+		float x = 0, y = 0;
+
+		current_map->light_map = std::make_shared<boost::numeric::ublas::matrix<int>>(current_map->height, current_map->width, 0);
+
+		for (int i = 0; i < 360; i++)
+		{
+			x = (float)std::cos(i * 0.01745f);
+			y = (float)std::sin(i * 0.01745f);
+
+			float ox = (float)from_point.x + 0.5f;
+			float oy = (float)from_point.y + 0.5f;
+
+			for (int j = 0; j < 40; j++)
+			{
+				(*current_map->light_map)((int)oy, (int)ox) = 2;
+
+				if ((*current_map->map)((int)oy, (int)ox) == 0) // if tile is a wall
+					break;
+
+				ox += x;
+				oy += y;
+			}
+		}
+	}
+
 }
