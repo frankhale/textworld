@@ -1,7 +1,7 @@
 #include "../textworld.h"
 
 int main(int argc, char* argv[])
-{	
+{
 	auto entity_manager = textworld::helpers::make_entity_manager();
 	
 	mk_it("Coin Purse", "Extremely worn leather purse. The leather is soft and flexible and it's color has faded. There are 100 coins inside.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)

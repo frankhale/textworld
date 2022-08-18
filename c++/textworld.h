@@ -479,6 +479,7 @@ namespace textworld::data
 		std::string description{};
 		std::string location_id{};
 		std::vector<std::string> steps{};
+		std::unordered_map<std::string, std::string> scripts{};
 	};
 
 	struct RoomInfo
@@ -492,6 +493,10 @@ namespace textworld::data
 
 namespace textworld::gfx
 {
+	int get_neighbor_wall_count(std::shared_ptr<boost::numeric::ublas::matrix<int>> map, int map_width, int map_height, int x, int y);
+	void perform_cellular_automaton(std::shared_ptr<boost::numeric::ublas::matrix<int>> map, int map_width, int map_height, int passes);
+	std::shared_ptr<boost::numeric::ublas::matrix<int>> init_cellular_automata(int map_width, int map_height);
+
 	// ref: https://enginedev.stackexchange.com/a/163508/18014
 	struct Timer
 	{
@@ -513,11 +518,14 @@ namespace textworld::gfx
 	class Text
 	{
 	public:
-		Text(SDL_Renderer* renderer) : renderer(renderer) {}
-
-		int load_font(const char* path, int ptsize)
+		Text(SDL_Renderer* renderer, std::string font_path, int font_size) : renderer(renderer) 
 		{
-			font = TTF_OpenFont(path, ptsize);
+			load_font(font_path, font_size);
+		}
+
+		int load_font(std::string path, int ptsize)
+		{
+			font = TTF_OpenFont(path.c_str(), ptsize);
 
 			if (!font)
 			{
@@ -527,14 +535,14 @@ namespace textworld::gfx
 
 			return 0;
 		}
-		void draw_text(int x, int y, const char* text, SDL_Color color)
+		void draw_text(int x, int y, std::string text, SDL_Color color)
 		{
-			if (strlen(text) <= 0)
+			if (strlen(text.c_str()) <= 0)
 				return;
 
 			text_texture = nullptr;
 
-			SDL_Surface* text_surface = TTF_RenderText_Blended(font, text, color);
+			SDL_Surface* text_surface = TTF_RenderText_Blended(font, text.c_str(), color);
 			SDL_Rect text_rect(x, y, text_surface->w, text_surface->h);
 
 			text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
@@ -542,15 +550,15 @@ namespace textworld::gfx
 			SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
 			SDL_DestroyTexture(text_texture);
 		}
-		void draw_text(int x, int y, const char* text)
+		void draw_text(int x, int y, std::string text)
 		{
-			draw_text(x, y, text, text_color);
+			draw_text(x, y, text.c_str(), text_color);
 		}
-		TextExtents get_text_extents(const char* text)
+		TextExtents get_text_extents(std::string text)
 		{
 			int w{}, h{};
 
-			if (TTF_SizeText(font, text, &w, &h) == 0)
+			if (TTF_SizeText(font, text.c_str(), &w, &h) == 0)
 			{
 				return { w, h };
 			}
@@ -558,7 +566,7 @@ namespace textworld::gfx
 			return { 0, 0 };
 		}
 
-	private:		
+	private:
 		SDL_Renderer* renderer{};
 		TTF_Font* font{};
 		SDL_Texture* text_texture{};
@@ -569,7 +577,7 @@ namespace textworld::gfx
 	struct Point
 	{
 		Point() : x(-1), y(-1) {}
-		Point(int x, int y) : x(x), y(y) {}		
+		Point(int x, int y) : x(x), y(y) {}
 
 		bool eq(Point p) { return p.x == x && p.y == y; }
 
@@ -581,12 +589,12 @@ namespace textworld::gfx
 	{
 		std::string name{};
 		Mix_Chunk* sound{};
-	
+
 		void play() { Mix_PlayChannel(-1, sound, 0); }
 	};
 
 	struct Map
-	{	
+	{
 		Map(std::string name, int weight, int height, std::shared_ptr<boost::numeric::ublas::matrix<int>> map) :
 			name(name), width(width), height(height), map(map)
 		{
@@ -603,28 +611,55 @@ namespace textworld::gfx
 	class SpriteSheet
 	{
 	public:
-		SpriteSheet(SDL_Renderer* renderer, std::string n, std::string p, int sw, int sh);
-		~SpriteSheet()
-		{
-			SDL_DestroyTexture(spritesheet_texture);
-		}
+		SpriteSheet(SDL_Renderer* renderer, std::string name, std::string path, int sprite_width, int sprite_height);
 
-		void draw_sprite(SDL_Renderer* renderer, int sprite_id, int x, int y);
-		void draw_sprite(SDL_Renderer* renderer, int sprite_id, int x, int y, int scaled_width, int scaled_height);
+		~SpriteSheet() { SDL_DestroyTexture(spritesheet_texture); }
+
+		void draw_sprite(int sprite_id, int x, int y) { draw_sprite(sprite_id, x, y, 0, 0); }
+		void draw_sprite(int sprite_id, int x, int y, int scaled_width, int scaled_height);
 
 		auto get_spritesheet_texture() const { return spritesheet_texture; }
-
 		auto get_name() const { return name; }
 
 		sol::table get_sprites_as_lua_table(sol::this_state s);
 
 	private:
-		std::string name;
-		std::string path;
-		int sprite_width = 0;
-		int sprite_height = 0;
+		std::string name{};
+		std::string path{};
+		int sprite_width{};
+		int sprite_height{};
 		std::unique_ptr<std::vector<std::shared_ptr<SDL_Rect>>> sprites{};
 		SDL_Texture* spritesheet_texture{};
+		SDL_Renderer* renderer{};
+	};
+
+	class SpriteSheetManager
+	{
+	public:
+		SpriteSheetManager(SDL_Renderer* renderer) : renderer(renderer) 
+		{
+			spritesheets = std::make_unique<std::vector<std::shared_ptr<SpriteSheet>>>();
+		}
+
+		void add_spritesheet(std::string name, std::string path, int spritesheet_width, int spritesheet_height)
+		{			
+			spritesheets->push_back(std::make_shared<SpriteSheet>(renderer, name, path, spritesheet_width, spritesheet_height));
+		}
+		std::shared_ptr<SpriteSheet> find_spritesheet(std::string name)
+		{
+			for (auto& spritesheet : *spritesheets)
+			{
+				if (spritesheet->get_name() == name)
+				{
+					return spritesheet;
+				}
+			}
+			return nullptr;
+		}
+
+	private:
+		std::unique_ptr<std::vector<std::shared_ptr<SpriteSheet>>> spritesheets{};
+		SDL_Renderer* renderer{};
 	};
 
 	class SpriteComponent : public textworld::ecs::Component
@@ -699,6 +734,44 @@ namespace textworld::gfx
 
 		int max_iterations = 0;
 	};
+
+	class Engine
+	{
+	public:
+		Engine() 
+		{
+			maps = std::make_unique<std::vector<std::shared_ptr<Map>>>();
+		}
+		~Engine() 
+		{
+			SDL_DestroyRenderer(renderer);
+			SDL_DestroyWindow(window);
+
+			Mix_Quit();
+			TTF_Quit();
+			IMG_Quit();
+			SDL_Quit();
+		}
+		
+		void init(std::string title, int width, int height, bool fullscreen);	
+		void game_loop();
+		void render();
+		void switch_map(std::string name);
+
+		void draw_text(std::string message, int x, int y)
+		{
+			text->draw_text(x, y, message);
+		}
+
+	private:
+		std::unique_ptr<std::vector<std::shared_ptr<Map>>> maps{};
+		std::shared_ptr<Map> current_map{};
+		std::unique_ptr<Text> text{};
+
+		SDL_Window* window{};
+		SDL_Surface* window_surface{};
+		SDL_Renderer* renderer{};
+	};
 }
 
 namespace textworld::components
@@ -737,7 +810,7 @@ namespace textworld::components
 					arguments.push_back(token);
 				}
 			}
-			
+
 			tokens.push_back(command);
 			tokens.insert(tokens.end(), arguments.begin(), arguments.end());
 		}
@@ -746,7 +819,7 @@ namespace textworld::components
 		auto get_arguments() const { return arguments; }
 		auto get_command_with_arguments() const { return command_with_arguments; }
 		auto get_arguments_as_string() const { return get_vector_of_strings_as_strings(arguments); }
-				
+
 		auto get_tokens() const { return tokens; }
 
 	protected:
@@ -1233,7 +1306,7 @@ namespace textworld::helpers
 			{
 				return nullptr;
 			}
-			
+
 			command += " ";
 			count++;
 		}

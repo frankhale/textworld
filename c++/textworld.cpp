@@ -267,10 +267,10 @@ namespace textworld::helpers
 	std::shared_ptr<textworld::ecs::EntityManager> make_entity_manager()
 	{
 		auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();
-		auto output_entity = std::make_shared<textworld::ecs::Entity>("output");		
-		
+		auto output_entity = std::make_shared<textworld::ecs::Entity>("output");
+
 		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::CORE, output_entity);
-		
+
 		return entity_manager;
 	}
 }
@@ -1310,6 +1310,69 @@ namespace textworld::systems
 
 namespace textworld::gfx
 {
+	int get_neighbor_wall_count(std::shared_ptr<boost::numeric::ublas::matrix<int>> map, int map_width, int map_height, int x, int y)
+	{
+		int wall_count = 0;
+
+		for (int row = y - 1; row <= y + 1; row++)
+		{
+			for (int col = x - 1; col <= x + 1; col++)
+			{
+				if (row >= 1 && col >= 1 && row < map_height - 1 && col < map_width - 1)
+				{
+					if ((*map)(row, col) == 0)
+						wall_count++;
+				}
+				else
+				{
+					wall_count++;
+				}
+			}
+		}
+
+		return wall_count;
+	}
+
+	void perform_cellular_automaton(std::shared_ptr<boost::numeric::ublas::matrix<int>> map, int map_width, int map_height, int passes)
+	{
+		for (int p = 0; p < passes; p++)
+		{
+			auto& temp_map = std::make_shared<boost::numeric::ublas::matrix<int>>() = map;
+
+			for (int rows = 0; rows < map_height; rows++)
+			{
+				for (int columns = 0; columns < map_width; columns++)
+				{
+					auto neighbor_wall_count = get_neighbor_wall_count(temp_map, map_width, map_height, columns, rows);
+
+					if (neighbor_wall_count > 4)
+						(*map)(rows, columns) = 0;
+					else
+						(*map)(rows, columns) = 9;
+				}
+			}
+		}
+	}
+
+	std::shared_ptr<boost::numeric::ublas::matrix<int>> init_cellular_automata(int map_width, int map_height)
+	{
+		auto map = std::make_shared<boost::numeric::ublas::matrix<int>>(map_height, map_width);
+
+		for (int r = 0; r < map_height; ++r)
+		{
+			for (int c = 0; c < map_width; ++c)
+			{
+				auto z = std::rand() % 100 + 1;
+				if (z > 48)
+					(*map)(r, c) = 9;
+				else
+					(*map)(r, c) = 0;
+			}
+		}
+
+		return map;
+	}
+
 	std::shared_ptr<std::queue<Point>> AStarPathFinder::find_path(Point start, Point end, int walkable_tile_id)
 	{
 		AStarNode none{};
@@ -1323,77 +1386,237 @@ namespace textworld::gfx
 
 		while (open_list->size() > 0)
 		{
-				auto &current_node = open_list->front();
-				int current_index = 0;
+			auto current_node = open_list->front();
+			int current_index = 0;
 
-				int _index = 0;
-				for (const auto& item : *open_list)
+			int _index = 0;
+			for (const auto& item : *open_list)
+			{
+				if (item->f < current_node->f)
 				{
-						if (item->f < current_node->f)
-						{
-								current_node = item;
-								current_index = _index;
-						}
-						_index++;
+					current_node = item;
+					current_index = _index;
+				}
+				_index++;
+			}
+
+			open_list->erase(open_list->begin() + current_index);
+			closed_list->emplace_back(current_node);
+
+			if (current_node->eq(*end_node))
+			{
+				auto& current = current_node;
+				while (current != nullptr && current->position != nullptr)
+				{
+					Point path_point = { current->position->x, current->position->y };
+					path->push(path_point);
+					current = current->parent;
 				}
 
-				open_list->erase(open_list->begin() + current_index);
-				closed_list->emplace_back(current_node);
+				return path;
+			}
 
-				if (current_node->eq(*end_node))
-				{
-						auto &current = current_node;
-						while (current != nullptr && current->position != nullptr)
-						{
-								Point path_point = { current->position->x, current->position->y };
-								path->push(path_point);
-								current = current->parent;
-						}
+			auto children = std::make_shared<std::vector<std::shared_ptr<AStarNode>>>();
 
-						return path;
-				}
+			for (const auto& new_position : pos_array)
+			{
+				auto node_position = std::make_shared<Point>(current_node->position->x + new_position.x, current_node->position->y + new_position.y);
 
-				auto children = std::make_shared<std::vector<std::shared_ptr<AStarNode>>>();
+				if (node_position->x > (map->size2() - 1) || node_position->x < 0 ||
+					node_position->y >(map->size1() - 1) || node_position->y < 0) continue;
 
-				for (const auto& new_position : pos_array)
-				{
-						auto node_position = std::make_shared<Point>(current_node->position->x + new_position.x, current_node->position->y + new_position.y);
+				if ((*map)(node_position->y, node_position->x) != walkable_tile_id) continue;
 
-						if (node_position->x > (map->size2() - 1) || node_position->x < 0 ||
-								node_position->y >(map->size1() - 1) || node_position->y < 0) continue;
+				auto child = std::make_shared<AStarNode>(*current_node, *node_position);
+				children->emplace_back(child);
+			}
 
-						if ((*map)(node_position->y, node_position->x) != walkable_tile_id) continue;
+			for (const auto& child : *children)
+			{
+				auto closed_list_result = std::find_if(closed_list->begin(), closed_list->end(),
+					[&](const std::shared_ptr<AStarNode>& c) {
+						return c->eq(*child);
+					});
 
-						auto child = std::make_shared<AStarNode>(*current_node, *node_position);
-						children->emplace_back(child);
-				}
+				if (closed_list_result != closed_list->end() && *closed_list_result != nullptr)
+					continue;
 
-				for (const auto& child : *children)
-				{
-						auto closed_list_result = std::find_if(closed_list->begin(), closed_list->end(),
-								[&](const std::shared_ptr<AStarNode>& c) {
-										return c->eq(*child);
-								});
+				child->g = current_node->g + 1;
+				child->h = (int)pow(child->position->x - end_node->position->x, 2) + (int)pow(child->position->y - end_node->position->y, 2);
+				child->f = child->g + child->h;
 
-						if (closed_list_result != closed_list->end() && *closed_list_result != nullptr)
-								continue;
+				auto open_node_result = std::find_if(open_list->begin(), open_list->end(),
+					[&](const std::shared_ptr<AStarNode>& o) {
+						return child->eq(*o) && child->g >= o->g;
+					});
 
-						child->g = current_node->g + 1;
-						child->h = (int)pow(child->position->x - end_node->position->x, 2) + (int)pow(child->position->y - end_node->position->y, 2);
-						child->f = child->g + child->h;
+				if (open_node_result != open_list->end() && *open_node_result != nullptr)
+					continue;
 
-						auto open_node_result = std::find_if(open_list->begin(), open_list->end(),
-								[&](const std::shared_ptr<AStarNode>& o) {
-										return child->eq(*o) && child->g >= o->g;
-								});
-
-						if (open_node_result != open_list->end() && *open_node_result != nullptr)
-								continue;
-
-						open_list->emplace_back(child);
-				}
+				open_list->emplace_back(child);
+			}
 		}
 
 		return path;
+	}
+
+	SpriteSheet::SpriteSheet(SDL_Renderer* renderer, std::string name, std::string path, int sprite_width, int sprite_height)
+		: renderer(renderer), name(name), path(path), sprite_width(sprite_width), sprite_height(sprite_height)
+	{
+		auto tileset = IMG_Load(path.c_str());
+		auto t_color = SDL_MapRGB(tileset->format, 0, 0, 0);
+		SDL_SetColorKey(tileset, SDL_TRUE, t_color);
+		spritesheet_texture = SDL_CreateTextureFromSurface(renderer, tileset);
+		int total_sprites_on_sheet = tileset->w / sprite_width * tileset->h / sprite_height;
+		sprites = std::make_unique<std::vector<std::shared_ptr<SDL_Rect>>>(0);
+
+		for (int y = 0; y < total_sprites_on_sheet / (sprite_height / 2); y++)
+		{
+			for (int x = 0; x < total_sprites_on_sheet / (sprite_width / 2); x++)
+			{
+				SDL_Rect rect = { x * sprite_width, y * sprite_height, sprite_width, sprite_height };
+				auto r = std::make_shared<SDL_Rect>(rect);
+				sprites->emplace_back(r);
+			}
+		}
+
+		SDL_FreeSurface(tileset);
+	}
+
+	void SpriteSheet::draw_sprite(int sprite_id, int x, int y, int scaled_width, int scaled_height)
+	{
+		if (sprite_id < 0 || sprite_id > sprites->size())
+			return;
+
+		SDL_Rect dest = {
+			x,
+			y,
+			(scaled_width > 0) ? scaled_width : sprite_width,
+			(scaled_height > 0) ? scaled_height : sprite_height
+		};
+		auto& sprite_rect = sprites->at(sprite_id);
+		SDL_RenderCopy(renderer, spritesheet_texture, &(*sprite_rect), &dest);
+	}
+
+	sol::table SpriteSheet::get_sprites_as_lua_table(sol::this_state s)
+	{
+		sol::state_view lua(s);
+		sol::table sprites_table = lua.create_table();
+
+		for (std::size_t i = 0, sp = sprites->size(); i != sp; ++i)
+		{
+			auto& sprite_rect = sprites->at(i);
+			sol::table rect_table = lua.create_table();
+
+			rect_table.set("x", sprite_rect->x);
+			rect_table.set("y", sprite_rect->y);
+			rect_table.set("w", sprite_rect->w);
+			rect_table.set("h", sprite_rect->h);
+
+			sprites_table.set(i, rect_table);
+		}
+
+		return sprites_table;
+	}
+
+	void Engine::init(std::string title, int width, int height, bool fullscreen)
+	{
+		if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
+			throw std::runtime_error(std::string("SDL_Init Error: ") + SDL_GetError());
+
+		if (TTF_Init() != 0)
+			throw std::runtime_error(std::string("TTF_Init Error: ") + TTF_GetError());
+
+		if (IMG_Init(IMG_INIT_PNG) < 0)
+			throw std::runtime_error(std::string("IMG_Init Error: ") + IMG_GetError());
+
+		if (Mix_Init(MIX_INIT_MP3) == 0)
+			throw std::runtime_error(std::string("Mix_Init Error: ") + Mix_GetError());
+
+		if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) != 0)
+			throw std::runtime_error(std::string("Mix_OpenAudio Error: ") + Mix_GetError());
+
+		if (Mix_AllocateChannels(32) != 32)
+			throw std::runtime_error(std::string("Mix_AllocateChannels Error: ") + Mix_GetError());
+
+		if (Mix_Volume(-1, MIX_MAX_VOLUME) != MIX_MAX_VOLUME)
+			throw std::runtime_error(std::string("Mix_Volume Error: ") + Mix_GetError());
+
+		if (Mix_VolumeMusic(MIX_MAX_VOLUME) != MIX_MAX_VOLUME)
+			throw std::runtime_error(std::string("Mix_VolumeMusic Error: ") + Mix_GetError());
+
+		Uint32 flags = SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC;
+
+		if (fullscreen) flags |= SDL_WINDOW_FULLSCREEN;
+
+		window = SDL_CreateWindow(
+			title.c_str(),
+			SDL_WINDOWPOS_CENTERED,
+			SDL_WINDOWPOS_CENTERED,
+			width,
+			height,
+			flags);
+
+		if (window == nullptr)
+			throw std::runtime_error(std::string("SDL_CreateWindow Error: ") + SDL_GetError());
+
+		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
+		SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+		text = std::make_unique<Text>(renderer, "assets/VT323-Regular.ttf", 32);
+	}
+
+	void Engine::game_loop()
+	{
+		bool quit = false;
+		SDL_Event event;
+
+		int FPS = 60;
+		Uint32 elapsed_time = 0;
+		int frame_time = 0;
+
+		while (!quit)
+		{
+			elapsed_time = SDL_GetTicks();
+
+			while (SDL_PollEvent(&event))
+			{
+				if (event.type == SDL_QUIT)
+					quit = true;
+				else if (event.type == SDL_KEYDOWN)
+				{
+					if (event.key.keysym.sym == SDLK_ESCAPE)
+						quit = true;
+				}
+			}
+
+			SDL_RenderClear(renderer);
+			render();
+			SDL_RenderPresent(renderer);
+
+			frame_time = SDL_GetTicks() - elapsed_time;
+			if (frame_time < (1000 / FPS))
+				SDL_Delay((1000 / FPS) - frame_time);
+		}
+	}
+
+	void Engine::render()
+	{
+		draw_text("Hello SDL2 World!", 10, 10);
+	}
+
+	void Engine::switch_map(std::string name)
+	{
+		auto map = std::find_if(maps->begin(), maps->end(),
+			[&](const std::shared_ptr<Map>& m)
+			{
+				return m->name == name;
+			});
+
+		if (map != maps->end())
+		{
+			current_map = *map;
+			//path_finder = std::make_unique<AStarPathFinder>(current_map->map);
+		}
 	}
 }

@@ -8,6 +8,7 @@
 *out/
 googletest/
 CMakeFiles/
+dependencies/
 
 # User-specific files
 *.rsuser
