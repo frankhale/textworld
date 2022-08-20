@@ -274,6 +274,16 @@ namespace textworld::helpers
 
 		return entity_manager;
 	}
+
+	void add_output_message(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message)
+	{
+		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
+		if (output_entity != nullptr)
+		{
+			auto output_component = std::make_shared<textworld::components::OutputComponent>("output message", message);
+			output_entity->add_component(output_component);
+		}
+	}
 }
 
 namespace textworld::ecs
@@ -1729,48 +1739,22 @@ namespace textworld::gfx
 		SDL_DestroyTexture(graphic_texture);
 	}
 
-	bool Engine::is_xy_blocked(int x, int y)
+	TileType Engine::get_tile_type(std::string player_id, int x, int y)
 	{
-		// TODO: Implement me!!!
-		return true;
-	}
+		int tile_id = (*current_map->map)((size_t)y, x);
 
-	Point Engine::get_open_point_for_xy(int x, int y)
-	{
-		int left = x - 1;
-		int right = x + 1;
-		int up = y - 1;
-		int down = y + 1;
+		// auto player_entity = entity_manager->get_entity_by_id(textworld::ecs::EntityGroupName::PLAYERS, player_id);
+		// if (player_entity != nullptr)
+		// {
+		// 	auto player_position = player_entity->find_first_component_by_type<textworld::gfx::PositionComponent>();
 
-		if (!is_xy_blocked(left, y))
-			return {left, y};
-		else if (!is_xy_blocked(right, y))
-			return {right, y};
-		else if (!is_xy_blocked(x, up))
-			return {x, up};
-		else if (!is_xy_blocked(x, down))
-			return {x, down};
+		// 	if (player_position != nullptr && player_position->get_x() == x && player_position->get_y() == y)
+		// 	{
+		// 		return TileType::PLAYER;
+		// 	}
+		// }
 
-		return generate_random_point();
-	}
-
-	Point Engine::generate_random_point()
-	{
-		if (current_map->map == nullptr)
-		{
-			return {0, 0};
-		}
-
-		int c = 0;
-		int r = 0;
-
-		do
-		{
-			c = std::rand() % (current_map->width - 1);
-			r = std::rand() % (current_map->height - 1);
-		} while (is_xy_blocked(c, r));
-
-		return {c, r};
+		return TileType::UNKNOWN;
 	}
 
 	// Adapted from http://www.roguebasin.com/index.php?title=Eligloscode

@@ -635,6 +635,17 @@ namespace textworld::gfx
 		std::shared_ptr<boost::numeric::ublas::matrix<int>> light_map{};
 	};
 
+	enum class TileType
+	{
+		UNKNOWN,
+		WALL,
+		DOOR,
+		PLAYER,
+		MOB,
+		ITEM,
+		FLOOR
+	};
+
 	class SpriteSheet
 	{
 	public:
@@ -717,6 +728,24 @@ namespace textworld::gfx
 		std::string spritesheet_name{};
 		std::string sprite_name{};
 		int sprite_id{};
+	};
+
+	class PositionComponent : public textworld::ecs::Component
+	{
+	public:
+		PositionComponent(std::string name, int x, int y) : Component(name), position({x, y}) {}
+
+		Point get_point() const { return position; }
+		void set_point(Point p) { position = p; }
+
+		int get_x() const { return position.x; }
+		int get_y() const { return position.y; }
+
+		void set_x(int x) { position.x = x; }
+		void set_y(int y) { position.y = y; }
+
+	private:
+		Point position{};
 	};
 
 	struct AStarNode
@@ -827,19 +856,9 @@ namespace textworld::gfx
 		void render();
 		void render_graphic(std::string path, int window_width, int x, int y, bool centered, bool scaled, float scaled_factor);
 
-		bool is_xy_blocked(int x, int y);
-		Point get_open_point_for_xy(int x, int y);
-		Point generate_random_point();
+		TileType get_tile_type(std::string player_id, int x, int y);
 
 		void rb_fov(Point from_point);
-
-		bool check_tile_from_point(int x, int y, Point from_point, textworld::data::Direction dir)
-		{
-			return ((dir == textworld::data::Direction::UP && from_point.y == y - 1 && from_point.x == x) ||
-							(dir == textworld::data::Direction::DOWN && from_point.y == y + 1 && from_point.x == x) ||
-							(dir == textworld::data::Direction::LEFT && from_point.y == y && from_point.x == x - 1) ||
-							(dir == textworld::data::Direction::RIGHT && from_point.y == y && from_point.x == x + 1));
-		}
 
 	private:
 		std::shared_ptr<Map> current_map{};
@@ -849,6 +868,8 @@ namespace textworld::gfx
 		std::unique_ptr<std::vector<std::shared_ptr<Map>>> maps{};
 		std::unique_ptr<Text> text{};
 		std::unique_ptr<std::vector<std::shared_ptr<Sound>>> sounds{};
+
+		std::unordered_map<textworld::ecs::EntityType, std::vector<Point>> entity_type_map{};
 
 		int view_port_x{};
 		int view_port_y{};
@@ -1368,6 +1389,7 @@ namespace textworld::helpers
 	extern void use_item_and_return_message(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message);
 	extern std::shared_ptr<textworld::ecs::Entity> make_player(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string name, std::string room_id, std::string description);
 	extern std::shared_ptr<textworld::ecs::EntityManager> make_entity_manager();
+	extern void add_output_message(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message);
 
 	template <typename T>
 	T find_value_in_map(std::unordered_map<std::string, T> map, std::string key, std::vector<std::string> keys)
