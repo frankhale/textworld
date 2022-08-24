@@ -169,10 +169,10 @@ TEST(ECS, CanGetExitInfoFromRoom)
 	entity_manager->add_entity_to_group("rooms", room_entity_2);
 	entity_manager->add_entity_to_group("rooms", room_entity_3);
 
-	room_entity_1->add_component(std::make_shared<textworld::components::ExitComponent>("exit_component", textworld::data::Direction::EAST, room_2_id));
-	room_entity_2->add_component(std::make_shared<textworld::components::ExitComponent>("exit_component", textworld::data::Direction::WEST, room_1_id));
-	room_entity_2->add_component(std::make_shared<textworld::components::ExitComponent>("exit_component", textworld::data::Direction::EAST, room_3_id));
-	room_entity_3->add_component(std::make_shared<textworld::components::ExitComponent>("exit_component", textworld::data::Direction::WEST, room_2_id));
+	room_entity_1->add_component(std::make_shared<textworld::components::ExitComponent>("exit_component", textworld::data::Direction::EAST, room_2_id, false));
+	room_entity_2->add_component(std::make_shared<textworld::components::ExitComponent>("exit_component", textworld::data::Direction::WEST, room_1_id, false));
+	room_entity_2->add_component(std::make_shared<textworld::components::ExitComponent>("exit_component", textworld::data::Direction::EAST, room_3_id, false));
+	room_entity_3->add_component(std::make_shared<textworld::components::ExitComponent>("exit_component", textworld::data::Direction::WEST, room_2_id, false));
 
 	auto exit_info_description_component_for_room_1 = textworld::helpers::get_room_exits(entity_manager, room_entity_1);
 	auto exit_info_description_component_for_room_2 = textworld::helpers::get_room_exits(entity_manager, room_entity_2);
@@ -551,8 +551,8 @@ TEST(Systems, PlayerCanNavigateToNewRoom)
 	entity_manager->add_entity_to_group("rooms", room_entity_2);
 	entity_manager->add_entity_to_group("core", output_entity);
 
-	room_entity_1->add_component(std::make_shared<textworld::components::ExitComponent>("exit_component", textworld::data::Direction::EAST, room_2_id));
-	room_entity_2->add_component(std::make_shared<textworld::components::ExitComponent>("exit_component", textworld::data::Direction::WEST, room_1_id));
+	room_entity_1->add_component(std::make_shared<textworld::components::ExitComponent>("exit_component", textworld::data::Direction::EAST, room_2_id, false));
+	room_entity_2->add_component(std::make_shared<textworld::components::ExitComponent>("exit_component", textworld::data::Direction::WEST, room_1_id, false));
 
 	auto command_component_1 = std::make_shared<textworld::components::CommandInputComponent>("command_component", "east");
 

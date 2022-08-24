@@ -2,29 +2,35 @@
 
 // cmake.EXE --build c:/Users/frank/Documents/DEV/game-dev/TextWorld++/out/build/x64-debug
 
-#define SOL_ALL_SAFETIES_ON 1
+//#define SOL_ALL_SAFETIES_ON 1
 
 #include <concepts>
 #include <ranges>
 #include <map>
 #include <numeric>
 #include <queue>
+#include <memory>
+#include <functional>
+#include <sstream>
+#include <iostream>
 
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 #include <magic_enum.hpp>
-#include <sol/sol.hpp>
+//#include <sol/sol.hpp>
 
+#ifdef SDL2
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_mixer.h>
 #include <SDL2/SDL_ttf.h>
+#include <boost/numeric/ublas/matrix.hpp>
+#endif
 
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <boost/numeric/ublas/matrix.hpp>
 
 #define CONSOLE
 
@@ -50,17 +56,20 @@ extern std::string get_vector_of_strings_as_strings(std::vector<std::string> vec
 		room_info[n] = {.id = id, .name = n, .description = d, .entity = room_entity};               \
 	}
 
-#define mk_ex(fn, tn, d)                                                                                                                                               \
-	{                                                                                                                                                                    \
-		auto from_room_info = room_info[fn];                                                                                                                               \
-		auto to_room_info = room_info[tn];                                                                                                                                 \
-		auto from_exit_component = std::make_shared<textworld::components::ExitComponent>(fn, d, to_room_info.id);                                                         \
-		auto to_exit_component = std::make_shared<textworld::components::ExitComponent>(to_room_info.name, textworld::core::get_opposite_direction(d), from_room_info.id); \
-		from_room_info.entity->add_component(from_exit_component);                                                                                                         \
-		to_room_info.entity->add_component(to_exit_component);                                                                                                             \
-		from_exit_component->set_room_name(tn);                                                                                                                            \
-		to_exit_component->set_room_name(fn);                                                                                                                              \
+#define _mk_ex(fn, tn, d, h)                                                                                                                                                  \
+	{                                                                                                                                                                           \
+		auto from_room_info = room_info[fn];                                                                                                                                      \
+		auto to_room_info = room_info[tn];                                                                                                                                        \
+		auto from_exit_component = std::make_shared<textworld::components::ExitComponent>(fn, d, to_room_info.id, h);                                                             \
+		auto to_exit_component = std::make_shared<textworld::components::ExitComponent>(to_room_info.name, textworld::core::get_opposite_direction(d), from_room_info.id, false); \
+		from_room_info.entity->add_component(from_exit_component);                                                                                                                \
+		to_room_info.entity->add_component(to_exit_component);                                                                                                                    \
+		from_exit_component->set_room_name(tn);                                                                                                                                   \
+		to_exit_component->set_room_name(fn);                                                                                                                                     \
 	}
+
+#define mk_ex(fn, tn, d) _mk_ex(fn, tn, d, false);
+#define mk_ex_hidden(fn, tn, d) _mk_ex(fn, tn, d, true);
 
 #define pl_it(rn, in, q)                                                                                        \
 	{                                                                                                             \
@@ -104,15 +113,14 @@ extern std::string get_vector_of_strings_as_strings(std::vector<std::string> vec
 		npc_entity->add_component(npc_id_component);                                                                                                        \
 	}
 
-#define print_rooms()                                                                                        \
-	{                                                                                                          \
-		for (const auto &r : room_info)                                                                          \
-		{                                                                                                        \
-			fmt::print("{} -> {}\n", r.first, r.second.id);                                                        \
-			fmt::print("Exits:\n");                                                                                \
-			for (const auto &e : r.second.entity->find_components_by_type<textworld::components::ExitComponent>()) \
-				fmt::print("\t{} -> {}\n", e->get_room_name(), e->get_direction_as_string());                        \
-		}                                                                                                        \
+#define print_rooms()                                                                                          \
+	{                                                                                                            \
+		for (const auto &r : room_info)                                                                            \
+		{                                                                                                          \
+			fmt::print("{} -> {}\nExits:\n", r.first, r.second.id);                                                  \
+			\ for (const auto &e : r.second.entity->find_components_by_type<textworld::components::ExitComponent>()) \
+					fmt::print("\t{} -> {}\n", e->get_room_name(), e->get_direction_as_string());                        \
+		}                                                                                                          \
 	}
 
 #define end_room_configuration()                                                                  \
@@ -130,7 +138,8 @@ namespace textworld::ecs
 		NPCS,
 		CORE,
 		ROOMS,
-		ITEMS
+		ITEMS,
+		MOBS
 	};
 
 	enum class EntityType
@@ -417,6 +426,22 @@ namespace textworld::core
 
 namespace textworld::data
 {
+	enum class TriggerType
+	{
+		ENTER,
+		EXIT,
+		USE,
+		TAKE,
+		DROP,
+		LOOK,
+		TALK,
+		ATTACK,
+		MOVE,
+		OPEN,
+		CLOSE,
+		GIVE
+	};
+
 	enum class Flag
 	{
 		NONE,
@@ -496,6 +521,8 @@ namespace textworld::data
 
 	struct Quest
 	{
+		// This isn't fully fleshed out. Not currently sure how we'll track
+		// individual quest steps
 		std::string id{};
 		std::string name{};
 		std::string description{};
@@ -510,374 +537,6 @@ namespace textworld::data
 		std::string name{};
 		std::string description{};
 		std::shared_ptr<textworld::ecs::Entity> entity{};
-	};
-}
-
-namespace textworld::gfx
-{
-	// This code is based on code from my 2D topdown roguelike game called Rogely
-
-	int get_neighbor_wall_count(std::shared_ptr<boost::numeric::ublas::matrix<int>> map, int map_width, int map_height, int x, int y);
-	void perform_cellular_automaton(std::shared_ptr<boost::numeric::ublas::matrix<int>> map, int map_width, int map_height, int passes);
-	std::shared_ptr<boost::numeric::ublas::matrix<int>> init_cellular_automata(int map_width, int map_height);
-
-	// ref: https://enginedev.stackexchange.com/a/163508/18014
-	struct Timer
-	{
-		Uint64 previous_ticks{};
-		float elapsed_seconds{};
-
-		void tick()
-		{
-			const Uint64 current_ticks{SDL_GetPerformanceCounter()};
-			const Uint64 delta{current_ticks - previous_ticks};
-			previous_ticks = current_ticks;
-			static const Uint64 TICKS_PER_SECOND{SDL_GetPerformanceFrequency()};
-			elapsed_seconds = delta / static_cast<float>(TICKS_PER_SECOND);
-		}
-	};
-
-	struct TextExtents
-	{
-		int width{};
-		int height{};
-	};
-
-	class Text
-	{
-	public:
-		Text(SDL_Renderer *renderer, std::string font_path, int font_size) : renderer(renderer)
-		{
-			load_font(font_path, font_size);
-		}
-
-		int load_font(std::string path, int ptsize)
-		{
-			font = TTF_OpenFont(path.c_str(), ptsize);
-
-			if (!font)
-			{
-				fmt::print("Unable to load font: {}\nSDL2_ttf Error : {}\n", path, TTF_GetError());
-				return -1;
-			}
-
-			return 0;
-		}
-		void draw_text(int x, int y, std::string text, SDL_Color color)
-		{
-			if (strlen(text.c_str()) <= 0)
-				return;
-
-			text_texture = nullptr;
-
-			SDL_Surface *text_surface = TTF_RenderText_Blended(font, text.c_str(), color);
-			SDL_Rect text_rect(x, y, text_surface->w, text_surface->h);
-
-			text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
-			SDL_FreeSurface(text_surface);
-			SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
-			SDL_DestroyTexture(text_texture);
-		}
-		void draw_text(int x, int y, std::string text)
-		{
-			draw_text(x, y, text.c_str(), text_color);
-		}
-		TextExtents get_text_extents(std::string text)
-		{
-			int w{}, h{};
-
-			if (TTF_SizeText(font, text.c_str(), &w, &h) == 0)
-			{
-				return {w, h};
-			}
-
-			return {0, 0};
-		}
-
-	private:
-		SDL_Renderer *renderer{};
-		TTF_Font *font{};
-		SDL_Texture *text_texture{};
-		SDL_Color text_color = {0xFF, 0xFF, 0xFF, 0xFF};
-		SDL_Color text_background_color = {0x00, 0x00, 0x00, 0xFF};
-	};
-
-	struct Point
-	{
-		Point() : x(-1), y(-1) {}
-		Point(int x, int y) : x(x), y(y) {}
-
-		bool eq(Point p) { return p.x == x && p.y == y; }
-
-		int x{};
-		int y{};
-	};
-
-	struct Sound
-	{
-		std::string name{};
-		Mix_Chunk *sound{};
-
-		void play() { Mix_PlayChannel(-1, sound, 0); }
-	};
-
-	struct Map
-	{
-		Map(std::string name, int weight, int height, std::shared_ptr<boost::numeric::ublas::matrix<int>> map) : name(name), width(width), height(height), map(map)
-		{
-			light_map = std::make_shared<boost::numeric::ublas::matrix<int>>(height, width);
-		}
-
-		std::string name{};
-		int width{};
-		int height{};
-		std::shared_ptr<boost::numeric::ublas::matrix<int>> map{};
-		std::shared_ptr<boost::numeric::ublas::matrix<int>> light_map{};
-	};
-
-	enum class TileType
-	{
-		UNKNOWN,
-		WALL,
-		DOOR,
-		PLAYER,
-		MOB,
-		ITEM,
-		FLOOR
-	};
-
-	class SpriteSheet
-	{
-	public:
-		SpriteSheet(SDL_Renderer *renderer, std::string name, std::string path, int sprite_width, int sprite_height);
-
-		~SpriteSheet() { SDL_DestroyTexture(spritesheet_texture); }
-
-		void draw_sprite(int sprite_id, int x, int y) { draw_sprite(sprite_id, x, y, 0, 0); }
-		void draw_sprite(int sprite_id, int x, int y, int scaled_width, int scaled_height);
-
-		auto get_spritesheet_texture() const { return spritesheet_texture; }
-		auto get_name() const { return name; }
-
-		sol::table get_sprites_as_lua_table(sol::this_state s);
-
-	private:
-		std::string name{};
-		std::string path{};
-		int sprite_width{};
-		int sprite_height{};
-		std::unique_ptr<std::vector<std::shared_ptr<SDL_Rect>>> sprites{};
-		SDL_Texture *spritesheet_texture{};
-		SDL_Renderer *renderer{};
-	};
-
-	class SpriteSheetManager
-	{
-	public:
-		SpriteSheetManager(SDL_Renderer *renderer) : renderer(renderer)
-		{
-			spritesheets = std::make_unique<std::vector<std::shared_ptr<SpriteSheet>>>();
-		}
-
-		void add_spritesheet(std::string name, std::string path, int spritesheet_width, int spritesheet_height)
-		{
-			spritesheets->emplace_back(std::make_shared<SpriteSheet>(renderer, name, path, spritesheet_width, spritesheet_height));
-		}
-		std::shared_ptr<SpriteSheet> find_spritesheet(std::string spritesheet_name)
-		{
-			for (auto &spritesheet : *spritesheets)
-			{
-				if (spritesheet->get_name() == spritesheet_name)
-				{
-					return spritesheet;
-				}
-			}
-			return nullptr;
-		}
-
-		void draw_sprite(std::string spritesheet_name, int sprite_id, int x, int y, int scaled_width, int scaled_height)
-		{
-			if (spritesheet_name.length() <= 0)
-				return;
-
-			auto sheet = find_spritesheet(spritesheet_name);
-			if (sheet != nullptr)
-			{
-				sheet->draw_sprite(sprite_id, x, y, scaled_width, scaled_height);
-			}
-		}
-
-	private:
-		std::unique_ptr<std::vector<std::shared_ptr<SpriteSheet>>> spritesheets{};
-		SDL_Renderer *renderer{};
-	};
-
-	class SpriteComponent : public textworld::ecs::Component
-	{
-	public:
-		SpriteComponent(std::string name,
-										std::string spritesheet_name,
-										std::string sprite_name,
-										int sprite_id) : Component(name), spritesheet_name(spritesheet_name), sprite_name(sprite_name), sprite_id(sprite_id) {}
-
-		auto get_sprite_id() const { return sprite_id; }
-		auto get_sprite_name() const { return sprite_name; }
-		auto get_spritesheet_name() const { return spritesheet_name; }
-
-	private:
-		std::string spritesheet_name{};
-		std::string sprite_name{};
-		int sprite_id{};
-	};
-
-	class PositionComponent : public textworld::ecs::Component
-	{
-	public:
-		PositionComponent(std::string name, int x, int y) : Component(name), position({x, y}) {}
-
-		Point get_point() const { return position; }
-		void set_point(Point p) { position = p; }
-
-		int get_x() const { return position.x; }
-		int get_y() const { return position.y; }
-
-		void set_x(int x) { position.x = x; }
-		void set_y(int y) { position.y = y; }
-
-	private:
-		Point position{};
-	};
-
-	struct AStarNode
-	{
-		AStarNode() {}
-		AStarNode(const AStarNode &p, const Point &pos)
-		{
-			if (&parent != nullptr)
-				parent = std::make_shared<AStarNode>(p);
-
-			if (&position != nullptr)
-				position = std::make_shared<Point>(pos);
-		}
-
-		bool eq(const AStarNode &x)
-		{
-			if (&x == nullptr)
-				return false;
-
-			return (position->x == x.position->x &&
-							position->y == x.position->y);
-		}
-
-		std::shared_ptr<AStarNode> parent{};
-		std::shared_ptr<Point> position{};
-		int f = 0;
-		int g = 0;
-		int h = 0;
-	};
-
-	class AStarPathFinder
-	{
-	public:
-		AStarPathFinder(std::shared_ptr<boost::numeric::ublas::matrix<int>> map)
-		{
-			this->map = map; // std::make_shared<boost::numeric::ublas::matrix<int>>(map);
-			max_iterations = (int)(this->map->size1() * this->map->size2());
-		}
-
-		std::shared_ptr<std::queue<Point>> find_path(Point start, Point end, int walkable_tile_id);
-
-	private:
-		std::shared_ptr<boost::numeric::ublas::matrix<int>> map;
-
-		Point pos_array[8] = {
-				{0, -1},
-				{0, 1},
-				{-1, 0},
-				{1, 0},
-				{-1, -1},
-				{-1, 1},
-				{1, -1},
-				{1, 1}};
-
-		int max_iterations = 0;
-	};
-
-	class Engine
-	{
-	public:
-		Engine()
-		{
-			std::srand(static_cast<unsigned int>(std::time(nullptr)));
-			maps = std::make_unique<std::vector<std::shared_ptr<Map>>>();
-			entity_manager = std::make_unique<textworld::ecs::EntityManager>();
-			sounds = std::make_unique<std::vector<std::shared_ptr<Sound>>>();
-		}
-		~Engine()
-		{
-			SDL_DestroyRenderer(renderer);
-			SDL_DestroyWindow(window);
-
-			for (auto &s : *sounds)
-			{
-				Mix_FreeChunk(s->sound);
-			}
-
-			Mix_Quit();
-			TTF_Quit();
-			IMG_Quit();
-			SDL_Quit();
-		}
-
-		void init(std::string title, int width, int height, bool fullscreen);
-		void game_loop();
-		void play_sound(std::string name);
-
-		void switch_map(std::string name);
-		void generate_map(std::string name, int map_width, int map_height);
-		std::shared_ptr<Map> get_map(std::string name);
-
-		void set_draw_color(int r, int g, int b, int a) { SDL_SetRenderDrawColor(renderer, r, g, b, a); }
-		void draw_point(int x, int y) { SDL_RenderDrawPoint(renderer, x, y); }
-		void draw_rect(int x, int y, int w, int h)
-		{
-			SDL_Rect r = {x, y, w, h};
-			SDL_RenderDrawRect(renderer, &r);
-		}
-		void draw_filled_rect(int x, int y, int w, int h)
-		{
-			SDL_Rect r = {x, y, w, h};
-			SDL_RenderFillRect(renderer, &r);
-		}
-
-		void draw_text(int x, int y, std::string message) { text->draw_text(x, y, message); }
-		void draw_text(int x, int y, std::string message, Uint8 r, Uint8 g, Uint8 b, Uint8 a) { text->draw_text(x, y, message, SDL_Color{r, g, b, a}); }
-
-		void render();
-		void render_graphic(std::string path, int window_width, int x, int y, bool centered, bool scaled, float scaled_factor);
-
-		TileType get_tile_type(std::string player_id, int x, int y);
-
-		void rb_fov(Point from_point);
-
-	private:
-		std::shared_ptr<Map> current_map{};
-
-		std::unique_ptr<textworld::ecs::EntityManager> entity_manager{};
-		std::unique_ptr<SpriteSheetManager> spritesheet_manager{};
-		std::unique_ptr<std::vector<std::shared_ptr<Map>>> maps{};
-		std::unique_ptr<Text> text{};
-		std::unique_ptr<std::vector<std::shared_ptr<Sound>>> sounds{};
-
-		std::unordered_map<textworld::ecs::EntityType, std::vector<Point>> entity_type_map{};
-
-		int view_port_x{};
-		int view_port_y{};
-		int view_port_width{};
-		int view_port_height{};
-
-		SDL_Renderer *renderer{};
-		SDL_Window *window{};
 	};
 }
 
@@ -975,7 +634,7 @@ namespace textworld::components
 	class ExitComponent : public textworld::ecs::Component
 	{
 	public:
-		ExitComponent(std::string name, textworld::data::Direction direction, std::string room_id, bool hidden = false)
+		ExitComponent(std::string name, textworld::data::Direction direction, std::string room_id, bool hidden)
 				: Component(name), direction(direction), room_id(room_id), hidden(hidden) {}
 
 		auto get_direction() const { return direction; }
@@ -1373,6 +1032,18 @@ namespace textworld::components
 	private:
 		std::shared_ptr<textworld::data::Quest> quest{};
 	};
+
+	class TriggerComponent : public textworld::ecs::Component
+	{
+	public:
+		TriggerComponent(std::string name) : Component(name)
+		{
+			triggers = std::make_unique<std::unordered_map<textworld::data::TriggerType, std::vector<textworld::core::simple_action_func>>>();
+		}
+
+	private:
+		std::unique_ptr<std::unordered_map<textworld::data::TriggerType, std::vector<textworld::core::simple_action_func>>> triggers{};
+	};
 }
 
 namespace textworld::helpers
@@ -1388,6 +1059,7 @@ namespace textworld::helpers
 	extern std::shared_ptr<std::vector<std::shared_ptr<textworld::ecs::Entity>>> get_npcs_in_room(std::string room_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void use_item_and_return_message(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message);
 	extern std::shared_ptr<textworld::ecs::Entity> make_player(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string name, std::string room_id, std::string description);
+	extern std::shared_ptr<textworld::ecs::Entity> make_enemy(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string name, std::string room_id, std::string description);
 	extern std::shared_ptr<textworld::ecs::EntityManager> make_entity_manager();
 	extern void add_output_message(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message);
 
@@ -1487,4 +1159,375 @@ namespace textworld::systems
 	extern void inventory_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void npc_dialog_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void question_response_sequence_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void combat_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 }
+
+#ifdef SDL2
+namespace textworld::gfx
+{
+	// This code is based on code from my 2D topdown roguelike game called Rogely
+
+	int get_neighbor_wall_count(std::shared_ptr<boost::numeric::ublas::matrix<int>> map, int map_width, int map_height, int x, int y);
+	void perform_cellular_automaton(std::shared_ptr<boost::numeric::ublas::matrix<int>> map, int map_width, int map_height, int passes);
+	std::shared_ptr<boost::numeric::ublas::matrix<int>> init_cellular_automata(int map_width, int map_height);
+
+	// ref: https://enginedev.stackexchange.com/a/163508/18014
+	struct Timer
+	{
+		Uint64 previous_ticks{};
+		float elapsed_seconds{};
+
+		void tick()
+		{
+			const Uint64 current_ticks{SDL_GetPerformanceCounter()};
+			const Uint64 delta{current_ticks - previous_ticks};
+			previous_ticks = current_ticks;
+			static const Uint64 TICKS_PER_SECOND{SDL_GetPerformanceFrequency()};
+			elapsed_seconds = delta / static_cast<float>(TICKS_PER_SECOND);
+		}
+	};
+
+	struct TextExtents
+	{
+		int width{};
+		int height{};
+	};
+
+	class Text
+	{
+	public:
+		Text(SDL_Renderer *renderer, std::string font_path, int font_size) : renderer(renderer)
+		{
+			load_font(font_path, font_size);
+		}
+
+		int load_font(std::string path, int ptsize)
+		{
+			font = TTF_OpenFont(path.c_str(), ptsize);
+
+			if (!font)
+			{
+				fmt::print("Unable to load font: {}\nSDL2_ttf Error : {}\n", path, TTF_GetError());
+				return -1;
+			}
+
+			return 0;
+		}
+		void draw_text(int x, int y, std::string text, SDL_Color color)
+		{
+			if (strlen(text.c_str()) <= 0)
+				return;
+
+			text_texture = nullptr;
+
+			SDL_Surface *text_surface = TTF_RenderText_Blended(font, text.c_str(), color);
+			SDL_Rect text_rect(x, y, text_surface->w, text_surface->h);
+
+			text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+			SDL_FreeSurface(text_surface);
+			SDL_RenderCopy(renderer, text_texture, NULL, &text_rect);
+			SDL_DestroyTexture(text_texture);
+		}
+		void draw_text(int x, int y, std::string text)
+		{
+			draw_text(x, y, text.c_str(), text_color);
+		}
+		TextExtents get_text_extents(std::string text)
+		{
+			int w{}, h{};
+
+			if (TTF_SizeText(font, text.c_str(), &w, &h) == 0)
+			{
+				return {w, h};
+			}
+
+			return {0, 0};
+		}
+
+	private:
+		SDL_Renderer *renderer{};
+		TTF_Font *font{};
+		SDL_Texture *text_texture{};
+		SDL_Color text_color = {0xFF, 0xFF, 0xFF, 0xFF};
+		SDL_Color text_background_color = {0x00, 0x00, 0x00, 0xFF};
+	};
+
+	struct Point
+	{
+		Point() : x(-1), y(-1) {}
+		Point(int x, int y) : x(x), y(y) {}
+
+		bool eq(Point p) { return p.x == x && p.y == y; }
+
+		int x{};
+		int y{};
+	};
+
+	struct Sound
+	{
+		std::string name{};
+		Mix_Chunk *sound{};
+
+		void play() { Mix_PlayChannel(-1, sound, 0); }
+	};
+
+	struct Map
+	{
+		Map(std::string name, int weight, int height, std::shared_ptr<boost::numeric::ublas::matrix<int>> map) : name(name), width(width), height(height), map(map)
+		{
+			light_map = std::make_shared<boost::numeric::ublas::matrix<int>>(height, width);
+		}
+
+		std::string name{};
+		int width{};
+		int height{};
+		std::shared_ptr<boost::numeric::ublas::matrix<int>> map{};
+		std::shared_ptr<boost::numeric::ublas::matrix<int>> light_map{};
+	};
+
+	enum class TileType
+	{
+		UNKNOWN,
+		WALL,
+		DOOR,
+		PLAYER,
+		MOB,
+		ITEM,
+		FLOOR
+	};
+
+	class SpriteSheet
+	{
+	public:
+		SpriteSheet(SDL_Renderer *renderer, std::string name, std::string path, int sprite_width, int sprite_height);
+
+		~SpriteSheet() { SDL_DestroyTexture(spritesheet_texture); }
+
+		void draw_sprite(int sprite_id, int x, int y) { draw_sprite(sprite_id, x, y, 0, 0); }
+		void draw_sprite(int sprite_id, int x, int y, int scaled_width, int scaled_height);
+
+		auto get_spritesheet_texture() const { return spritesheet_texture; }
+		auto get_name() const { return name; }
+
+		sol::table get_sprites_as_lua_table(sol::this_state s);
+
+	private:
+		std::string name{};
+		std::string path{};
+		int sprite_width{};
+		int sprite_height{};
+		std::unique_ptr<std::vector<std::shared_ptr<SDL_Rect>>> sprites{};
+		SDL_Texture *spritesheet_texture{};
+		SDL_Renderer *renderer{};
+	};
+
+	class SpriteSheetManager
+	{
+	public:
+		SpriteSheetManager(SDL_Renderer *renderer) : renderer(renderer)
+		{
+			spritesheets = std::make_unique<std::vector<std::shared_ptr<SpriteSheet>>>();
+		}
+
+		void add_spritesheet(std::string name, std::string path, int spritesheet_width, int spritesheet_height)
+		{
+			spritesheets->emplace_back(std::make_shared<SpriteSheet>(renderer, name, path, spritesheet_width, spritesheet_height));
+		}
+		std::shared_ptr<SpriteSheet> find_spritesheet(std::string spritesheet_name)
+		{
+			for (auto &spritesheet : *spritesheets)
+			{
+				if (spritesheet->get_name() == spritesheet_name)
+				{
+					return spritesheet;
+				}
+			}
+			return nullptr;
+		}
+
+		void draw_sprite(std::string spritesheet_name, int sprite_id, int x, int y, int scaled_width, int scaled_height)
+		{
+			if (spritesheet_name.length() <= 0)
+				return;
+
+			auto sheet = find_spritesheet(spritesheet_name);
+			if (sheet != nullptr)
+			{
+				sheet->draw_sprite(sprite_id, x, y, scaled_width, scaled_height);
+			}
+		}
+
+	private:
+		std::unique_ptr<std::vector<std::shared_ptr<SpriteSheet>>> spritesheets{};
+		SDL_Renderer *renderer{};
+	};
+
+	class SpriteComponent : public textworld::ecs::Component
+	{
+	public:
+		SpriteComponent(std::string name,
+										std::string spritesheet_name,
+										std::string sprite_name,
+										int sprite_id) : Component(name), spritesheet_name(spritesheet_name), sprite_name(sprite_name), sprite_id(sprite_id) {}
+
+		auto get_sprite_id() const { return sprite_id; }
+		auto get_sprite_name() const { return sprite_name; }
+		auto get_spritesheet_name() const { return spritesheet_name; }
+
+	private:
+		std::string spritesheet_name{};
+		std::string sprite_name{};
+		int sprite_id{};
+	};
+
+	class PositionComponent : public textworld::ecs::Component
+	{
+	public:
+		PositionComponent(std::string name, int x, int y) : Component(name), position({x, y}) {}
+
+		Point get_point() const { return position; }
+		void set_point(Point p) { position = p; }
+
+		int get_x() const { return position.x; }
+		int get_y() const { return position.y; }
+
+		void set_x(int x) { position.x = x; }
+		void set_y(int y) { position.y = y; }
+
+	private:
+		Point position{};
+	};
+
+	struct AStarNode
+	{
+		AStarNode() {}
+		AStarNode(const AStarNode &p, const Point &pos)
+		{
+			if (&parent != nullptr)
+				parent = std::make_shared<AStarNode>(p);
+
+			if (&position != nullptr)
+				position = std::make_shared<Point>(pos);
+		}
+
+		bool eq(const AStarNode &x)
+		{
+			if (&x == nullptr)
+				return false;
+
+			return (position->x == x.position->x &&
+							position->y == x.position->y);
+		}
+
+		std::shared_ptr<AStarNode> parent{};
+		std::shared_ptr<Point> position{};
+		int f = 0;
+		int g = 0;
+		int h = 0;
+	};
+
+	class AStarPathFinder
+	{
+	public:
+		AStarPathFinder(std::shared_ptr<boost::numeric::ublas::matrix<int>> map)
+		{
+			this->map = map; // std::make_shared<boost::numeric::ublas::matrix<int>>(map);
+			max_iterations = (int)(this->map->size1() * this->map->size2());
+		}
+
+		std::shared_ptr<std::queue<Point>> find_path(Point start, Point end, int walkable_tile_id);
+
+	private:
+		std::shared_ptr<boost::numeric::ublas::matrix<int>> map;
+
+		Point pos_array[8] = {
+				{0, -1},
+				{0, 1},
+				{-1, 0},
+				{1, 0},
+				{-1, -1},
+				{-1, 1},
+				{1, -1},
+				{1, 1}};
+
+		int max_iterations = 0;
+	};
+
+	class Engine
+	{
+	public:
+		Engine()
+		{
+			std::srand(static_cast<unsigned int>(std::time(nullptr)));
+			maps = std::make_unique<std::vector<std::shared_ptr<Map>>>();
+			entity_manager = std::make_unique<textworld::ecs::EntityManager>();
+			sounds = std::make_unique<std::vector<std::shared_ptr<Sound>>>();
+		}
+		~Engine()
+		{
+			SDL_DestroyRenderer(renderer);
+			SDL_DestroyWindow(window);
+
+			for (auto &s : *sounds)
+			{
+				Mix_FreeChunk(s->sound);
+			}
+
+			Mix_Quit();
+			TTF_Quit();
+			IMG_Quit();
+			SDL_Quit();
+		}
+
+		void init(std::string title, int width, int height, bool fullscreen);
+		void game_loop();
+		void play_sound(std::string name);
+
+		void switch_map(std::string name);
+		void generate_map(std::string name, int map_width, int map_height);
+		std::shared_ptr<Map> get_map(std::string name);
+
+		void set_draw_color(int r, int g, int b, int a) { SDL_SetRenderDrawColor(renderer, r, g, b, a); }
+		void draw_point(int x, int y) { SDL_RenderDrawPoint(renderer, x, y); }
+		void draw_rect(int x, int y, int w, int h)
+		{
+			SDL_Rect r = {x, y, w, h};
+			SDL_RenderDrawRect(renderer, &r);
+		}
+		void draw_filled_rect(int x, int y, int w, int h)
+		{
+			SDL_Rect r = {x, y, w, h};
+			SDL_RenderFillRect(renderer, &r);
+		}
+
+		void draw_text(int x, int y, std::string message) { text->draw_text(x, y, message); }
+		void draw_text(int x, int y, std::string message, Uint8 r, Uint8 g, Uint8 b, Uint8 a) { text->draw_text(x, y, message, SDL_Color{r, g, b, a}); }
+
+		void render();
+		void render_graphic(std::string path, int window_width, int x, int y, bool centered, bool scaled, float scaled_factor);
+
+		TileType get_tile_type(std::string player_id, int x, int y);
+
+		void rb_fov(Point from_point);
+
+	private:
+		std::shared_ptr<Map> current_map{};
+
+		std::unique_ptr<textworld::ecs::EntityManager> entity_manager{};
+		std::unique_ptr<SpriteSheetManager> spritesheet_manager{};
+		std::unique_ptr<std::vector<std::shared_ptr<Map>>> maps{};
+		std::unique_ptr<Text> text{};
+		std::unique_ptr<std::vector<std::shared_ptr<Sound>>> sounds{};
+
+		std::unordered_map<textworld::ecs::EntityType, std::vector<Point>> entity_type_map{};
+
+		int view_port_x{};
+		int view_port_y{};
+		int view_port_width{};
+		int view_port_height{};
+
+		SDL_Renderer *renderer{};
+		SDL_Window *window{};
+	};
+}
+#endif

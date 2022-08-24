@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 	mk_ex("Open Field", "Stream", textworld::data::Direction::NORTH);
 	mk_ex("Stream", "Large Rock", textworld::data::Direction::EAST);
 	mk_ex("Large Rock", "Old Forest", textworld::data::Direction::EAST);
-	mk_ex("Old Forest", "Dark Passage", textworld::data::Direction::EAST);
+	mk_ex_hidden("Old Forest", "Dark Passage", textworld::data::Direction::EAST);
 
 	pl_it("Open Field", "Coin Purse", 1);
 	pl_it("Open Field", "Health Potion", 3);

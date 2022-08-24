@@ -53,8 +53,11 @@ namespace textworld::helpers
 
 			for (const auto &exit : exits)
 			{
-				exit_ids.emplace_back(exit->get_room_id());
-				exit_map[exit->get_room_id()] = exit;
+				if (!exit->is_hidden())
+				{
+					exit_ids.emplace_back(exit->get_room_id());
+					exit_map[exit->get_room_id()] = exit;
+				}
 			}
 
 			auto exit_room_entities = entity_manager->find_entities_in_group("rooms",
@@ -247,12 +250,14 @@ namespace textworld::helpers
 		auto health_component = std::make_shared<textworld::components::ValueComponent<int>>("health", 10, 100);
 		auto description_component = std::make_shared<textworld::components::DescriptionComponent>("player description", description);
 		auto currency_component = std::make_shared<textworld::components::ValueComponent<int>>("gold", 10);
+		auto score_component = std::make_shared<textworld::components::ValueComponent<int>>("score", 0);
 
 		player_entity->add_component(id_component);
 		player_entity->add_component(inventory_component);
 		player_entity->add_component(health_component);
 		player_entity->add_component(description_component);
 		player_entity->add_component(currency_component);
+		player_entity->add_component(score_component);
 
 		auto players_current_room = textworld::helpers::get_players_current_room(player_entity, entity_manager);
 		auto show_current_room_description_component = std::make_shared<textworld::components::ShowDescriptionComponent>("show current room description", players_current_room, textworld::data::DescriptionType::ROOM);
@@ -263,6 +268,21 @@ namespace textworld::helpers
 		player_entity->add_component(textworld::helpers::get_room_exits(entity_manager, players_current_room));
 
 		return player_entity;
+	}
+
+	std::shared_ptr<textworld::ecs::Entity> make_enemy(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string name, std::string room_id, std::string description)
+	{
+		auto enemy_entity = std::make_shared<textworld::ecs::Entity>(name);
+
+		auto id_component = std::make_shared<textworld::components::IdComponent>("room id component", room_id, textworld::data::IdType::CURRENT_ROOM);
+		auto health_component = std::make_shared<textworld::components::ValueComponent<int>>("health", 100, 100);
+		auto description_component = std::make_shared<textworld::components::DescriptionComponent>("enemy description", description);
+
+		enemy_entity->add_component(id_component);
+		enemy_entity->add_component(health_component);
+		enemy_entity->add_component(description_component);
+
+		return enemy_entity;
 	}
 
 	std::shared_ptr<textworld::ecs::EntityManager> make_entity_manager()
@@ -894,7 +914,7 @@ namespace textworld::core
 			}
 			else
 			{
-				auto output_component = std::make_shared<textworld::components::OutputComponent>("output for talk to npc", "talking to NPCs is not currently implemented", textworld::data::OutputType::REGULAR);
+				auto output_component = std::make_shared<textworld::components::OutputComponent>("output for talk to npc", "There is noone here to talk to...", textworld::data::OutputType::REGULAR);
 				output_entity->add_component(output_component);
 			}
 		}
@@ -1335,8 +1355,14 @@ namespace textworld::systems
 			}
 		}
 	}
+
+	void combat_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
+	{
+		// TODO: Implement combat system.
+	}
 }
 
+#ifdef SDL2
 namespace textworld::gfx
 {
 	int get_neighbor_wall_count(std::shared_ptr<boost::numeric::ublas::matrix<int>> map, int map_width, int map_height, int x, int y)
@@ -1786,3 +1812,4 @@ namespace textworld::gfx
 	}
 
 }
+#endif
