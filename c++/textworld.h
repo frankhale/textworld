@@ -81,19 +81,22 @@ extern std::string get_vector_of_strings_as_strings(std::vector<std::string> vec
 		r_info.entity->add_component(item_drop_component);                                                          \
 	}
 
-#define mk_it(n, d, c, a)                                                                             \
-	{                                                                                                   \
-		auto acts = std::unordered_map<std::string, textworld::core::simple_action_func>{{"default", a}}; \
-		std::shared_ptr<textworld::data::Item> i{};                                                       \
-		if (c)                                                                                            \
-			i = textworld::helpers::make_consumable_item(n, d, acts);                                       \
-		else                                                                                              \
-			i = textworld::helpers::make_item(n, d, acts);                                                  \
-		auto item_entity = std::make_shared<textworld::ecs::Entity>(i->id, n);                            \
-		auto item_component = std::make_shared<textworld::components::ItemComponent>(n, i);               \
-		item_entity->add_component(item_component);                                                       \
-		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::ITEMS, item_entity);         \
+#define _mk_it(n, d, c, a)                                                                     \
+	{                                                                                            \
+		auto acts = std::unordered_map<std::string, textworld::core::action_func>{{"default", a}}; \
+		std::shared_ptr<textworld::data::Item> i{};                                                \
+		if (c)                                                                                     \
+			i = textworld::helpers::make_consumable_item(n, d, acts);                                \
+		else                                                                                       \
+			i = textworld::helpers::make_item(n, d, acts);                                           \
+		auto item_entity = std::make_shared<textworld::ecs::Entity>(i->id, n);                     \
+		auto item_component = std::make_shared<textworld::components::ItemComponent>(n, i);        \
+		item_entity->add_component(item_component);                                                \
+		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::ITEMS, item_entity);  \
 	}
+
+#define mk_it(n, d) _mk_it(n, d, false, nullptr);
+#define mk_it_with_action(n, d, c, a) _mk_it(n, d, c, a);
 
 #define mk_npc(n, d, r)                                                                                          \
 	{                                                                                                              \
@@ -418,14 +421,19 @@ namespace textworld::ecs
 
 namespace textworld::core
 {
-	typedef std::function<void(std::shared_ptr<textworld::ecs::Entity>, std::string, std::vector<std::string>, std::shared_ptr<textworld::ecs::EntityManager>)> action_func;
-	typedef std::function<void(std::shared_ptr<textworld::ecs::Entity>, std::shared_ptr<textworld::ecs::EntityManager>)> simple_action_func;
+	typedef std::function<void(std::shared_ptr<textworld::ecs::Entity>, std::shared_ptr<textworld::ecs::EntityManager>)> action_func;
 
-	extern std::unordered_map<std::string, simple_action_func> command_to_actions;
+	extern std::unordered_map<std::string, action_func> command_to_actions;
 }
 
 namespace textworld::data
 {
+	enum class CommandSet
+	{
+		CORE,
+		NPC
+	};
+
 	enum class TriggerType
 	{
 		ENTER,
@@ -509,7 +517,7 @@ namespace textworld::data
 		bool can_be_destroyed{};
 		bool consumable{};
 		std::unordered_map<std::string, std::string> lua_scripted_actions{};
-		std::unordered_map<std::string, textworld::core::simple_action_func> actions{};
+		std::unordered_map<std::string, textworld::core::action_func> actions{};
 	};
 
 	struct ItemPickup
@@ -538,6 +546,8 @@ namespace textworld::data
 		std::string description{};
 		std::shared_ptr<textworld::ecs::Entity> entity{};
 	};
+
+	extern std::string command_set_to_string(CommandSet command_set);
 }
 
 namespace textworld::components
@@ -598,7 +608,7 @@ namespace textworld::components
 	class CommandActionComponent : public CommandInputComponent
 	{
 	public:
-		CommandActionComponent(std::string name, std::string command, textworld::core::simple_action_func action) : CommandInputComponent(name, command), action(action) {}
+		CommandActionComponent(std::string name, std::string command, textworld::core::action_func action) : CommandInputComponent(name, command), action(action) {}
 
 		void run_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::string command, std::vector<std::string> arguments, std::shared_ptr<textworld::ecs::EntityManager> em)
 		{
@@ -606,7 +616,38 @@ namespace textworld::components
 		}
 
 	private:
-		textworld::core::simple_action_func action{};
+		textworld::core::action_func action{};
+	};
+
+	class CommandSetComponent : public textworld::ecs::Component
+	{
+	public:
+		CommandSetComponent(textworld::data::CommandSet name) : Component(textworld::data::command_set_to_string(name)) {}
+		CommandSetComponent(textworld::data::CommandSet name, std::unordered_map<std::string, textworld::core::action_func> command_set) : Component(textworld::data::command_set_to_string(name)), command_set(command_set) {}
+
+		auto get_command_set() const { return command_set; }
+		void add_command(std::string command, textworld::core::action_func action) { command_set.emplace(command, action); }
+
+		void add_command_set(std::unordered_map<std::string, textworld::core::action_func> command_set)
+		{
+			this->command_set = command_set;
+		}
+
+		void remove_command(std::string command) { command_set.erase(command); }
+		void clear_commands() { command_set.clear(); }
+
+		bool has_command(std::string command) const { return command_set.find(command) != command_set.end(); }
+
+		void run_command(std::shared_ptr<textworld::ecs::Entity> player_entity, std::string command, std::vector<std::string> arguments, std::shared_ptr<textworld::ecs::EntityManager> em)
+		{
+			if (command_set.find(command) != command_set.end())
+			{
+				command_set[command](player_entity, em);
+			}
+		}
+
+	private:
+		std::unordered_map<std::string, textworld::core::action_func> command_set{};
 	};
 
 	class DisplayNameComponent : public textworld::ecs::Component
@@ -1038,11 +1079,11 @@ namespace textworld::components
 	public:
 		TriggerComponent(std::string name) : Component(name)
 		{
-			triggers = std::make_unique<std::unordered_map<textworld::data::TriggerType, std::vector<textworld::core::simple_action_func>>>();
+			triggers = std::make_unique<std::unordered_map<textworld::data::TriggerType, std::vector<textworld::core::action_func>>>();
 		}
 
 	private:
-		std::unique_ptr<std::unordered_map<textworld::data::TriggerType, std::vector<textworld::core::simple_action_func>>> triggers{};
+		std::unique_ptr<std::unordered_map<textworld::data::TriggerType, std::vector<textworld::core::action_func>>> triggers{};
 	};
 }
 
@@ -1054,14 +1095,16 @@ namespace textworld::helpers
 	extern void remove_or_decrement_item_in_inventory(std::shared_ptr<textworld::ecs::Entity> target_entity, std::shared_ptr<textworld::data::ItemPickup> inventory_item);
 	extern std::string join(const std::vector<std::string> &v, const std::string &c);
 	extern textworld::data::RoomInfo make_room(std::string name, std::string description);
-	extern std::shared_ptr<textworld::data::Item> make_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions);
-	extern std::shared_ptr<textworld::data::Item> make_consumable_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions);
+	extern std::shared_ptr<textworld::data::Item> make_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::action_func> actions);
+	extern std::shared_ptr<textworld::data::Item> make_consumable_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::action_func> actions);
 	extern std::shared_ptr<std::vector<std::shared_ptr<textworld::ecs::Entity>>> get_npcs_in_room(std::string room_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void use_item_and_return_message(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message);
 	extern std::shared_ptr<textworld::ecs::Entity> make_player(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string name, std::string room_id, std::string description);
 	extern std::shared_ptr<textworld::ecs::Entity> make_enemy(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string name, std::string room_id, std::string description);
 	extern std::shared_ptr<textworld::ecs::EntityManager> make_entity_manager();
 	extern void add_output_message(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message);
+
+	extern void debug_items(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 
 	template <typename T>
 	T find_value_in_map(std::unordered_map<std::string, T> map, std::string key, std::vector<std::string> keys)

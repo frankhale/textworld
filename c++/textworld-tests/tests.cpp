@@ -308,7 +308,7 @@ TEST(ECS, CanIncreaseValueOfValueComponent)
 TEST(ECS, CanMakeItem)
 {
 	auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();
-	mk_it("Coin Purse", "Extremely worn leather purse. The leather is soft and flexible and it's color has faded. There are 100 coins inside.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager) {});
+	mk_it_with_action("Coin Purse", "Extremely worn leather purse. The leather is soft and flexible and it's color has faded. There are 100 coins inside.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager) {});
 
 	auto items = entity_manager->get_entity_group(textworld::ecs::EntityGroupName::ITEMS);
 	auto coin_purse = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::ITEMS, "Coin Purse");

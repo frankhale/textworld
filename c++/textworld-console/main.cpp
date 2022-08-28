@@ -4,14 +4,17 @@ int main(int argc, char *argv[])
 {
 	auto entity_manager = textworld::helpers::make_entity_manager();
 
-	mk_it("Coin Purse", "Extremely worn leather purse. The leather is soft and flexible and it's color has faded. There are 100 coins inside.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
-				{
+	mk_it_with_action("Coin Purse", "Extremely worn leather purse. The leather is soft and flexible and it's color has faded. There are 100 coins inside.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
+										{
 					textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "gold", 100);
 					textworld::helpers::add_output_message(entity_manager, "Your gold has increased by 100"); });
-	mk_it("Health Potion", "An oddly shaped bottle with a cool blue liquid inside. The liquid glows with an intense light.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
-				{ textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "health", 25); });
-	mk_it("Lamp", "A rusty old oil lamp", false, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
-				{ textworld::helpers::use_item_and_return_message(player_entity, entity_manager, "The lamp flickers with a tiny flame"); });
+	mk_it_with_action("Health Potion", "An oddly shaped bottle with a cool blue liquid inside. The liquid glows with an intense light.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
+										{ textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "health", 25); });
+	mk_it_with_action("Lamp", "A rusty old oil lamp", false, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
+										{ textworld::helpers::use_item_and_return_message(player_entity, entity_manager, "The lamp flickers with a tiny flame"); });
+	mk_it("Iron ore", "A lump of raw iron ore");
+	mk_it("Wood log", "A wood log");
+	mk_it("Leather scrap", "A scrap of leather");
 
 	mk_npc("Old Man", "A really old man", (std::unordered_map<std::string, std::string>{{"hello", "Hi there!"}}));
 

@@ -18,6 +18,16 @@ std::string get_vector_of_strings_as_strings(std::vector<std::string> vec)
 	return oss.str();
 }
 
+namespace textworld::data
+{
+	std::string command_set_to_string(CommandSet command_set_name)
+	{
+		auto csn = std::string(magic_enum::enum_name(command_set_name));
+		to_lower(csn);
+		return csn;
+	}
+}
+
 namespace textworld::helpers
 {
 	std::shared_ptr<textworld::ecs::Entity> get_players_current_room(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
@@ -171,7 +181,7 @@ namespace textworld::helpers
 		return {.id = room_id, .entity = room_entity};
 	}
 
-	std::shared_ptr<textworld::data::Item> make_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions)
+	std::shared_ptr<textworld::data::Item> make_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::action_func> actions)
 	{
 		auto i = textworld::data::Item{
 				.id = generate_uuid(),
@@ -188,7 +198,7 @@ namespace textworld::helpers
 		return std::make_shared<textworld::data::Item>(i);
 	}
 
-	std::shared_ptr<textworld::data::Item> make_consumable_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::simple_action_func> actions)
+	std::shared_ptr<textworld::data::Item> make_consumable_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::action_func> actions)
 	{
 		auto i = textworld::data::Item{
 				.id = generate_uuid(),
@@ -251,6 +261,7 @@ namespace textworld::helpers
 		auto description_component = std::make_shared<textworld::components::DescriptionComponent>("player description", description);
 		auto currency_component = std::make_shared<textworld::components::ValueComponent<int>>("gold", 10);
 		auto score_component = std::make_shared<textworld::components::ValueComponent<int>>("score", 0);
+		auto command_set_component = std::make_shared<textworld::components::CommandSetComponent>(textworld::data::CommandSet::CORE, textworld::core::command_to_actions);
 
 		player_entity->add_component(id_component);
 		player_entity->add_component(inventory_component);
@@ -258,6 +269,7 @@ namespace textworld::helpers
 		player_entity->add_component(description_component);
 		player_entity->add_component(currency_component);
 		player_entity->add_component(score_component);
+		player_entity->add_component(command_set_component);
 
 		auto players_current_room = textworld::helpers::get_players_current_room(player_entity, entity_manager);
 		auto show_current_room_description_component = std::make_shared<textworld::components::ShowDescriptionComponent>("show current room description", players_current_room, textworld::data::DescriptionType::ROOM);
@@ -303,6 +315,21 @@ namespace textworld::helpers
 			auto output_component = std::make_shared<textworld::components::OutputComponent>("output message", message);
 			output_entity->add_component(output_component);
 		}
+	}
+
+	void debug_items(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
+	{
+		auto items = entity_manager->get_entities_in_group(textworld::ecs::EntityGroupName::ITEMS);
+
+		std::vector<std::string> item_names{};
+		for (const auto &item : *items)
+		{
+			item_names.emplace_back(item->get_name());
+		}
+
+		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
+		auto output_component = std::make_shared<textworld::components::OutputComponent>("output message", fmt::format("(DEBUG) Items: \n\n{}", textworld::helpers::join(item_names, ", ")));
+		output_entity->add_component(output_component);
 	}
 }
 
@@ -464,7 +491,7 @@ namespace textworld::ecs
 
 namespace textworld::core
 {
-	std::unordered_map<std::string, simple_action_func> command_to_actions{
+	std::unordered_map<std::string, action_func> command_to_actions{
 			{"quit", textworld::core::quit_action},
 			{"look", textworld::core::look_room_action},
 			{"look self", textworld::core::look_self_action},
@@ -476,7 +503,8 @@ namespace textworld::core
 			{"drop", textworld::core::drop_item_action},
 			{"drop all", textworld::core::drop_all_items_action},
 			{"use", textworld::core::use_item_from_inventory_action},
-			{"talk to", textworld::core::talk_to_npc}};
+			{"talk to", textworld::core::talk_to_npc},
+			{"debug_items", textworld::helpers::debug_items}};
 
 	void quit_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
@@ -964,10 +992,18 @@ namespace textworld::systems
 
 		auto command_components = player_entity->find_components_by_type<textworld::components::CommandInputComponent>();
 
+		if (command_components.size() == 0)
+			return;
+
+		auto command_set_component = player_entity->find_first_component_by_type<textworld::components::CommandSetComponent>();
+
+		if (command_set_component == nullptr)
+			return;
+
 		for (const auto &command_component : command_components)
 		{
-			textworld::core::simple_action_func command_action =
-					textworld::helpers::find_value_in_map<textworld::core::simple_action_func>(textworld::core::command_to_actions, command_component->get_command_with_arguments(), command_component->get_tokens());
+			textworld::core::action_func command_action =
+					textworld::helpers::find_value_in_map<textworld::core::action_func>(command_set_component->get_command_set(), command_component->get_command_with_arguments(), command_component->get_tokens());
 
 			if (command_action != nullptr)
 			{
