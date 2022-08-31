@@ -11,3 +11,8 @@ target_link_libraries(textworld-tests
     gtest_main
     textworld
 )
+
+add_test(
+    NAME textworld-tests
+    COMMAND textworld-tests
+)

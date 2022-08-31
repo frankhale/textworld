@@ -285,8 +285,8 @@ namespace textworld::ecs
 		std::string get_name() { return name; }
 		auto get_id() const { return id; }
 		void add_component(std::shared_ptr<Component> c) { components->emplace_back(c); }
-		void add_components(std::shared_ptr<std::vector<std::shared_ptr<Component>>> c) { components->insert(components->end(), c->begin(), c->end()); }
-
+		void add_components(std::vector<std::shared_ptr<Component>> c) { components->insert(components->end(), c.begin(), c.end()); }
+		
 		template <ComponentType T>
 		void remove_components(std::vector<std::shared_ptr<T>> c)
 		{
@@ -1099,7 +1099,7 @@ namespace textworld::helpers
 	extern std::shared_ptr<textworld::data::Item> make_consumable_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::action_func> actions);
 	extern std::shared_ptr<std::vector<std::shared_ptr<textworld::ecs::Entity>>> get_npcs_in_room(std::string room_id, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void use_item_and_return_message(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message);
-	extern std::shared_ptr<textworld::ecs::Entity> make_player(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string name, std::string room_id, std::string description);
+	extern std::shared_ptr<textworld::ecs::Entity> make_player(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string name, std::string room_id, std::string description, std::string motd_description);
 	extern std::shared_ptr<textworld::ecs::Entity> make_enemy(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string name, std::string room_id, std::string description);
 	extern std::shared_ptr<textworld::ecs::EntityManager> make_entity_manager();
 	extern void add_output_message(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message);

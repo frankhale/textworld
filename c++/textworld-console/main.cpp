@@ -42,7 +42,8 @@ int main(int argc, char *argv[])
 	auto player_entity = textworld::helpers::make_player(entity_manager,
 																											 "player 1",
 																											 entity_manager->get_entity_by_name("rooms", "Open Field")->get_id(),
-																											 "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!");
+																											 "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!",
+																											 "Welcome to Textworld! TW was written using a custom entity component system based engine. Look around, have fun!");
 
 	auto motd_description_component = std::make_shared<textworld::components::DescriptionComponent>("motd", "Welcome to Textworld! TW was written using a custom entity component system based engine. Look around, have fun!");
 	player_entity->add_component(motd_description_component);
