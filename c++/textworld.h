@@ -163,7 +163,7 @@ namespace textworld::ecs
 	class Component
 	{
 	public:
-		virtual ~Component(){};
+		virtual ~Component() {};
 
 		auto get_name() const { return component_name; }
 		void set_name(std::string name) { component_name = name; }
@@ -197,7 +197,7 @@ namespace textworld::ecs
 		template <ComponentType T>
 		std::shared_ptr<T> find_first_component_by_type()
 		{
-			for (auto &c : *components)
+			for (auto& c : *components)
 			{
 				auto casted = std::dynamic_pointer_cast<T>(c);
 
@@ -215,7 +215,7 @@ namespace textworld::ecs
 		{
 			std::vector<std::shared_ptr<T>> matches{};
 
-			for (auto &c : *components)
+			for (auto& c : *components)
 			{
 				auto casted = std::dynamic_pointer_cast<T>(c);
 
@@ -233,7 +233,7 @@ namespace textworld::ecs
 		{
 			std::vector<std::shared_ptr<T>> matches{};
 
-			for (auto &c : *components)
+			for (auto& c : *components)
 			{
 				auto casted = std::dynamic_pointer_cast<T>(c);
 
@@ -251,7 +251,7 @@ namespace textworld::ecs
 		{
 			std::vector<std::shared_ptr<T>> matches{};
 
-			for (auto &c : *components)
+			for (auto& c : *components)
 			{
 				auto casted = std::dynamic_pointer_cast<T>(c);
 
@@ -269,7 +269,7 @@ namespace textworld::ecs
 		{
 			std::vector<std::shared_ptr<T>> matches{};
 
-			for (auto &c : *components)
+			for (auto& c : *components)
 			{
 				auto casted = std::dynamic_pointer_cast<T>(c);
 
@@ -286,11 +286,11 @@ namespace textworld::ecs
 		auto get_id() const { return id; }
 		void add_component(std::shared_ptr<Component> c) { components->emplace_back(c); }
 		void add_components(std::vector<std::shared_ptr<Component>> c) { components->insert(components->end(), c.begin(), c.end()); }
-		
+
 		template <ComponentType T>
 		void remove_components(std::vector<std::shared_ptr<T>> c)
 		{
-			for (auto &component : c)
+			for (auto& component : c)
 			{
 				auto it = std::find(components->begin(), components->end(), component);
 				if (it != components->end())
@@ -310,9 +310,9 @@ namespace textworld::ecs
 			}
 		}
 
-		void for_each_component(std::function<void(std::shared_ptr<Component> &)> fc)
+		void for_each_component(std::function<void(std::shared_ptr<Component>&)> fc)
 		{
-			for (auto &c : *components)
+			for (auto& c : *components)
 			{
 				fc(c);
 			}
@@ -326,7 +326,7 @@ namespace textworld::ecs
 
 	private:
 		std::string id;
-		EntityType entity_type{EntityType::UNKNOWN};
+		EntityType entity_type{ EntityType::UNKNOWN };
 
 	protected:
 		std::string name;
@@ -360,7 +360,7 @@ namespace textworld::ecs
 		std::vector<std::string> get_entity_group_names()
 		{
 			std::vector<std::string> results{};
-			for (auto &eg : *entity_groups)
+			for (auto& eg : *entity_groups)
 			{
 				results.emplace_back(eg->name);
 			}
@@ -394,7 +394,7 @@ namespace textworld::ecs
 			auto group = get_entity_group(entity_group);
 
 			std::vector<std::shared_ptr<Entity>> matches{};
-			for (auto &e : *group->entities)
+			for (auto& e : *group->entities)
 			{
 				auto result = e->find_component_by_type<T>(predicate);
 				if (result.size() > 0)
@@ -547,6 +547,15 @@ namespace textworld::data
 		std::shared_ptr<textworld::ecs::Entity> entity{};
 	};
 
+	struct TriggerInfo 
+	{
+		TriggerType type{};
+		std::string command{};
+		std::string json_data{};
+		std::vector<std::string> arguments{};
+		textworld::core::action_func func{};
+	};
+
 	extern std::string command_set_to_string(CommandSet command_set);
 }
 
@@ -676,15 +685,15 @@ namespace textworld::components
 	{
 	public:
 		ExitComponent(std::string name, textworld::data::Direction direction, std::string room_id, bool hidden)
-				: Component(name), direction(direction), room_id(room_id), hidden(hidden) {}
+			: Component(name), direction(direction), room_id(room_id), hidden(hidden) {}
 
 		auto get_direction() const { return direction; }
 		auto get_direction_as_string()
 		{
 			auto dir = magic_enum::enum_name(direction);
-			auto dir_s = std::string{dir};
+			auto dir_s = std::string{ dir };
 			to_lower(dir_s);
-			return std::string{dir_s};
+			return std::string{ dir_s };
 		}
 		auto get_room_id() const { return room_id; }
 		auto is_hidden() const { return hidden; }
@@ -702,7 +711,7 @@ namespace textworld::components
 	{
 	public:
 		IdComponent(std::string name, std::string target_id, textworld::data::IdType id_type)
-				: Component(name), target_id(target_id), id_type(id_type) {}
+			: Component(name), target_id(target_id), id_type(id_type) {}
 
 		auto get_id_type() const { return id_type; }
 		auto get_target_id() const { return target_id; }
@@ -715,7 +724,7 @@ namespace textworld::components
 		auto get_meta_data_as_string() const
 		{
 			std::ostringstream oss;
-			for (auto &[key, value] : meta_data)
+			for (auto& [key, value] : meta_data)
 			{
 				oss << key << ": " << value << std::endl;
 			}
@@ -735,11 +744,18 @@ namespace textworld::components
 		{
 			items = std::make_unique<std::vector<std::shared_ptr<textworld::data::ItemPickup>>>();
 		}
+		InventoryComponent(std::string name, std::vector<textworld::data::ItemPickup> items) : InventoryComponent(name)
+		{
+			for (auto& item : items)
+			{
+				add_item(item);
+			}
+		}
 
 		void add_item(textworld::data::ItemPickup item)
 		{
-			auto it = std::find_if(items->begin(), items->end(), [item](const auto &i)
-														 { return i->id == item.id; });
+			auto it = std::find_if(items->begin(), items->end(), [item](const auto& i)
+				{ return i->id == item.id; });
 
 			if (it == items->end())
 			{
@@ -752,15 +768,15 @@ namespace textworld::components
 		}
 		void remove_item(std::string item_id)
 		{
-			items->erase(std::remove_if(items->begin(), items->end(), [item_id](const auto &item)
-																	{ return item->id == item_id; }),
-									 items->end());
+			items->erase(std::remove_if(items->begin(), items->end(), [item_id](const auto& item)
+				{ return item->id == item_id; }),
+				items->end());
 		}
 		std::shared_ptr<textworld::data::ItemPickup> get_item(std::string item_id)
 		{
 			// loop over items and find item based on item_id using find_if
-			auto it = std::find_if(items->begin(), items->end(), [item_id](const auto &item)
-														 { return item->id == item_id; });
+			auto it = std::find_if(items->begin(), items->end(), [item_id](const auto& item)
+				{ return item->id == item_id; });
 
 			if (it != items->end())
 			{
@@ -774,8 +790,8 @@ namespace textworld::components
 
 		void increment_item_count(std::string item_id, int count)
 		{
-			auto it = std::find_if(items->begin(), items->end(), [item_id](const auto &item)
-														 { return item->id == item_id; });
+			auto it = std::find_if(items->begin(), items->end(), [item_id](const auto& item)
+				{ return item->id == item_id; });
 
 			if (it != items->end())
 			{
@@ -784,8 +800,8 @@ namespace textworld::components
 		}
 		void decrement_item_count(std::string item_id, int count)
 		{
-			auto it = std::find_if(items->begin(), items->end(), [item_id](const auto &item)
-														 { return item->id == item_id; });
+			auto it = std::find_if(items->begin(), items->end(), [item_id](const auto& item)
+				{ return item->id == item_id; });
 
 			if (it != items->end())
 			{
@@ -813,7 +829,7 @@ namespace textworld::components
 
 		void for_each(std::function<void(std::shared_ptr<textworld::data::ItemPickup>)> func)
 		{
-			for (const auto &item : *items)
+			for (const auto& item : *items)
 			{
 				func(item);
 			}
@@ -827,7 +843,7 @@ namespace textworld::components
 	{
 	public:
 		ItemComponent(std::string name, std::shared_ptr<textworld::data::Item> item)
-				: Component(name), item(item) {}
+			: Component(name), item(item) {}
 
 		auto get_item() const { return item; }
 		void set_item(std::shared_ptr<textworld::data::Item> item) { this->item = item; }
@@ -860,7 +876,7 @@ namespace textworld::components
 	{
 	public:
 		JsonComponent(std::string name, std::string json)
-				: Component(name), json(json) {}
+			: Component(name), json(json) {}
 
 		auto get_json() const { return json; }
 		void set_json(std::string json) { this->json = json; }
@@ -873,7 +889,7 @@ namespace textworld::components
 	{
 	public:
 		OutputComponent(std::string name, std::string value, textworld::data::OutputType output_type = textworld::data::OutputType::REGULAR)
-				: Component(name), value(value), output_type(output_type) {}
+			: Component(name), value(value), output_type(output_type) {}
 
 		auto get_output_type() const { return output_type; }
 		auto get_value() const { return value; }
@@ -889,7 +905,7 @@ namespace textworld::components
 	{
 	public:
 		QuitComponent(std::string name, std::function<void()> action)
-				: Component(name), action(action) {}
+			: Component(name), action(action) {}
 
 		void run_action() { action(); }
 
@@ -901,14 +917,14 @@ namespace textworld::components
 	{
 	public:
 		ShowDescriptionComponent(std::string name,
-														 std::shared_ptr<textworld::ecs::Entity> entity,
-														 textworld::data::DescriptionType description_type)
-				: Component(name), entity(entity), description_type(description_type) {}
+			std::shared_ptr<textworld::ecs::Entity> entity,
+			textworld::data::DescriptionType description_type)
+			: Component(name), entity(entity), description_type(description_type) {}
 
 		ShowDescriptionComponent(std::string name,
-														 std::vector<std::shared_ptr<textworld::ecs::Entity>> entities,
-														 textworld::data::DescriptionType description_type)
-				: Component(name), entities(entities), description_type(description_type) {}
+			std::vector<std::shared_ptr<textworld::ecs::Entity>> entities,
+			textworld::data::DescriptionType description_type)
+			: Component(name), entities(entities), description_type(description_type) {}
 
 		auto get_description_type() const { return description_type; }
 		auto get_entity() const { return entity; }
@@ -949,7 +965,7 @@ namespace textworld::components
 	{
 	public:
 		UnknownCommandComponent(std::string name, std::string command)
-				: Component(name), command(command) {}
+			: Component(name), command(command) {}
 
 		auto get_command() const { return command; }
 
@@ -1017,7 +1033,7 @@ namespace textworld::components
 		{
 			auto components = entity->find_components_by_type<T>();
 
-			for (auto &component : components)
+			for (auto& component : components)
 			{
 				on_hold_entity->add_component(component);
 				entity->remove_component(component);
@@ -1029,7 +1045,7 @@ namespace textworld::components
 		{
 			auto components = on_hold_entity->find_components_by_type<T>();
 
-			for (auto &component : components)
+			for (auto& component : components)
 			{
 				entity->add_component(component);
 				on_hold_entity->remove_component(component);
@@ -1038,8 +1054,8 @@ namespace textworld::components
 
 		void release_all_components_from_hold(std::shared_ptr<textworld::ecs::Entity> entity)
 		{
-			on_hold_entity->for_each_component([entity](std::shared_ptr<Component> &component)
-																				 { entity->add_component(component); });
+			on_hold_entity->for_each_component([entity](std::shared_ptr<Component>& component)
+				{ entity->add_component(component); });
 
 			on_hold_entity->clear_components();
 		}
@@ -1079,11 +1095,27 @@ namespace textworld::components
 	public:
 		TriggerComponent(std::string name) : Component(name)
 		{
-			triggers = std::make_unique<std::unordered_map<textworld::data::TriggerType, std::vector<textworld::core::action_func>>>();
+			triggers = std::make_unique<std::unordered_map<textworld::data::TriggerType, std::vector<textworld::data::TriggerInfo>>>();
 		}
 
+		void add_trigger(textworld::data::TriggerType type, textworld::data::TriggerInfo trigger)
+		{
+			auto it = triggers->find(type);
+			if (it == triggers->end())
+				(*triggers)[type] = std::vector<textworld::data::TriggerInfo>{};
+			(*triggers)[type].emplace_back(trigger);
+		}
+				
+		auto get_triggers_for_type(textworld::data::TriggerType type) const
+		{
+			auto it = triggers->find(type);
+			if (it != triggers->end())
+				return it->second;
+			return std::vector<textworld::data::TriggerInfo>{};
+		}
+	
 	private:
-		std::unique_ptr<std::unordered_map<textworld::data::TriggerType, std::vector<textworld::core::action_func>>> triggers{};
+		std::unique_ptr<std::unordered_map<textworld::data::TriggerType, std::vector<textworld::data::TriggerInfo>>> triggers{};
 	};
 }
 
@@ -1093,7 +1125,7 @@ namespace textworld::helpers
 	extern std::shared_ptr<textworld::components::ShowDescriptionComponent> get_room_exits(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::shared_ptr<textworld::ecs::Entity> room_entity);
 	extern void add_item_to_player_inventory(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::shared_ptr<textworld::ecs::Entity> entity);
 	extern void remove_or_decrement_item_in_inventory(std::shared_ptr<textworld::ecs::Entity> target_entity, std::shared_ptr<textworld::data::ItemPickup> inventory_item);
-	extern std::string join(const std::vector<std::string> &v, const std::string &c);
+	extern std::string join(const std::vector<std::string>& v, const std::string& c);
 	extern textworld::data::RoomInfo make_room(std::string name, std::string description);
 	extern std::shared_ptr<textworld::data::Item> make_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::action_func> actions);
 	extern std::shared_ptr<textworld::data::Item> make_consumable_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::action_func> actions);
@@ -1115,7 +1147,7 @@ namespace textworld::helpers
 
 		int count = 0;
 		std::string command{};
-		for (const auto &k : keys)
+		for (const auto& k : keys)
 		{
 			if (count + 1 < keys.size())
 			{
@@ -1222,10 +1254,10 @@ namespace textworld::gfx
 
 		void tick()
 		{
-			const Uint64 current_ticks{SDL_GetPerformanceCounter()};
-			const Uint64 delta{current_ticks - previous_ticks};
+			const Uint64 current_ticks{ SDL_GetPerformanceCounter() };
+			const Uint64 delta{ current_ticks - previous_ticks };
 			previous_ticks = current_ticks;
-			static const Uint64 TICKS_PER_SECOND{SDL_GetPerformanceFrequency()};
+			static const Uint64 TICKS_PER_SECOND{ SDL_GetPerformanceFrequency() };
 			elapsed_seconds = delta / static_cast<float>(TICKS_PER_SECOND);
 		}
 	};
@@ -1239,7 +1271,7 @@ namespace textworld::gfx
 	class Text
 	{
 	public:
-		Text(SDL_Renderer *renderer, std::string font_path, int font_size) : renderer(renderer)
+		Text(SDL_Renderer* renderer, std::string font_path, int font_size) : renderer(renderer)
 		{
 			load_font(font_path, font_size);
 		}
@@ -1263,7 +1295,7 @@ namespace textworld::gfx
 
 			text_texture = nullptr;
 
-			SDL_Surface *text_surface = TTF_RenderText_Blended(font, text.c_str(), color);
+			SDL_Surface* text_surface = TTF_RenderText_Blended(font, text.c_str(), color);
 			SDL_Rect text_rect(x, y, text_surface->w, text_surface->h);
 
 			text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
@@ -1281,18 +1313,18 @@ namespace textworld::gfx
 
 			if (TTF_SizeText(font, text.c_str(), &w, &h) == 0)
 			{
-				return {w, h};
+				return { w, h };
 			}
 
-			return {0, 0};
+			return { 0, 0 };
 		}
 
 	private:
-		SDL_Renderer *renderer{};
-		TTF_Font *font{};
-		SDL_Texture *text_texture{};
-		SDL_Color text_color = {0xFF, 0xFF, 0xFF, 0xFF};
-		SDL_Color text_background_color = {0x00, 0x00, 0x00, 0xFF};
+		SDL_Renderer* renderer{};
+		TTF_Font* font{};
+		SDL_Texture* text_texture{};
+		SDL_Color text_color = { 0xFF, 0xFF, 0xFF, 0xFF };
+		SDL_Color text_background_color = { 0x00, 0x00, 0x00, 0xFF };
 	};
 
 	struct Point
@@ -1309,7 +1341,7 @@ namespace textworld::gfx
 	struct Sound
 	{
 		std::string name{};
-		Mix_Chunk *sound{};
+		Mix_Chunk* sound{};
 
 		void play() { Mix_PlayChannel(-1, sound, 0); }
 	};
@@ -1342,7 +1374,7 @@ namespace textworld::gfx
 	class SpriteSheet
 	{
 	public:
-		SpriteSheet(SDL_Renderer *renderer, std::string name, std::string path, int sprite_width, int sprite_height);
+		SpriteSheet(SDL_Renderer* renderer, std::string name, std::string path, int sprite_width, int sprite_height);
 
 		~SpriteSheet() { SDL_DestroyTexture(spritesheet_texture); }
 
@@ -1360,14 +1392,14 @@ namespace textworld::gfx
 		int sprite_width{};
 		int sprite_height{};
 		std::unique_ptr<std::vector<std::shared_ptr<SDL_Rect>>> sprites{};
-		SDL_Texture *spritesheet_texture{};
-		SDL_Renderer *renderer{};
+		SDL_Texture* spritesheet_texture{};
+		SDL_Renderer* renderer{};
 	};
 
 	class SpriteSheetManager
 	{
 	public:
-		SpriteSheetManager(SDL_Renderer *renderer) : renderer(renderer)
+		SpriteSheetManager(SDL_Renderer* renderer) : renderer(renderer)
 		{
 			spritesheets = std::make_unique<std::vector<std::shared_ptr<SpriteSheet>>>();
 		}
@@ -1378,7 +1410,7 @@ namespace textworld::gfx
 		}
 		std::shared_ptr<SpriteSheet> find_spritesheet(std::string spritesheet_name)
 		{
-			for (auto &spritesheet : *spritesheets)
+			for (auto& spritesheet : *spritesheets)
 			{
 				if (spritesheet->get_name() == spritesheet_name)
 				{
@@ -1402,16 +1434,16 @@ namespace textworld::gfx
 
 	private:
 		std::unique_ptr<std::vector<std::shared_ptr<SpriteSheet>>> spritesheets{};
-		SDL_Renderer *renderer{};
+		SDL_Renderer* renderer{};
 	};
 
 	class SpriteComponent : public textworld::ecs::Component
 	{
 	public:
 		SpriteComponent(std::string name,
-										std::string spritesheet_name,
-										std::string sprite_name,
-										int sprite_id) : Component(name), spritesheet_name(spritesheet_name), sprite_name(sprite_name), sprite_id(sprite_id) {}
+			std::string spritesheet_name,
+			std::string sprite_name,
+			int sprite_id) : Component(name), spritesheet_name(spritesheet_name), sprite_name(sprite_name), sprite_id(sprite_id) {}
 
 		auto get_sprite_id() const { return sprite_id; }
 		auto get_sprite_name() const { return sprite_name; }
@@ -1426,7 +1458,7 @@ namespace textworld::gfx
 	class PositionComponent : public textworld::ecs::Component
 	{
 	public:
-		PositionComponent(std::string name, int x, int y) : Component(name), position({x, y}) {}
+		PositionComponent(std::string name, int x, int y) : Component(name), position({ x, y }) {}
 
 		Point get_point() const { return position; }
 		void set_point(Point p) { position = p; }
@@ -1444,7 +1476,7 @@ namespace textworld::gfx
 	struct AStarNode
 	{
 		AStarNode() {}
-		AStarNode(const AStarNode &p, const Point &pos)
+		AStarNode(const AStarNode& p, const Point& pos)
 		{
 			if (&parent != nullptr)
 				parent = std::make_shared<AStarNode>(p);
@@ -1453,13 +1485,13 @@ namespace textworld::gfx
 				position = std::make_shared<Point>(pos);
 		}
 
-		bool eq(const AStarNode &x)
+		bool eq(const AStarNode& x)
 		{
 			if (&x == nullptr)
 				return false;
 
 			return (position->x == x.position->x &&
-							position->y == x.position->y);
+				position->y == x.position->y);
 		}
 
 		std::shared_ptr<AStarNode> parent{};
@@ -1491,7 +1523,7 @@ namespace textworld::gfx
 				{-1, -1},
 				{-1, 1},
 				{1, -1},
-				{1, 1}};
+				{1, 1} };
 
 		int max_iterations = 0;
 	};
@@ -1511,7 +1543,7 @@ namespace textworld::gfx
 			SDL_DestroyRenderer(renderer);
 			SDL_DestroyWindow(window);
 
-			for (auto &s : *sounds)
+			for (auto& s : *sounds)
 			{
 				Mix_FreeChunk(s->sound);
 			}
@@ -1534,17 +1566,17 @@ namespace textworld::gfx
 		void draw_point(int x, int y) { SDL_RenderDrawPoint(renderer, x, y); }
 		void draw_rect(int x, int y, int w, int h)
 		{
-			SDL_Rect r = {x, y, w, h};
+			SDL_Rect r = { x, y, w, h };
 			SDL_RenderDrawRect(renderer, &r);
 		}
 		void draw_filled_rect(int x, int y, int w, int h)
 		{
-			SDL_Rect r = {x, y, w, h};
+			SDL_Rect r = { x, y, w, h };
 			SDL_RenderFillRect(renderer, &r);
 		}
 
 		void draw_text(int x, int y, std::string message) { text->draw_text(x, y, message); }
-		void draw_text(int x, int y, std::string message, Uint8 r, Uint8 g, Uint8 b, Uint8 a) { text->draw_text(x, y, message, SDL_Color{r, g, b, a}); }
+		void draw_text(int x, int y, std::string message, Uint8 r, Uint8 g, Uint8 b, Uint8 a) { text->draw_text(x, y, message, SDL_Color{ r, g, b, a }); }
 
 		void render();
 		void render_graphic(std::string path, int window_width, int x, int y, bool centered, bool scaled, float scaled_factor);
@@ -1569,8 +1601,8 @@ namespace textworld::gfx
 		int view_port_width{};
 		int view_port_height{};
 
-		SDL_Renderer *renderer{};
-		SDL_Window *window{};
+		SDL_Renderer* renderer{};
+		SDL_Window* window{};
 	};
 }
 #endif

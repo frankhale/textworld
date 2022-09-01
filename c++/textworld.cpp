@@ -1342,7 +1342,7 @@ namespace textworld::systems
 		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::NPC_DIALOG_SYSTEM_BYPASS))
 			return;
 
-		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
+		/*auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 		auto command_component = player_entity->find_first_component_by_type<textworld::components::CommandInputComponent>();
 		auto players_current_room = textworld::helpers::get_players_current_room(player_entity, entity_manager);
 		auto npcs = textworld::helpers::get_npcs_in_room(players_current_room->get_id(), entity_manager);
@@ -1358,7 +1358,7 @@ namespace textworld::systems
 
 				player_entity->remove_component(command_component);
 			}
-		}
+		}*/
 	}
 
 	void question_response_sequence_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
