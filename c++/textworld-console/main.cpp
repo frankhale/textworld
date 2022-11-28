@@ -1,22 +1,22 @@
 #include "../textworld.h"
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
 	auto entity_manager = textworld::helpers::make_entity_manager();
 
-	mk_it_with_action("Coin Purse", "Extremely worn leather purse. The leather is soft and flexible and it's color has faded. There are 100 coins inside.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
-										{
-					textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "gold", 100);
-					textworld::helpers::add_output_message(entity_manager, "Your gold has increased by 100"); });
+	mk_it_with_action("Coin Purse", "Extremely worn leather purse. The leather is soft and flexible and it's color has faded. There are 100 coins inside.", true,
+		[](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
+		{ textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "gold", 100);
+			textworld::helpers::add_output_message(entity_manager, "Your gold has increased by 100"); });
 	mk_it_with_action("Health Potion", "An oddly shaped bottle with a cool blue liquid inside. The liquid glows with an intense light.", true, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
-										{ textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "health", 25); });
+		{ textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "health", 25); });
 	mk_it_with_action("Lamp", "A rusty old oil lamp", false, [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
-										{ textworld::helpers::use_item_and_return_message(player_entity, entity_manager, "The lamp flickers with a tiny flame"); });
+		{ textworld::helpers::use_item_and_return_message(player_entity, entity_manager, "The lamp flickers with a tiny flame"); });
 	mk_it("Iron ore", "A lump of raw iron ore");
 	mk_it("Wood log", "A wood log");
 	mk_it("Leather scrap", "A scrap of leather");
 
-	mk_npc("Old Man", "A really old man", (std::unordered_map<std::string, std::string>{{"hello", "Hi there!"}}));
+	mk_npc("Old Man", "A really old man", (std::unordered_map<std::string, std::string>{ {"hello", "Hi there!"}}));
 
 	begin_room_configuration();
 
@@ -40,13 +40,10 @@ int main(int argc, char *argv[])
 	end_room_configuration();
 
 	auto player_entity = textworld::helpers::make_player(entity_manager,
-																											 "player 1",
-																											 entity_manager->get_entity_by_name("rooms", "Open Field")->get_id(),
-																											 "You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!",
-																											 "Welcome to Textworld! TW was written using a custom entity component system based engine. Look around, have fun!");
-
-	auto motd_description_component = std::make_shared<textworld::components::DescriptionComponent>("motd", "Welcome to Textworld! TW was written using a custom entity component system based engine. Look around, have fun!");
-	player_entity->add_component(motd_description_component);
+		"player 1",
+		entity_manager->get_entity_by_name("rooms", "Open Field")->get_id(),
+		"You are the epitome of a hero. You're tall, dapper, strong and ready to take on the world!",
+		"Welcome to Textworld! TW was written using a custom entity component system based engine. Look around, have fun!");
 
 	entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::PLAYERS, player_entity);
 

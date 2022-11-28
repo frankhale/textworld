@@ -963,9 +963,9 @@ TEST(Actions, CanLookAtSelf)
 
 	textworld::systems::command_action_system(player_entity, entity_manager);
 
-	auto show_description_component = player_entity->find_components_by_type<textworld::components::ShowDescriptionComponent>().front();
+	auto show_description_component = player_entity->find_first_component_by_type<textworld::components::ShowDescriptionComponent>();
 
-	auto description_component_from_output = show_description_component->get_entity()->find_components_by_type<textworld::components::DescriptionComponent>().front();
+	auto description_component_from_output = show_description_component->get_entity()->find_first_component_by_type<textworld::components::DescriptionComponent>();
 
 	EXPECT_EQ(description_component->get_description(), "You are the hero!");
 }
@@ -1000,7 +1000,7 @@ TEST(Actions, CanLookAtRoom)
 
 	textworld::systems::command_action_system(player_entity, entity_manager);
 
-	auto show_description_component = player_entity->find_components_by_type<textworld::components::ShowDescriptionComponent>().front();
+	auto show_description_component = player_entity->find_first_component_by_type<textworld::components::ShowDescriptionComponent>();
 	auto description_component_from_output = show_description_component->get_entity()->find_components_by_type<textworld::components::DescriptionComponent>().front();
 
 	EXPECT_EQ(show_description_component->get_entity(), room_entity);

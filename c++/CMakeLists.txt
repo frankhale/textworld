@@ -11,6 +11,7 @@ project(textworld CXX)
 find_package(magic_enum CONFIG REQUIRED)
 find_package(Boost REQUIRED)
 find_package(fmt REQUIRED)
+find_package(jsoncpp REQUIRED)
 #find_package(sol2 REQUIRED)
 #find_package(Lua REQUIRED)
 #find_package(SDL2 REQUIRED)
@@ -35,6 +36,7 @@ target_link_libraries(textworld
 	winmm.lib
 	bcrypt.lib
 	fmt::fmt
+	jsoncpp_object jsoncpp_static JsonCpp::JsonCpp
 	#${LUA_LIBRARIES}
 	#SDL2::SDL2 SDL2::SDL2main SDL2::SDL2-static
 	#SDL2::SDL2_image
