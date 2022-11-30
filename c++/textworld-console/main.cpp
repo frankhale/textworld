@@ -16,7 +16,10 @@ int main(int argc, char* argv[])
 	mk_it("Wood log", "A wood log");
 	mk_it("Leather scrap", "A scrap of leather");
 
-	mk_npc("Old Man", "A really old man", (std::unordered_map<std::string, std::string>{ {"hello", "Hi there!"}}));
+	mk_npc("Old Man", "A really old man", (std::unordered_map<std::string, std::string>{ 
+		{ "hello", "Hi there!" },
+		{ "boo", "Oh damn, you startled me!!!" }
+	}));
 
 	begin_room_configuration();
 
@@ -53,7 +56,6 @@ int main(int argc, char* argv[])
 	{
 		textworld::systems::command_action_system(player_entity, entity_manager);
 		textworld::systems::question_response_sequence_system(player_entity, entity_manager);
-		textworld::systems::npc_dialog_system(player_entity, entity_manager);
 		textworld::systems::quit_system(player_entity, entity_manager);
 		textworld::systems::room_movement_system(player_entity, entity_manager);
 		textworld::systems::description_system(player_entity, entity_manager);

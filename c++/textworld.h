@@ -452,6 +452,7 @@ namespace textworld::data
 		ROOM_MOVEMENT_SYSTEM_BYPASS,
 		INVENTORY_SYSTEM_BYPASS,
 		NPC_DIALOG_SYSTEM_BYPASS,
+		NPC_DIALOG_ENGAGEMENT,
 		DESCRIPTION_SYSTEM_BYPASS,
 		QUESTION_RESPONSE_SEQUENCE_SYSTEM_BYPASS
 	};
@@ -547,6 +548,12 @@ namespace textworld::data
 		std::string command{};
 		std::string json_data{};
 		std::vector<std::string> arguments{};
+		textworld::core::action_func func{};
+	};
+
+	struct DialogResponseInfo
+	{
+		std::string response{};
 		textworld::core::action_func func{};
 	};
 
@@ -986,8 +993,9 @@ namespace textworld::components
 
 	private:
 		std::unordered_map<std::string, std::string> responses{};
+		std::unordered_map<std::string, textworld::data::DialogResponseInfo> response_actions{};
 	};
-
+	
 	class QuestionResponseSequenceComponent : public textworld::ecs::Component
 	{
 	public:
@@ -1063,6 +1071,8 @@ namespace textworld::components
 	class FlagComponent : public textworld::ecs::Component
 	{
 	public:
+		FlagComponent(std::string name) : Component(name) {}
+		FlagComponent(std::string name, textworld::data::Flag flag) : Component(name) { set_flag(flag); }
 		FlagComponent(std::string name, std::vector<textworld::data::Flag> flags) : Component(name), flags(flags) {}
 
 		bool is_set(textworld::data::Flag flag)
@@ -1070,8 +1080,26 @@ namespace textworld::components
 			// auto fl = std::string(magic_enum::enum_name(flag));
 			return std::find(flags.begin(), flags.end(), flag) != flags.end();
 		}
+		
+		void set_flag(textworld::data::Flag flag)
+		{
+			if (!is_set(flag))
+				flags.emplace_back(flag);
+		}
+		
+		void unset_flag(textworld::data::Flag flag)
+		{
+			auto it = std::find(flags.begin(), flags.end(), flag);
 
+			if (it != flags.end())
+				flags.erase(it);
+		}
+		
+		void set_data(std::string data) { this->flag_data = data; }
+		auto get_data() const { return flag_data; }
+				
 	private:
+		std::string flag_data{};
 		std::vector<textworld::data::Flag> flags{};
 	};
 
@@ -1111,6 +1139,13 @@ namespace textworld::components
 				return it->second;
 			return std::vector<textworld::data::TriggerInfo>{};
 		}
+
+		void remove_trigger(textworld::data::TriggerType type)
+		{
+			auto it = triggers->find(type);
+			if (it != triggers->end())
+				triggers->erase(it);
+		}
 	
 	private:
 		std::unique_ptr<std::unordered_map<textworld::data::TriggerType, std::vector<textworld::data::TriggerInfo>>> triggers{};
@@ -1133,7 +1168,8 @@ namespace textworld::helpers
 	extern std::shared_ptr<textworld::ecs::Entity> make_enemy(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string name, std::string room_id, std::string description);
 	extern std::shared_ptr<textworld::ecs::EntityManager> make_entity_manager();
 	extern void add_output_message(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message);
-
+	extern void remove_npc_engagement_flag_from_player(std::shared_ptr<textworld::ecs::Entity> player_entity);
+	
 	extern void debug_items(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 
 	template <typename T>
@@ -1215,6 +1251,7 @@ namespace textworld::core
 	extern void look_self_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void look_room_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void talk_to_npc(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void say_to_npc(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 
 	extern textworld::data::Direction get_opposite_direction(textworld::data::Direction dir);
 }
@@ -1229,8 +1266,7 @@ namespace textworld::systems
 	extern void motd_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void console_output_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void console_input_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
-	extern void inventory_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
-	extern void npc_dialog_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void inventory_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);	
 	extern void question_response_sequence_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void combat_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 }

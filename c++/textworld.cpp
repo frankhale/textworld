@@ -336,6 +336,16 @@ namespace textworld::helpers
 		auto output_component = std::make_shared<textworld::components::OutputComponent>("output message", fmt::format("(DEBUG) Items: \n\n{}", textworld::helpers::join(item_names, ", ")));
 		output_entity->add_component(output_component);
 	}
+
+	void remove_npc_engagement_flag_from_player(std::shared_ptr<textworld::ecs::Entity> player_entity)
+	{
+		auto npc_engagement_flag = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
+		
+		if (npc_engagement_flag != nullptr && npc_engagement_flag->is_set(textworld::data::Flag::NPC_DIALOG_ENGAGEMENT))
+		{
+			player_entity->remove_component(npc_engagement_flag);
+		}
+	}
 }
 
 namespace textworld::ecs
@@ -509,6 +519,7 @@ namespace textworld::core
 			{"drop all", textworld::core::drop_all_items_action},
 			{"use", textworld::core::use_item_from_inventory_action},
 			{"talk to", textworld::core::talk_to_npc},
+			{"say", textworld::core::say_to_npc},
 			{"debug_items", textworld::helpers::debug_items} };
 
 	void quit_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
@@ -918,6 +929,8 @@ namespace textworld::core
 
 	void talk_to_npc(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
+		textworld::helpers::remove_npc_engagement_flag_from_player(player_entity);
+
 		auto current_room_entity = textworld::helpers::get_players_current_room(player_entity, entity_manager);
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 		auto npc_entities = entity_manager->get_entities_in_group(textworld::ecs::EntityGroupName::NPCS);		
@@ -941,20 +954,18 @@ namespace textworld::core
 						if (name == npc_name) return true;
 
 						return false; });
-
+				
 				if (npc_entity != nullptr)
 				{
 					auto room_id_component = npc_entity->find_first_component_by_type<textworld::components::IdComponent>();
 
 					if (room_id_component != nullptr && room_id_component->get_target_id() == current_room_entity->get_id()) 
-					{
-						//auto npc_trigger = textworld::data::TriggerInfo{
-						//	.type = textworld::data::TriggerType::ENTER_TALK,
-						//	.command = command_action_component->get_command(),
-						//	.arguments = command_action_component->get_arguments()
-						//};
+					{						
+						auto flag_component = std::make_shared<textworld::components::FlagComponent>("flag component", textworld::data::Flag::NPC_DIALOG_ENGAGEMENT);
+						flag_component->set_data(npc_entity->get_id());
+						player_entity->add_component(flag_component);
 
-						auto output_component = std::make_shared<textworld::components::OutputComponent>("output for talk to npc", fmt::format("I'd talk to {}, but this feature is not fully implemented.", npc_name), textworld::data::OutputType::REGULAR);
+						auto output_component = std::make_shared<textworld::components::OutputComponent>("output for talk to npc", fmt::format("Talking to {}", npc_name), textworld::data::OutputType::REGULAR);
 						output_entity->add_component(output_component);
 						return;
 					}
@@ -963,6 +974,75 @@ namespace textworld::core
 
 			auto output_component = std::make_shared<textworld::components::OutputComponent>("output for talk to npc", "That NPC is not here...", textworld::data::OutputType::REGULAR);
 			output_entity->add_component(output_component);			
+		}
+	}
+
+	void say_to_npc(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
+	{
+		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
+		auto npc_entities = entity_manager->get_entities_in_group(textworld::ecs::EntityGroupName::NPCS);
+		auto npc_engagement_flag = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
+
+		if (npc_engagement_flag != nullptr && npc_engagement_flag->is_set(textworld::data::Flag::NPC_DIALOG_ENGAGEMENT))
+		{
+			auto npc_id = npc_engagement_flag->get_data();
+
+			auto npc_entity = entity_manager->find_entity(textworld::ecs::EntityGroupName::NPCS, [&](std::shared_ptr<textworld::ecs::Entity> entity)
+				{
+					if (entity->get_id() == npc_id) return true;
+
+			return false; });
+
+			if (npc_entity != nullptr)
+			{
+				auto command_action_component = player_entity->find_first_component_by_type<textworld::components::CommandActionComponent>();
+				auto npc_description_component = npc_entity->find_first_component_by_type<textworld::components::DescriptionComponent>();
+
+				if (command_action_component != nullptr)
+				{
+					auto command_arguments = command_action_component->get_arguments();
+					auto phrase = get_vector_of_strings_as_strings(command_arguments);
+
+					to_lower(phrase);
+					
+					if (phrase == "bye" || phrase == "goodbye")
+					{
+						player_entity->remove_component(npc_engagement_flag);
+						auto output_component = std::make_shared<textworld::components::OutputComponent>("output for say to npc", fmt::format("{}: Bye!", npc_description_component->get_name()), textworld::data::OutputType::REGULAR);
+						output_entity->add_component(output_component);						
+					}
+					else if (phrase != "")
+					{
+						auto npc_dialog_sequence = npc_entity->find_first_component_by_type<textworld::components::DialogSequenceComponent>();
+
+						if (npc_dialog_sequence != nullptr)
+						{
+							auto dialog_response = npc_dialog_sequence->get_response(phrase);
+
+							if (dialog_response != "")
+							{
+								auto output_component = std::make_shared<textworld::components::OutputComponent>("output for say to npc", dialog_response, textworld::data::OutputType::REGULAR);
+								output_entity->add_component(output_component);								
+							}
+							else 
+							{
+								auto output_component = std::make_shared<textworld::components::OutputComponent>("output for say to npc", "I don't understand...", textworld::data::OutputType::REGULAR);
+								output_entity->add_component(output_component);								
+							}
+						}
+					}
+					else
+					{
+						auto output_component = std::make_shared<textworld::components::OutputComponent>("output for say to npc", "You try to talk but nothing comes out of your mouth...", textworld::data::OutputType::REGULAR);
+						output_entity->add_component(output_component);
+					}
+				}
+			}
+		}
+		else
+		{
+			auto output_component = std::make_shared<textworld::components::OutputComponent>("output for say to npc", "You feel foolish talking to yourself and you look around to see if anyone saw you...", textworld::data::OutputType::REGULAR);
+			output_entity->add_component(output_component);
 		}
 	}
 
@@ -1116,8 +1196,11 @@ namespace textworld::systems
 				}
 			}
 
-			if (processed_components.size() > 0)
+			if (processed_components.size() > 0) 
+			{
+				textworld::helpers::remove_npc_engagement_flag_from_player(player_entity);
 				player_entity->remove_components(processed_components);
+			}
 		}
 	}
 
@@ -1347,31 +1430,6 @@ namespace textworld::systems
 
 		if (processed_components.size() > 0)
 			player_entity->remove_components(processed_components);
-	}
-
-	void npc_dialog_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
-	{
-		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
-		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::NPC_DIALOG_SYSTEM_BYPASS))
-			return;
-
-		/*auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
-		auto command_component = player_entity->find_first_component_by_type<textworld::components::CommandInputComponent>();
-		auto players_current_room = textworld::helpers::get_players_current_room(player_entity, entity_manager);
-		auto npcs = textworld::helpers::get_npcs_in_room(players_current_room->get_id(), entity_manager);
-
-		if (npcs != nullptr && command_component != nullptr)
-		{
-			auto command = command_component->get_command();
-
-			if (command == "talk")
-			{
-				auto output_component = std::make_shared<textworld::components::OutputComponent>("npc dialog output", "I'd talk to an NPC if one were here...", textworld::data::OutputType::REGULAR);
-				output_entity->add_component(output_component);
-
-				player_entity->remove_component(command_component);
-			}
-		}*/
 	}
 
 	void question_response_sequence_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
