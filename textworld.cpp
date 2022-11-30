@@ -340,7 +340,7 @@ namespace textworld::helpers
 	void remove_npc_engagement_flag_from_player(std::shared_ptr<textworld::ecs::Entity> player_entity)
 	{
 		auto npc_engagement_flag = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
-		
+
 		if (npc_engagement_flag != nullptr && npc_engagement_flag->is_set(textworld::data::Flag::NPC_DIALOG_ENGAGEMENT))
 		{
 			player_entity->remove_component(npc_engagement_flag);
@@ -933,7 +933,7 @@ namespace textworld::core
 
 		auto current_room_entity = textworld::helpers::get_players_current_room(player_entity, entity_manager);
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
-		auto npc_entities = entity_manager->get_entities_in_group(textworld::ecs::EntityGroupName::NPCS);		
+		auto npc_entities = entity_manager->get_entities_in_group(textworld::ecs::EntityGroupName::NPCS);
 
 		auto command_action_component = player_entity->find_first_component_by_type<textworld::components::CommandActionComponent>();
 
@@ -949,18 +949,18 @@ namespace textworld::core
 				auto npc_entity = entity_manager->find_entity(textworld::ecs::EntityGroupName::NPCS, [&](std::shared_ptr<textworld::ecs::Entity> entity)
 					{
 						auto name = entity->get_name();
-						to_lower(name);
+				to_lower(name);
 
-						if (name == npc_name) return true;
+				if (name == npc_name) return true;
 
-						return false; });
-				
+				return false; });
+
 				if (npc_entity != nullptr)
 				{
 					auto room_id_component = npc_entity->find_first_component_by_type<textworld::components::IdComponent>();
 
-					if (room_id_component != nullptr && room_id_component->get_target_id() == current_room_entity->get_id()) 
-					{						
+					if (room_id_component != nullptr && room_id_component->get_target_id() == current_room_entity->get_id())
+					{
 						auto flag_component = std::make_shared<textworld::components::FlagComponent>("flag component", textworld::data::Flag::NPC_DIALOG_ENGAGEMENT);
 						flag_component->set_data(npc_entity->get_id());
 						player_entity->add_component(flag_component);
@@ -969,11 +969,11 @@ namespace textworld::core
 						output_entity->add_component(output_component);
 						return;
 					}
-				}				
+				}
 			}
 
 			auto output_component = std::make_shared<textworld::components::OutputComponent>("output for talk to npc", "That NPC is not here...", textworld::data::OutputType::REGULAR);
-			output_entity->add_component(output_component);			
+			output_entity->add_component(output_component);
 		}
 	}
 
@@ -1004,12 +1004,12 @@ namespace textworld::core
 					auto phrase = get_vector_of_strings_as_strings(command_arguments);
 
 					to_lower(phrase);
-					
+
 					if (phrase == "bye" || phrase == "goodbye")
 					{
 						player_entity->remove_component(npc_engagement_flag);
 						auto output_component = std::make_shared<textworld::components::OutputComponent>("output for say to npc", fmt::format("{}: Bye!", npc_description_component->get_name()), textworld::data::OutputType::REGULAR);
-						output_entity->add_component(output_component);						
+						output_entity->add_component(output_component);
 					}
 					else if (phrase != "")
 					{
@@ -1021,13 +1021,13 @@ namespace textworld::core
 
 							if (dialog_response != "")
 							{
-								auto output_component = std::make_shared<textworld::components::OutputComponent>("output for say to npc", dialog_response, textworld::data::OutputType::REGULAR);
-								output_entity->add_component(output_component);								
+								auto output_component = std::make_shared<textworld::components::OutputComponent>("output for say to npc", fmt::format("{}: {}", npc_description_component->get_name(), dialog_response), textworld::data::OutputType::REGULAR);
+								output_entity->add_component(output_component);
 							}
-							else 
+							else
 							{
-								auto output_component = std::make_shared<textworld::components::OutputComponent>("output for say to npc", "I don't understand...", textworld::data::OutputType::REGULAR);
-								output_entity->add_component(output_component);								
+								auto output_component = std::make_shared<textworld::components::OutputComponent>("output for say to npc", fmt::format("{}: I don't understand...", npc_description_component->get_name()), textworld::data::OutputType::REGULAR);
+								output_entity->add_component(output_component);
 							}
 						}
 					}
@@ -1196,7 +1196,7 @@ namespace textworld::systems
 				}
 			}
 
-			if (processed_components.size() > 0) 
+			if (processed_components.size() > 0)
 			{
 				textworld::helpers::remove_npc_engagement_flag_from_player(player_entity);
 				player_entity->remove_components(processed_components);
