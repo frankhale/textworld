@@ -13,6 +13,7 @@
 #include <functional>
 #include <sstream>
 #include <iostream>
+#include <optional>
 
 #include <fmt/core.h>
 #include <fmt/ranges.h>
@@ -88,14 +89,14 @@ extern std::string get_vector_of_strings_as_strings(std::vector<std::string> vec
 #define mk_it(n, d) _mk_it(n, d, false, nullptr);
 #define mk_it_with_action(n, d, c, a) _mk_it(n, d, c, a);
 
-#define mk_npc(n, d, r)                                                                                          \
-	{                                                                                                              \
-		auto npc_entity = std::make_shared<textworld::ecs::Entity>(n);                                               \
-		auto npc_description = std::make_shared<textworld::components::DescriptionComponent>(n, d);                  \
+#define mk_npc(n, d, r)  \
+	{                                                                \
+		auto npc_entity = std::make_shared<textworld::ecs::Entity>(n); \
+		auto npc_description = std::make_shared<textworld::components::DescriptionComponent>(n, d); \
+		npc_entity->add_component(npc_description);	\
 		auto npc_dialog_sequence_component = std::make_shared<textworld::components::DialogSequenceComponent>(n, r); \
-		npc_entity->add_component(npc_description);                                                                  \
-		npc_entity->add_component(npc_dialog_sequence_component);                                                    \
-		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::NPCS, npc_entity);                      \
+		npc_entity->add_component(npc_dialog_sequence_component);												        \
+		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::NPCS, npc_entity); \
 	}
 
 #define pl_npc(ir, n)                                                                                                                                   \
@@ -551,12 +552,6 @@ namespace textworld::data
 		textworld::core::action_func func{};
 	};
 
-	struct DialogResponseInfo
-	{
-		std::string response{};
-		textworld::core::action_func func{};
-	};
-
 	extern std::string command_set_to_string(CommandSet command_set);
 }
 
@@ -977,23 +972,31 @@ namespace textworld::components
 	class DialogSequenceComponent : public textworld::ecs::Component
 	{
 	public:
-		DialogSequenceComponent(std::string name, std::unordered_map<std::string, std::string> responses) : Component(name), responses(responses) {}
+		DialogSequenceComponent(std::string name, std::unordered_map<std::string, std::tuple<std::string, textworld::core::action_func>> responses) : Component(name)
+		{
+			for (auto& [key, value] : responses)
+			{
+				this->responses[key] = value;
+			}
+		}
 
-		void add_response(std::string trigger, std::string response) { responses[trigger] = response; }
-		auto get_response(std::string trigger) const
+		void add_response(std::string trigger, std::string response, textworld::core::action_func action=nullptr) { responses[trigger] = std::make_tuple(response, action); }
+		std::optional<std::tuple<std::string, textworld::core::action_func>> get_response(std::string trigger) const
 		{
 			auto it = responses.find(trigger);
-
+			
 			if (it != responses.end())
-				return it->second;
+			{
+				return std::optional<std::tuple<std::string, textworld::core::action_func>>{it->second};
+			}
 
-			return std::string{};
+			return std::nullopt;
 		}
+
 		auto get_responses() const { return responses; }
 
 	private:
-		std::unordered_map<std::string, std::string> responses{};
-		std::unordered_map<std::string, textworld::data::DialogResponseInfo> response_actions{};
+		std::unordered_map<std::string, std::tuple<std::string, textworld::core::action_func>> responses{};
 	};
 	
 	class QuestionResponseSequenceComponent : public textworld::ecs::Component
@@ -1076,8 +1079,7 @@ namespace textworld::components
 		FlagComponent(std::string name, std::vector<textworld::data::Flag> flags) : Component(name), flags(flags) {}
 
 		bool is_set(textworld::data::Flag flag)
-		{
-			// auto fl = std::string(magic_enum::enum_name(flag));
+		{			
 			return std::find(flags.begin(), flags.end(), flag) != flags.end();
 		}
 		

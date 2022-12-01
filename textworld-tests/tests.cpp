@@ -321,10 +321,16 @@ TEST(ECS, CanMakeNPC)
 {
 	auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();
 
-	mk_npc("Old Man", "A really old man", (std::unordered_map<std::string, std::string>{ {"foo", "bar"}, { "bar", "foo" }, { "baz", "boz" }}));
+	mk_npc("Old Man", "A really old man", (std::unordered_map<std::string, std::tuple<std::string, textworld::core::action_func>>{ 
+		{"foo", std::make_tuple("bar", nullptr) }, 
+		{ "bar", std::make_tuple("foo", nullptr) },
+		{ "baz", std::make_tuple("boz", nullptr) }
+	}));
 
 	auto npcs = entity_manager->get_entity_group(textworld::ecs::EntityGroupName::NPCS);
 	auto old_man = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::NPCS, "Old Man");
+
+	// TODO: Add some checks here for the dialog sequence
 
 	EXPECT_EQ(npcs->entities->size(), 1);
 	EXPECT_EQ(old_man->get_name(), "Old Man");

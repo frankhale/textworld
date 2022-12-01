@@ -1019,9 +1019,15 @@ namespace textworld::core
 						{
 							auto dialog_response = npc_dialog_sequence->get_response(phrase);
 
-							if (dialog_response != "")
+							if (dialog_response != std::nullopt)
 							{
-								auto output_component = std::make_shared<textworld::components::OutputComponent>("output for say to npc", fmt::format("{}: {}", npc_description_component->get_name(), dialog_response), textworld::data::OutputType::REGULAR);
+								std::string dialog_response_string{};
+								textworld::core::action_func dialog_action{};
+								std::tie(dialog_response_string, dialog_action) = dialog_response.value();
+
+								if (dialog_action != nullptr) dialog_action(player_entity, entity_manager);
+
+								auto output_component = std::make_shared<textworld::components::OutputComponent>("output for say to npc", fmt::format("{}: {}", npc_description_component->get_name(), dialog_response_string), textworld::data::OutputType::REGULAR);
 								output_entity->add_component(output_component);
 							}
 							else
