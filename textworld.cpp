@@ -101,16 +101,13 @@ namespace textworld::helpers
 
 	void add_item_to_player_inventory(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::shared_ptr<textworld::ecs::Entity> entity)
 	{
-		auto inventory_components = player_entity->find_components_by_type<textworld::components::InventoryComponent>();
-		auto item_drop_components = entity->find_components_by_type<textworld::components::ItemDropComponent>();
+		auto inventory_component = player_entity->find_first_component_by_type<textworld::components::InventoryComponent>();
+		auto item_drop_component = entity->find_first_component_by_type<textworld::components::ItemDropComponent>();
 
-		if (inventory_components.size() > 0 && item_drop_components.size() > 0)
+		if (inventory_component != nullptr && item_drop_component != nullptr)
 		{
-			std::shared_ptr<textworld::components::InventoryComponent> inventory_component = inventory_components.front();
-			std::shared_ptr<textworld::components::ItemDropComponent> item_drop_component = item_drop_components.front();
-
 			auto item = inventory_component->get_item(item_drop_component->get_item_id());
-
+			
 			if (item != nullptr)
 			{
 				item->quantity += item_drop_component->get_quantity();
@@ -124,6 +121,34 @@ namespace textworld::helpers
 			}
 
 			entity->remove_component(item_drop_component);
+		}
+	}
+
+	void add_item_to_player_inventory(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string item_name)
+	{
+		auto inventory_component = player_entity->find_first_component_by_type<textworld::components::InventoryComponent>();
+		auto item_entities = entity_manager->get_entities_in_group("items");		
+		auto output_entity = entity_manager->get_entity_by_name("core", "output");
+		
+		if (inventory_component != nullptr && item_entities != nullptr && output_entity != nullptr) {
+			auto item_entity = std::find_if(item_entities->begin(), item_entities->end(),
+				[&](std::shared_ptr<textworld::ecs::Entity> entity)
+				{
+					auto name = entity->get_name();					
+					return name == item_name;
+				});
+
+			if (item_entity != item_entities->end())
+			{
+				auto item_component = (*item_entity)->find_first_component_by_type<textworld::components::ItemComponent>();
+
+				inventory_component->add_item({ .id = item_component->get_id(),
+															 .name = item_component->get_name(),
+															 .quantity = 1 });
+
+				auto output_component = std::make_shared<textworld::components::OutputComponent>("output for item taken", fmt::format("You've received {}", item_component->get_item()->name), textworld::data::OutputType::REGULAR);
+				output_entity->add_component(output_component);
+			}
 		}
 	}
 
@@ -1024,11 +1049,11 @@ namespace textworld::core
 								std::string dialog_response_string{};
 								textworld::core::action_func dialog_action{};
 								std::tie(dialog_response_string, dialog_action) = dialog_response.value();
-
-								if (dialog_action != nullptr) dialog_action(player_entity, entity_manager);
-
+								
 								auto output_component = std::make_shared<textworld::components::OutputComponent>("output for say to npc", fmt::format("{}: {}", npc_description_component->get_name(), dialog_response_string), textworld::data::OutputType::REGULAR);
 								output_entity->add_component(output_component);
+
+								if (dialog_action != nullptr) dialog_action(player_entity, entity_manager);
 							}
 							else
 							{

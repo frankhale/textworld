@@ -18,7 +18,11 @@ int main(int argc, char* argv[])
 	mk_it("Silver ring", "A worn silver ring");
 
 	mk_npc("Old Man", "A really old man", (std::unordered_map<std::string, std::tuple<std::string, textworld::core::action_func>>{
-		{ "hello", std::make_tuple("Hi there!!!", nullptr) }
+		{ "hello", std::make_tuple("Hi there, take this silver ring!!!", [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
+			{
+				//textworld::helpers::add_output_message(entity_manager, "This message is from a dialog response action...");
+				textworld::helpers::add_item_to_player_inventory(player_entity, entity_manager, "Silver ring");
+			}) }
 	}));
 
 	begin_room_configuration();
