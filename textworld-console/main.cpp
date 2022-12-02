@@ -15,7 +15,7 @@ int main(int argc, char* argv[])
 	mk_it("Iron ore", "A lump of raw iron ore");
 	mk_it("Wood log", "A wood log");
 	mk_it("Leather scrap", "A scrap of leather");
-	mk_it("Silver ring", "A worn silver ring");
+	mk_it("Silver ring", "A silver ring that looks extremely worn");
 
 	mk_npc("Old Man", "A really old man", (std::unordered_map<std::string, std::tuple<std::string, textworld::core::action_func>>{
 		{ "hello", std::make_tuple("Hi there, take this silver ring!!!", [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
