@@ -1,7 +1,5 @@
 #pragma once
 
-// cmake.EXE --build c:/Users/frank/Documents/DEV/game-dev/TextWorld++/out/build/x64-debug
-
 //#define SOL_ALL_SAFETIES_ON 1
 
 #include <concepts>
@@ -15,15 +13,15 @@
 #include <iostream>
 #include <optional>
 
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 #include <magic_enum.hpp>
 //#include <json/json.h>
 //#include <sol/sol.hpp>
-
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
-#include <boost/uuid/uuid_io.hpp>
 
 #define to_lower(s) transform(s.begin(), s.end(), s.begin(), ::tolower);
 #define to_upper(s) transform(s.begin(), s.end(), s.begin(), ::toupper);
@@ -89,14 +87,14 @@ extern std::string get_vector_of_strings_as_strings(std::vector<std::string> vec
 #define mk_it(n, d) _mk_it(n, d, false, nullptr);
 #define mk_it_with_action(n, d, c, a) _mk_it(n, d, c, a);
 
-#define mk_npc(n, d, r)  \
-	{                                                                \
-		auto npc_entity = std::make_shared<textworld::ecs::Entity>(n); \
+#define mk_npc(n, d, r)																																					\
+	{																																															\
+		auto npc_entity = std::make_shared<textworld::ecs::Entity>(n);															\
 		auto npc_description = std::make_shared<textworld::components::DescriptionComponent>(n, d); \
-		npc_entity->add_component(npc_description);	\
+		npc_entity->add_component(npc_description);																									\
 		auto npc_dialog_sequence_component = std::make_shared<textworld::components::DialogSequenceComponent>(n, r); \
-		npc_entity->add_component(npc_dialog_sequence_component);												        \
-		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::NPCS, npc_entity); \
+		npc_entity->add_component(npc_dialog_sequence_component);																		\
+		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::NPCS, npc_entity);			\
 	}
 
 #define pl_npc(ir, n)                                                                                                                                   \
@@ -415,7 +413,7 @@ namespace textworld::core
 	// FIXME: The action function should return a boolean here to let systems know if the action was successful or not
 	typedef std::function<void(std::shared_ptr<textworld::ecs::Entity>, std::shared_ptr<textworld::ecs::EntityManager>)> action_func;
 
-	extern std::unordered_map<std::string, action_func> command_to_actions;
+	extern std::unordered_map<std::string, action_func> command_actions;
 }
 
 namespace textworld::data
@@ -423,7 +421,8 @@ namespace textworld::data
 	enum class CommandSet
 	{
 		CORE,
-		NPC
+		NPC,
+		ROOM
 	};
 
 	enum class TriggerType
@@ -523,15 +522,19 @@ namespace textworld::data
 		int quantity{};
 	};
 
+	struct QuestStep
+	{
+		// TODO: ???
+	};
+
 	struct Quest
 	{
-		// This isn't fully fleshed out. Not currently sure how we'll track
-		// individual quest steps
+		// This isn't fully fleshed out. Not currently sure how we'll track individual quest steps
 		std::string id{};
 		std::string name{};
 		std::string description{};
 		std::string location_id{};
-		std::vector<std::string> steps{};
+		std::vector<QuestStep> steps{};
 		std::unordered_map<std::string, std::string> scripts{};
 	};
 
@@ -543,7 +546,7 @@ namespace textworld::data
 		std::shared_ptr<textworld::ecs::Entity> entity{};
 	};
 
-	struct TriggerInfo 
+	struct TriggerInfo
 	{
 		TriggerType type{};
 		std::string command{};
@@ -980,11 +983,11 @@ namespace textworld::components
 			}
 		}
 
-		void add_response(std::string trigger, std::string response, textworld::core::action_func action=nullptr) { responses[trigger] = std::make_tuple(response, action); }
+		void add_response(std::string trigger, std::string response, textworld::core::action_func action = nullptr) { responses[trigger] = std::make_tuple(response, action); }
 		std::optional<std::tuple<std::string, textworld::core::action_func>> get_response(std::string trigger) const
 		{
 			auto it = responses.find(trigger);
-			
+
 			if (it != responses.end())
 			{
 				return std::optional<std::tuple<std::string, textworld::core::action_func>>{it->second};
@@ -998,7 +1001,7 @@ namespace textworld::components
 	private:
 		std::unordered_map<std::string, std::tuple<std::string, textworld::core::action_func>> responses{};
 	};
-	
+
 	class QuestionResponseSequenceComponent : public textworld::ecs::Component
 	{
 	public:
@@ -1079,16 +1082,16 @@ namespace textworld::components
 		FlagComponent(std::string name, std::vector<textworld::data::Flag> flags) : Component(name), flags(flags) {}
 
 		bool is_set(textworld::data::Flag flag)
-		{			
+		{
 			return std::find(flags.begin(), flags.end(), flag) != flags.end();
 		}
-		
+
 		void set_flag(textworld::data::Flag flag)
 		{
 			if (!is_set(flag))
 				flags.emplace_back(flag);
 		}
-		
+
 		void unset_flag(textworld::data::Flag flag)
 		{
 			auto it = std::find(flags.begin(), flags.end(), flag);
@@ -1096,10 +1099,10 @@ namespace textworld::components
 			if (it != flags.end())
 				flags.erase(it);
 		}
-		
+
 		void set_data(std::string data) { this->flag_data = data; }
 		auto get_data() const { return flag_data; }
-				
+
 	private:
 		std::string flag_data{};
 		std::vector<textworld::data::Flag> flags{};
@@ -1121,7 +1124,7 @@ namespace textworld::components
 		{
 			triggers = std::make_unique<std::unordered_map<textworld::data::TriggerType, std::vector<textworld::data::TriggerInfo>>>();
 		}
-		TriggerComponent(std::string name, textworld::data::TriggerType trigger_type, textworld::data::TriggerInfo trigger) : TriggerComponent(name) 
+		TriggerComponent(std::string name, textworld::data::TriggerType trigger_type, textworld::data::TriggerInfo trigger) : TriggerComponent(name)
 		{
 			add_trigger(trigger_type, trigger);
 		}
@@ -1133,22 +1136,22 @@ namespace textworld::components
 				(*triggers)[type] = std::vector<textworld::data::TriggerInfo>{};
 			(*triggers)[type].emplace_back(trigger);
 		}
-				
-		auto get_triggers_for_type(textworld::data::TriggerType type) const
+
+		std::optional<std::vector<textworld::data::TriggerInfo>> get_triggers_for_type(textworld::data::TriggerType type) const
 		{
 			auto it = triggers->find(type);
 			if (it != triggers->end())
 				return it->second;
-			return std::vector<textworld::data::TriggerInfo>{};
+			return std::nullopt;
 		}
 
-		void remove_trigger(textworld::data::TriggerType type)
+		void remove_triggers(textworld::data::TriggerType type)
 		{
 			auto it = triggers->find(type);
 			if (it != triggers->end())
 				triggers->erase(it);
 		}
-	
+
 	private:
 		std::unique_ptr<std::unordered_map<textworld::data::TriggerType, std::vector<textworld::data::TriggerInfo>>> triggers{};
 	};
@@ -1172,7 +1175,7 @@ namespace textworld::helpers
 	extern std::shared_ptr<textworld::ecs::EntityManager> make_entity_manager();
 	extern void add_output_message(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message);
 	extern void remove_npc_engagement_flag_from_player(std::shared_ptr<textworld::ecs::Entity> player_entity);
-	
+
 	extern void debug_items(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 
 	template <typename T>
@@ -1269,7 +1272,7 @@ namespace textworld::systems
 	extern void motd_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void console_output_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void console_input_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
-	extern void inventory_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);	
+	extern void inventory_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void question_response_sequence_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void combat_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 }

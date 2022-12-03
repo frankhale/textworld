@@ -285,7 +285,7 @@ namespace textworld::helpers
 		auto description_component = std::make_shared<textworld::components::DescriptionComponent>("player description", description);
 		auto currency_component = std::make_shared<textworld::components::ValueComponent<int>>("gold", 10);
 		auto score_component = std::make_shared<textworld::components::ValueComponent<int>>("score", 0);
-		auto command_set_component = std::make_shared<textworld::components::CommandSetComponent>(textworld::data::CommandSet::CORE, textworld::core::command_to_actions);
+		auto command_set_component = std::make_shared<textworld::components::CommandSetComponent>(textworld::data::CommandSet::CORE, textworld::core::command_actions);
 		auto motd_description_component = std::make_shared<textworld::components::DescriptionComponent>("motd", motd_description);
 
 		player_entity->add_components(std::vector<std::shared_ptr<textworld::ecs::Component>>{
@@ -530,7 +530,7 @@ namespace textworld::ecs
 
 namespace textworld::core
 {
-	std::unordered_map<std::string, action_func> command_to_actions{
+	std::unordered_map<std::string, action_func> command_actions{
 			{"quit", textworld::core::quit_action},
 			{"look", textworld::core::look_room_action},
 			{"look self", textworld::core::look_self_action},
@@ -904,7 +904,7 @@ namespace textworld::core
 							}
 							else
 							{
-								auto output_component = std::make_shared<textworld::components::OutputComponent>("output for item in inventory", fmt::format("You used {} but nothing happened", item->name), textworld::data::OutputType::REGULAR);
+								auto output_component = std::make_shared<textworld::components::OutputComponent>("output for item in inventory", "Hmm, nothing happened...", textworld::data::OutputType::REGULAR);
 								output_entity->add_component(output_component);
 							}
 
@@ -1120,21 +1120,32 @@ namespace textworld::systems
 		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
 		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::COMMAND_ACTION_SYSTEM_BYPASS))
 			return;
-
+		
 		auto command_components = player_entity->find_components_by_type<textworld::components::CommandInputComponent>();
 
-		if (command_components.size() == 0)
-			return;
+		if (command_components.size() == 0) return;
 
 		auto command_set_component = player_entity->find_first_component_by_type<textworld::components::CommandSetComponent>();
 
-		if (command_set_component == nullptr)
-			return;
+		if (command_set_component == nullptr) return;
 
 		for (const auto& command_component : command_components)
 		{
 			textworld::core::action_func command_action =
 				textworld::helpers::find_value_in_map<textworld::core::action_func>(command_set_component->get_command_set(), command_component->get_command_with_arguments(), command_component->get_tokens());
+
+			if (command_action == nullptr)
+			{
+				// Let's allow rooms to have command sets assigned to them for special commands
+				auto current_room_entity = textworld::helpers::get_players_current_room(player_entity, entity_manager);
+				auto room_command_set_component = current_room_entity->find_first_component_by_type<textworld::components::CommandSetComponent>();
+				
+				if (room_command_set_component != nullptr)
+				{
+					command_action =
+						textworld::helpers::find_value_in_map<textworld::core::action_func>(room_command_set_component->get_command_set(), command_component->get_command_with_arguments(), command_component->get_tokens());					
+				}
+			}
 
 			if (command_action != nullptr)
 			{
