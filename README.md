@@ -1,11 +1,11 @@
 # TextWorld
 
-An experiment in creating a text based role playing adventure game engine and game in C++ 
+An experiment in creating a text based role playing adventure game engine and game in C++
 using a custom Entity Component System.
 
 ## Status
 
-Basic game play is implemented. Player can move around the world, pick up items, use items, 
+Basic game play is implemented. Player can move around the world, pick up items, use items,
 drop items and talk to NPCs. The current game world is strictly there to test out features.
 
 ## TODO
@@ -49,4 +49,4 @@ Frank Hale &lt;frankhale AT gmail.com&gt;
 
 ## Date
 
-2 December 2022
+7 December 2022

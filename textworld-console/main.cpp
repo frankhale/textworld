@@ -17,6 +17,10 @@ int main(int argc, char* argv[])
 	mk_it("Leather scrap", "A scrap of leather");
 	mk_it("Silver ring", "A silver ring that looks extremely worn");
 
+	mk_npc("Charlotte", "A very sweet lady spider", (std::unordered_map<std::string, std::tuple<std::string, textworld::core::action_func>>{
+		{ "hello", std::make_tuple("Have you seen Wilbur? I've been looking around everywhere for him...", nullptr) }
+	}));
+
 	mk_npc("Old Man", "A really old man", (std::unordered_map<std::string, std::tuple<std::string, textworld::core::action_func>>{
 		{ "hello", std::make_tuple("Hi there, take this silver ring!!!", [](std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 			{
@@ -43,6 +47,7 @@ int main(int argc, char* argv[])
 	pl_it("Large Rock", "Lamp", 1);
 
 	pl_npc("Stream", "Old Man");
+	pl_npc("Dark Passage", "Charlotte");
 
 	end_room_configuration();
 

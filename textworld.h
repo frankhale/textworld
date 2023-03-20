@@ -454,7 +454,7 @@ namespace textworld::data
 		NPC_DIALOG_SYSTEM_BYPASS,
 		NPC_DIALOG_ENGAGEMENT,
 		DESCRIPTION_SYSTEM_BYPASS,
-		QUESTION_RESPONSE_SEQUENCE_SYSTEM_BYPASS
+		QUESTION_RESPONSE_SEQUENCE_SYSTEM_BYPASS		
 	};
 
 	enum class Direction
@@ -975,7 +975,8 @@ namespace textworld::components
 	class DialogSequenceComponent : public textworld::ecs::Component
 	{
 	public:
-		DialogSequenceComponent(std::string name, std::unordered_map<std::string, std::tuple<std::string, textworld::core::action_func>> responses) : Component(name)
+		DialogSequenceComponent(std::string name, 
+			std::unordered_map<std::string, std::tuple<std::string, textworld::core::action_func>> responses) : Component(name)
 		{
 			for (auto& [key, value] : responses)
 			{
