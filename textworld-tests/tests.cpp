@@ -513,14 +513,14 @@ TEST(Systems, CanProcessCommandActionComponentsOnPlayers)
 		}
 	};
 
-	auto command_set_component = std::make_shared<textworld::components::CommandSetComponent>(textworld::data::CommandSet::CORE, textworld::core::command_actions);
+	//auto command_set_component = std::make_shared<textworld::components::CommandSetComponent>(textworld::data::CommandSet::CORE, textworld::core::command_actions);
 	auto command_action_component = std::make_shared<textworld::components::CommandActionComponent>("command_action_component", "foo", action);
 	auto command_component = std::make_shared<textworld::components::CommandInputComponent>("command_component", "foo");
 
 	player_entity->add_components(std::vector<std::shared_ptr<textworld::ecs::Component>>{
 		command_component,
 		command_action_component,
-		command_set_component
+		//command_set_component
 	});
 
 	auto entity_manager = std::make_shared<textworld::ecs::EntityManager>();
@@ -620,7 +620,7 @@ TEST(Actions, CanShowItem)
 	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
-
+	EXPECT_NE(output_component, nullptr);
 	EXPECT_EQ(output_component->get_value(), "item_1 (1) : This is a test item");
 }
 
@@ -674,7 +674,7 @@ TEST(Actions, CanShowAllItems)
 	// The following items are here:\n
 	// item_1(1) : This is a test item #1,\n
 	// item_2 (1) : This is a test item #2\n
-
+	EXPECT_NE(output_component, nullptr);
 	EXPECT_EQ(output_component->get_value(), "The following items are here:\nitem_1 (1) : This is a test item #1\nitem_2 (1) : This is a test item #2");
 }
 
@@ -717,7 +717,7 @@ TEST(Actions, CanTakeItem)
 	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
-
+	EXPECT_NE(output_component, nullptr);
 	EXPECT_EQ(output_component->get_value(), "You've taken item_1");
 }
 
@@ -769,7 +769,7 @@ TEST(Actions, CanTakeAllItems)
 	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
-
+	EXPECT_NE(output_component, nullptr);
 	EXPECT_EQ(output_component->get_value(), "You've taken the following items:\nitem_1 (1) : This is a test item #1\nitem_2 (1) : This is a test item #2");
 
 	auto i1 = inventory_component->get_item(item_1->id);
@@ -822,7 +822,7 @@ TEST(Actions, CanDropItem)
 	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
-
+	EXPECT_NE(output_component, nullptr);
 	EXPECT_EQ(output_component->get_value(), "You've dropped item_1");
 }
 
@@ -877,7 +877,7 @@ TEST(Actions, CanDropAllItems)
 	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
-
+	EXPECT_NE(output_component, nullptr);
 	EXPECT_EQ(output_component->get_value(), "You've dropped all items");
 
 	auto inv_size = inventory_component->get_size();
@@ -968,10 +968,18 @@ TEST(Actions, CanLookAtSelf)
 	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto show_description_component = player_entity->find_first_component_by_type<textworld::components::ShowDescriptionComponent>();
+	EXPECT_TRUE(show_description_component);
 
-	auto description_component_from_output = show_description_component->get_entity()->find_first_component_by_type<textworld::components::DescriptionComponent>();
-
-	EXPECT_EQ(description_component->get_description(), "You are the hero!");
+	if (show_description_component)
+	{
+		auto description_component_from_output = show_description_component->get_entity()->find_first_component_by_type<textworld::components::DescriptionComponent>();
+		ASSERT_TRUE(description_component_from_output);
+		EXPECT_EQ(description_component_from_output->get_description(), "You are the hero!");
+	}
+	else 
+	{
+		FAIL("Expected a show_description_component but didn't find one");
+	}
 }
 
 TEST(Actions, CanLookAtRoom)
@@ -1005,8 +1013,15 @@ TEST(Actions, CanLookAtRoom)
 	textworld::systems::command_action_system(player_entity, entity_manager);
 
 	auto show_description_component = player_entity->find_first_component_by_type<textworld::components::ShowDescriptionComponent>();
-	auto description_component_from_output = show_description_component->get_entity()->find_components_by_type<textworld::components::DescriptionComponent>().front();
-
-	EXPECT_EQ(show_description_component->get_entity(), room_entity);
-	EXPECT_EQ(description_component_from_output->get_description(), "This is a test room");
+	if (show_description_component)
+	{
+		auto description_component_from_output = show_description_component->get_entity()->find_components_by_type<textworld::components::DescriptionComponent>().front();
+		EXPECT_TRUE(description_component_from_output);
+		EXPECT_EQ(show_description_component->get_entity(), room_entity);
+		EXPECT_EQ(description_component_from_output->get_description(), "This is a test room");
+	}
+	else
+	{
+		FAIL("Expected a show_description_component but didn't find one");
+	}
 }
