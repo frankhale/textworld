@@ -1,0 +1,96 @@
+This is some Javascript code for a mapper that I made that processes a list of
+rooms and produces a map. This code is just here so that I don't lose it. I will
+incorporate this into the game at some point.
+
+data: [
+    { id: 1, exits: [0, 2, 0, 0] },
+    { id: 2, exits: [1, 0, 3, 0] },
+    { id: 3, exits: [0, 0, 4, 2] },
+    { id: 4, exits: [6, 5, 7, 3] },
+    { id: 5, exits: [4, 8, 0, 0] },
+    { id: 6, exits: [0, 4, 0, 0] },
+    { id: 7, exits: [0, 0, 0, 4] },
+    { id: 8, exits: [5, 0, 9, 10] },
+    { id: 9, exits: [0, 0, 0, 8] },
+    { id: 10, exits: [0, 0, 8, 0] }
+]
+
+createMatrix(width, height) {
+  return _.map(_.range(0, height), x => {
+    return _.map(_.range(0, width), i => {
+      return 0;
+    });
+  });
+}
+
+plotMap(data, startX, startY, width, height) {
+  let result = this.createMatrix(width, height);
+
+  function plotPoint(data, id, x, y, map) {
+    if (id === 0) return;
+
+    let r = _.find(data, { id: id });
+
+    if (r) {
+      r.x = x;
+      r.y = y;
+      map[r.y][r.x] = r.id;
+    }
+  }
+
+  _.forEach(data, d => {
+    if (!d.x && !d.y) {
+      // Plot our starting point which is the first item in
+      // our data array
+      d.x = startX;
+      d.y = startY;
+      result[startY][startX] = data[0].id;
+    }
+
+    plotPoint(data, d.exits[0], d.x, d.y - 1, result);
+    plotPoint(data, d.exits[1], d.x, d.y + 1, result);
+    plotPoint(data, d.exits[2], d.x + 1, d.y, result);
+    plotPoint(data, d.exits[3], d.x - 1, d.y, result);
+  });
+
+  return result;
+}
+
+renderMap(map) {
+  let rows = [];
+
+  _.forEach(map, m => {
+    let row = [];
+
+    for (let x = 0; x < m.length; x++) {
+      let p = m[x];
+      if (p === 0) {
+        p = <div>&nbsp;</div>;
+      } else {
+        p = (
+          <div
+            style={{
+              background: "#ddd"
+            }}
+          >
+            {p}
+          </div>
+        );
+      }
+      row.push(
+        <td
+          key={_.uniqueId(x)}
+          style={{
+            textAlign: "center",
+            width: "10px",
+            border: "2px solid black",
+            padding: "0"
+          }}
+        >
+          {p}
+        </td>
+      );
+    }
+
+    rows.push(row);
+  });

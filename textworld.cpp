@@ -472,6 +472,16 @@ namespace textworld::ecs
 		return nullptr;
 	}
 
+	std::string EntityManager::get_entity_id_by_name(std::string group_name, std::string entity_name)
+	{
+		auto entity = EntityManager::get_entity_by_name(group_name, entity_name);
+		if (entity != nullptr)
+		{
+			return entity->get_id();
+		}
+		return "";
+	}
+
 	std::shared_ptr<Entity> EntityManager::get_entity_by_name(std::string entity_group, std::string entity_name)
 	{
 		return find_entity(entity_group, [&](const std::shared_ptr<Entity> &e)
@@ -487,8 +497,6 @@ namespace textworld::ecs
 	std::shared_ptr<std::vector<std::shared_ptr<Entity>>> EntityManager::find_entities_in_group(std::string entity_group, std::function<bool(std::shared_ptr<Entity>)> predicate)
 	{
 		auto entity_group_ptr = get_entity_group(entity_group);
-
-		// make a shared pointer to a vector of entities
 		auto entities = std::make_shared<std::vector<std::shared_ptr<Entity>>>();
 
 		if (entity_group_ptr != nullptr)
@@ -545,8 +553,7 @@ namespace textworld::core
 			{"use", textworld::core::use_item_from_inventory_action},
 			{"talk to", textworld::core::talk_to_npc},
 			{"say", textworld::core::say_to_npc},
-			{"debug_items", textworld::helpers::debug_items}
-	};
+			{"debug_items", textworld::helpers::debug_items}};
 
 	void quit_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
@@ -1142,15 +1149,15 @@ namespace textworld::systems
 			{
 				// Let's allow rooms to have command sets assigned to them for special commands
 				auto current_room_entity = textworld::helpers::get_players_current_room(player_entity, entity_manager);
-				
-				if (current_room_entity) 
+
+				if (current_room_entity)
 				{
 					auto room_command_set_component = current_room_entity->find_first_component_by_type<textworld::components::CommandSetComponent>();
 
 					if (room_command_set_component != nullptr)
 					{
 						command_action =
-							textworld::helpers::find_value_in_map<textworld::core::action_func>(room_command_set_component->get_command_set(), command_component->get_command_with_arguments(), command_component->get_tokens());
+								textworld::helpers::find_value_in_map<textworld::core::action_func>(room_command_set_component->get_command_set(), command_component->get_command_with_arguments(), command_component->get_tokens());
 					}
 				}
 			}

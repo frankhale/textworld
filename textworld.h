@@ -1,6 +1,6 @@
 #pragma once
 
-//#define SOL_ALL_SAFETIES_ON 1
+// #define SOL_ALL_SAFETIES_ON 1
 
 #include <concepts>
 #include <ranges>
@@ -20,8 +20,8 @@
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 #include <magic_enum.hpp>
-//#include <json/json.h>
-//#include <sol/sol.hpp>
+// #include <json/json.h>
+// #include <sol/sol.hpp>
 
 #define to_lower(s) transform(s.begin(), s.end(), s.begin(), ::tolower);
 #define to_upper(s) transform(s.begin(), s.end(), s.begin(), ::toupper);
@@ -32,8 +32,8 @@
 extern std::string generate_uuid();
 extern std::string get_vector_of_strings_as_strings(std::vector<std::string> vec);
 
-#define begin_room_configuration() \
-	{                                \
+#define begin_room_configuration \
+	{                              \
 		std::unordered_map<std::string, textworld::data::RoomInfo> room_info{};
 
 #define mk_rm(n, d)                                                                              \
@@ -87,14 +87,14 @@ extern std::string get_vector_of_strings_as_strings(std::vector<std::string> vec
 #define mk_it(n, d) _mk_it(n, d, false, nullptr);
 #define mk_it_with_action(n, d, c, a) _mk_it(n, d, c, a);
 
-#define mk_npc(n, d, r)																																					\
-	{																																															\
-		auto npc_entity = std::make_shared<textworld::ecs::Entity>(n);															\
-		auto npc_description = std::make_shared<textworld::components::DescriptionComponent>(n, d); \
-		npc_entity->add_component(npc_description);																									\
+#define mk_npc(n, d, r)                                                                                          \
+	{                                                                                                              \
+		auto npc_entity = std::make_shared<textworld::ecs::Entity>(n);                                               \
+		auto npc_description = std::make_shared<textworld::components::DescriptionComponent>(n, d);                  \
+		npc_entity->add_component(npc_description);                                                                  \
 		auto npc_dialog_sequence_component = std::make_shared<textworld::components::DialogSequenceComponent>(n, r); \
-		npc_entity->add_component(npc_dialog_sequence_component);																		\
-		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::NPCS, npc_entity);			\
+		npc_entity->add_component(npc_dialog_sequence_component);                                                    \
+		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::NPCS, npc_entity);                      \
 	}
 
 #define pl_npc(ir, n)                                                                                                                                   \
@@ -115,7 +115,7 @@ extern std::string get_vector_of_strings_as_strings(std::vector<std::string> vec
 		}                                                                                                          \
 	}
 
-#define end_room_configuration()                                                                  \
+#define end_room_configuration                                                                    \
 	for (const auto &r : room_info)                                                                 \
 	{                                                                                               \
 		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::ROOMS, r.second.entity); \
@@ -152,7 +152,7 @@ namespace textworld::ecs
 	class Component
 	{
 	public:
-		virtual ~Component() {};
+		virtual ~Component(){};
 
 		auto get_name() const { return component_name; }
 		void set_name(std::string name) { component_name = name; }
@@ -186,7 +186,7 @@ namespace textworld::ecs
 		template <ComponentType T>
 		std::shared_ptr<T> find_first_component_by_type()
 		{
-			for (auto& c : *components)
+			for (auto &c : *components)
 			{
 				auto casted = std::dynamic_pointer_cast<T>(c);
 
@@ -204,7 +204,7 @@ namespace textworld::ecs
 		{
 			std::vector<std::shared_ptr<T>> matches{};
 
-			for (auto& c : *components)
+			for (auto &c : *components)
 			{
 				auto casted = std::dynamic_pointer_cast<T>(c);
 
@@ -222,7 +222,7 @@ namespace textworld::ecs
 		{
 			std::vector<std::shared_ptr<T>> matches{};
 
-			for (auto& c : *components)
+			for (auto &c : *components)
 			{
 				auto casted = std::dynamic_pointer_cast<T>(c);
 
@@ -240,7 +240,7 @@ namespace textworld::ecs
 		{
 			std::vector<std::shared_ptr<T>> matches{};
 
-			for (auto& c : *components)
+			for (auto &c : *components)
 			{
 				auto casted = std::dynamic_pointer_cast<T>(c);
 
@@ -258,7 +258,7 @@ namespace textworld::ecs
 		{
 			std::vector<std::shared_ptr<T>> matches{};
 
-			for (auto& c : *components)
+			for (auto &c : *components)
 			{
 				auto casted = std::dynamic_pointer_cast<T>(c);
 
@@ -279,7 +279,7 @@ namespace textworld::ecs
 		template <ComponentType T>
 		void remove_components(std::vector<std::shared_ptr<T>> c)
 		{
-			for (auto& component : c)
+			for (auto &component : c)
 			{
 				auto it = std::find(components->begin(), components->end(), component);
 				if (it != components->end())
@@ -299,9 +299,9 @@ namespace textworld::ecs
 			}
 		}
 
-		void for_each_component(std::function<void(std::shared_ptr<Component>&)> fc)
+		void for_each_component(std::function<void(std::shared_ptr<Component> &)> fc)
 		{
-			for (auto& c : *components)
+			for (auto &c : *components)
 			{
 				fc(c);
 			}
@@ -315,7 +315,7 @@ namespace textworld::ecs
 
 	private:
 		std::string id;
-		EntityType entity_type{ EntityType::UNKNOWN };
+		EntityType entity_type{EntityType::UNKNOWN};
 
 	protected:
 		std::string name;
@@ -349,7 +349,7 @@ namespace textworld::ecs
 		std::vector<std::string> get_entity_group_names()
 		{
 			std::vector<std::string> results{};
-			for (auto& eg : *entity_groups)
+			for (auto &eg : *entity_groups)
 			{
 				results.emplace_back(eg->name);
 			}
@@ -366,6 +366,7 @@ namespace textworld::ecs
 			return get_entities_in_group(entity_group_name_to_string(group_name));
 		}
 
+		std::string get_entity_id_by_name(std::string group_name, std::string entity_name);
 		std::shared_ptr<Entity> get_entity_by_name(std::string group_name, std::string entity_name);
 		std::shared_ptr<Entity> get_entity_by_name(EntityGroupName group_name, std::string entity_name)
 		{
@@ -383,7 +384,7 @@ namespace textworld::ecs
 			auto group = get_entity_group(entity_group);
 
 			std::vector<std::shared_ptr<Entity>> matches{};
-			for (auto& e : *group->entities)
+			for (auto &e : *group->entities)
 			{
 				auto result = e->find_component_by_type<T>(predicate);
 				if (result.size() > 0)
@@ -454,7 +455,7 @@ namespace textworld::data
 		NPC_DIALOG_SYSTEM_BYPASS,
 		NPC_DIALOG_ENGAGEMENT,
 		DESCRIPTION_SYSTEM_BYPASS,
-		QUESTION_RESPONSE_SEQUENCE_SYSTEM_BYPASS		
+		QUESTION_RESPONSE_SEQUENCE_SYSTEM_BYPASS
 	};
 
 	enum class Direction
@@ -684,15 +685,15 @@ namespace textworld::components
 	{
 	public:
 		ExitComponent(std::string name, textworld::data::Direction direction, std::string room_id, bool hidden)
-			: Component(name), direction(direction), room_id(room_id), hidden(hidden) {}
+				: Component(name), direction(direction), room_id(room_id), hidden(hidden) {}
 
 		auto get_direction() const { return direction; }
 		auto get_direction_as_string()
 		{
 			auto dir = magic_enum::enum_name(direction);
-			auto dir_s = std::string{ dir };
+			auto dir_s = std::string{dir};
 			to_lower(dir_s);
-			return std::string{ dir_s };
+			return std::string{dir_s};
 		}
 		auto get_room_id() const { return room_id; }
 		auto is_hidden() const { return hidden; }
@@ -710,7 +711,7 @@ namespace textworld::components
 	{
 	public:
 		IdComponent(std::string name, std::string target_id, textworld::data::IdType id_type)
-			: Component(name), target_id(target_id), id_type(id_type) {}
+				: Component(name), target_id(target_id), id_type(id_type) {}
 
 		auto get_id_type() const { return id_type; }
 		auto get_target_id() const { return target_id; }
@@ -723,7 +724,7 @@ namespace textworld::components
 		auto get_meta_data_as_string() const
 		{
 			std::ostringstream oss;
-			for (auto& [key, value] : meta_data)
+			for (auto &[key, value] : meta_data)
 			{
 				oss << key << ": " << value << std::endl;
 			}
@@ -745,7 +746,7 @@ namespace textworld::components
 		}
 		InventoryComponent(std::string name, std::vector<textworld::data::ItemPickup> items) : InventoryComponent(name)
 		{
-			for (auto& item : items)
+			for (auto &item : items)
 			{
 				add_item(item);
 			}
@@ -753,8 +754,8 @@ namespace textworld::components
 
 		void add_item(textworld::data::ItemPickup item)
 		{
-			auto it = std::find_if(items->begin(), items->end(), [item](const auto& i)
-				{ return i->id == item.id; });
+			auto it = std::find_if(items->begin(), items->end(), [item](const auto &i)
+														 { return i->id == item.id; });
 
 			if (it == items->end())
 			{
@@ -767,15 +768,15 @@ namespace textworld::components
 		}
 		void remove_item(std::string item_id)
 		{
-			items->erase(std::remove_if(items->begin(), items->end(), [item_id](const auto& item)
-				{ return item->id == item_id; }),
-				items->end());
+			items->erase(std::remove_if(items->begin(), items->end(), [item_id](const auto &item)
+																	{ return item->id == item_id; }),
+									 items->end());
 		}
 		std::shared_ptr<textworld::data::ItemPickup> get_item(std::string item_id)
 		{
 			// loop over items and find item based on item_id using find_if
-			auto it = std::find_if(items->begin(), items->end(), [item_id](const auto& item)
-				{ return item->id == item_id; });
+			auto it = std::find_if(items->begin(), items->end(), [item_id](const auto &item)
+														 { return item->id == item_id; });
 
 			if (it != items->end())
 			{
@@ -789,8 +790,8 @@ namespace textworld::components
 
 		void increment_item_count(std::string item_id, int count)
 		{
-			auto it = std::find_if(items->begin(), items->end(), [item_id](const auto& item)
-				{ return item->id == item_id; });
+			auto it = std::find_if(items->begin(), items->end(), [item_id](const auto &item)
+														 { return item->id == item_id; });
 
 			if (it != items->end())
 			{
@@ -799,8 +800,8 @@ namespace textworld::components
 		}
 		void decrement_item_count(std::string item_id, int count)
 		{
-			auto it = std::find_if(items->begin(), items->end(), [item_id](const auto& item)
-				{ return item->id == item_id; });
+			auto it = std::find_if(items->begin(), items->end(), [item_id](const auto &item)
+														 { return item->id == item_id; });
 
 			if (it != items->end())
 			{
@@ -828,7 +829,7 @@ namespace textworld::components
 
 		void for_each(std::function<void(std::shared_ptr<textworld::data::ItemPickup>)> func)
 		{
-			for (const auto& item : *items)
+			for (const auto &item : *items)
 			{
 				func(item);
 			}
@@ -842,7 +843,7 @@ namespace textworld::components
 	{
 	public:
 		ItemComponent(std::string name, std::shared_ptr<textworld::data::Item> item)
-			: Component(name), item(item) {}
+				: Component(name), item(item) {}
 
 		auto get_item() const { return item; }
 		void set_item(std::shared_ptr<textworld::data::Item> item) { this->item = item; }
@@ -875,7 +876,7 @@ namespace textworld::components
 	{
 	public:
 		JsonComponent(std::string name, std::string json)
-			: Component(name), json(json) {}
+				: Component(name), json(json) {}
 
 		auto get_json() const { return json; }
 		void set_json(std::string json) { this->json = json; }
@@ -888,7 +889,7 @@ namespace textworld::components
 	{
 	public:
 		OutputComponent(std::string name, std::string value, textworld::data::OutputType output_type = textworld::data::OutputType::REGULAR)
-			: Component(name), value(value), output_type(output_type) {}
+				: Component(name), value(value), output_type(output_type) {}
 
 		auto get_output_type() const { return output_type; }
 		auto get_value() const { return value; }
@@ -904,7 +905,7 @@ namespace textworld::components
 	{
 	public:
 		QuitComponent(std::string name, std::function<void()> action)
-			: Component(name), action(action) {}
+				: Component(name), action(action) {}
 
 		void run_action() { action(); }
 
@@ -916,14 +917,14 @@ namespace textworld::components
 	{
 	public:
 		ShowDescriptionComponent(std::string name,
-			std::shared_ptr<textworld::ecs::Entity> entity,
-			textworld::data::DescriptionType description_type)
-			: Component(name), entity(entity), description_type(description_type) {}
+														 std::shared_ptr<textworld::ecs::Entity> entity,
+														 textworld::data::DescriptionType description_type)
+				: Component(name), entity(entity), description_type(description_type) {}
 
 		ShowDescriptionComponent(std::string name,
-			std::vector<std::shared_ptr<textworld::ecs::Entity>> entities,
-			textworld::data::DescriptionType description_type)
-			: Component(name), entities(entities), description_type(description_type) {}
+														 std::vector<std::shared_ptr<textworld::ecs::Entity>> entities,
+														 textworld::data::DescriptionType description_type)
+				: Component(name), entities(entities), description_type(description_type) {}
 
 		auto get_description_type() const { return description_type; }
 		auto get_entity() const { return entity; }
@@ -964,7 +965,7 @@ namespace textworld::components
 	{
 	public:
 		UnknownCommandComponent(std::string name, std::string command)
-			: Component(name), command(command) {}
+				: Component(name), command(command) {}
 
 		auto get_command() const { return command; }
 
@@ -975,10 +976,10 @@ namespace textworld::components
 	class DialogSequenceComponent : public textworld::ecs::Component
 	{
 	public:
-		DialogSequenceComponent(std::string name, 
-			std::unordered_map<std::string, std::tuple<std::string, textworld::core::action_func>> responses) : Component(name)
+		DialogSequenceComponent(std::string name,
+														std::unordered_map<std::string, std::tuple<std::string, textworld::core::action_func>> responses) : Component(name)
 		{
-			for (auto& [key, value] : responses)
+			for (auto &[key, value] : responses)
 			{
 				this->responses[key] = value;
 			}
@@ -1042,7 +1043,7 @@ namespace textworld::components
 		{
 			auto components = entity->find_components_by_type<T>();
 
-			for (auto& component : components)
+			for (auto &component : components)
 			{
 				on_hold_entity->add_component(component);
 				entity->remove_component(component);
@@ -1054,7 +1055,7 @@ namespace textworld::components
 		{
 			auto components = on_hold_entity->find_components_by_type<T>();
 
-			for (auto& component : components)
+			for (auto &component : components)
 			{
 				entity->add_component(component);
 				on_hold_entity->remove_component(component);
@@ -1063,8 +1064,8 @@ namespace textworld::components
 
 		void release_all_components_from_hold(std::shared_ptr<textworld::ecs::Entity> entity)
 		{
-			on_hold_entity->for_each_component([entity](std::shared_ptr<Component>& component)
-				{ entity->add_component(component); });
+			on_hold_entity->for_each_component([entity](std::shared_ptr<Component> &component)
+																				 { entity->add_component(component); });
 
 			on_hold_entity->clear_components();
 		}
@@ -1165,7 +1166,7 @@ namespace textworld::helpers
 	extern void add_item_to_player_inventory(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::shared_ptr<textworld::ecs::Entity> entity);
 	extern void add_item_to_player_inventory(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string item_name);
 	extern void remove_or_decrement_item_in_inventory(std::shared_ptr<textworld::ecs::Entity> target_entity, std::shared_ptr<textworld::data::ItemPickup> inventory_item);
-	extern std::string join(const std::vector<std::string>& v, const std::string& c);
+	extern std::string join(const std::vector<std::string> &v, const std::string &c);
 	extern textworld::data::RoomInfo make_room(std::string name, std::string description);
 	extern std::shared_ptr<textworld::data::Item> make_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::action_func> actions);
 	extern std::shared_ptr<textworld::data::Item> make_consumable_item(std::string name, std::string description, std::unordered_map<std::string, textworld::core::action_func> actions);
@@ -1188,7 +1189,7 @@ namespace textworld::helpers
 
 		int count = 0;
 		std::string command{};
-		for (const auto& k : keys)
+		for (const auto &k : keys)
 		{
 			if (count + 1 < keys.size())
 			{
