@@ -57,6 +57,8 @@ int main(int argc, char *argv[])
 	pl_npc("Stream", "Old Man");
 	pl_npc("Dark Passage", "Charlotte");
 
+	// print_rooms;
+
 	end_room_configuration;
 
 	auto player_entity = textworld::helpers::make_player(entity_manager,

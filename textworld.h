@@ -105,21 +105,19 @@ extern std::string get_vector_of_strings_as_strings(std::vector<std::string> vec
 		npc_entity->add_component(npc_id_component);                                                                                                        \
 	}
 
-#define print_rooms()                                                                                          \
-	{                                                                                                            \
-		for (const auto &r : room_info)                                                                            \
-		{                                                                                                          \
-			fmt::print("{} -> {}\nExits:\n", r.first, r.second.id);                                                  \
-			\ for (const auto &e : r.second.entity->find_components_by_type<textworld::components::ExitComponent>()) \
-					fmt::print("\t{} -> {}\n", e->get_room_name(), e->get_direction_as_string());                        \
-		}                                                                                                          \
+#define print_rooms                                                                                          \
+	{                                                                                                          \
+		for (const auto &r : room_info)                                                                          \
+		{                                                                                                        \
+			fmt::print("{} -> {}\nExits:\n", r.first, r.second.id);                                                \
+			for (const auto &e : r.second.entity->find_components_by_type<textworld::components::ExitComponent>()) \
+				fmt::print("\t{} -> {}\n", e->get_room_name(), e->get_direction_as_string());                        \
+		}                                                                                                        \
 	}
 
 #define end_room_configuration                                                                    \
 	for (const auto &r : room_info)                                                                 \
-	{                                                                                               \
 		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::ROOMS, r.second.entity); \
-	}                                                                                               \
 	}
 
 namespace textworld::ecs
