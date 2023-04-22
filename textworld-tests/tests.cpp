@@ -76,6 +76,20 @@ TEST(Misc, CanFindValueInMap)
 	EXPECT_EQ(meaning_of_life, 22);
 }
 
+TEST(Core, CanAddCommandsToCommandSet)
+{
+	auto command_set_component = std::make_shared<textworld::components::CommandSetComponent>(textworld::data::CommandSet::OTHER, std::unordered_map<std::string, textworld::core::action_func>{});
+
+	command_set_component->add_command("foo", [&](std::shared_ptr<textworld::ecs::Entity> p, std::shared_ptr<textworld::ecs::EntityManager> em)
+																		 { return "foo"; });
+	command_set_component->add_command("foo bar", [&](std::shared_ptr<textworld::ecs::Entity> p, std::shared_ptr<textworld::ecs::EntityManager> em)
+																		 { return "foo bar"; });
+	command_set_component->add_command("foo bar baz", [&](std::shared_ptr<textworld::ecs::Entity> p, std::shared_ptr<textworld::ecs::EntityManager> em)
+																		 { return "foo bar baz"; });
+
+	EXPECT_EQ(command_set_component->get_commands().size(), 3);
+}
+
 TEST(ECS, CommandComponentWithCommandAndArgs)
 {
 	textworld::components::CommandInputComponent command_component("command_component", "command arg1 arg2");

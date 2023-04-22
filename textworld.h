@@ -421,7 +421,8 @@ namespace textworld::data
 	{
 		CORE,
 		NPC,
-		ROOM
+		ROOM,
+		OTHER
 	};
 
 	enum class TriggerType
@@ -633,7 +634,10 @@ namespace textworld::components
 		CommandSetComponent(textworld::data::CommandSet name, std::unordered_map<std::string, textworld::core::action_func> command_set) : Component(textworld::data::command_set_to_string(name)), command_set(command_set) {}
 
 		auto get_command_set() const { return command_set; }
-		void add_command(std::string command, textworld::core::action_func action) { command_set.emplace(command, action); }
+		void add_command(std::string command, textworld::core::action_func action)
+		{
+			command_set.insert({command, action});
+		}
 
 		void add_command_set(std::unordered_map<std::string, textworld::core::action_func> command_set)
 		{
@@ -652,6 +656,9 @@ namespace textworld::components
 				command_set[command](player_entity, em);
 			}
 		}
+
+		// get commands
+		std::unordered_map<std::string, textworld::core::action_func> get_commands() const { return command_set; }
 
 	private:
 		std::unordered_map<std::string, textworld::core::action_func> command_set{};
