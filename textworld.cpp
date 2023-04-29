@@ -318,6 +318,7 @@ namespace textworld::helpers
 
 		auto id_component = std::make_shared<textworld::components::IdComponent>("room id component", room_id, textworld::data::IdType::CURRENT_ROOM);
 		auto health_component = std::make_shared<textworld::components::ValueComponent<int>>("health", 100, 100);
+		auto attack_component = std::make_shared<textworld::components::ValueComponent<int>>("attack", 1);
 		auto description_component = std::make_shared<textworld::components::DescriptionComponent>("enemy description", description);
 
 		enemy_entity->add_component(id_component);
@@ -1528,6 +1529,10 @@ namespace textworld::systems
 
 	void combat_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
 	{
+		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
+		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::COMBAT_SYSTEM_BYPASS))
+			return;
+
 		// TODO: Implement combat system.
 	}
 }

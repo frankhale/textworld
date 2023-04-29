@@ -12,6 +12,7 @@
 #include <sstream>
 #include <iostream>
 #include <optional>
+#include <random>
 
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -103,6 +104,14 @@ extern std::string get_vector_of_strings_as_strings(std::vector<std::string> vec
 		auto npc_entity = entity_manager->get_entity_by_name("npcs", n);                                                                                    \
 		auto npc_id_component = std::make_shared<textworld::components::IdComponent>("npc current room", r_info.id, textworld::data::IdType::CURRENT_ROOM); \
 		npc_entity->add_component(npc_id_component);                                                                                                        \
+	}
+
+#define mk_enemy(n, d, r)                                                                         \
+	{                                                                                               \
+		auto enemy_entity = std::make_shared<textworld::ecs::Entity>(n);                              \
+		auto enemy_description = std::make_shared<textworld::components::DescriptionComponent>(n, d); \
+		enemy_entity->add_component(enemy_description);                                               \
+		entity_manager->add_entity_to_group(textworld::ecs::EntityGroupName::MOBS, npc_entity);       \
 	}
 
 #define print_rooms                                                                                          \
@@ -454,7 +463,8 @@ namespace textworld::data
 		NPC_DIALOG_SYSTEM_BYPASS,
 		NPC_DIALOG_ENGAGEMENT,
 		DESCRIPTION_SYSTEM_BYPASS,
-		QUESTION_RESPONSE_SEQUENCE_SYSTEM_BYPASS
+		QUESTION_RESPONSE_SEQUENCE_SYSTEM_BYPASS,
+		COMBAT_SYSTEM_BYPASS
 	};
 
 	enum class Direction
@@ -948,17 +958,37 @@ namespace textworld::components
 	class ValueComponent : public textworld::ecs::Component
 	{
 	public:
-		void add(T value) { this->value += value; }
-		void sub(T value) { this->value -= value; }
-		void set_value(T value) { this->value = value; }
+		void add(T value)
+		{
+			if (this->value + value > max_value)
+			{
+				this->value = max_value;
+				return;
+			}
+		}
+		void sub(T value)
+		{
+			if (this->value - value < 0)
+			{
+				this->value = 0;
+				return;
+			}
+		}
+		void set_value(T value)
+		{
+			(this->value > max_value) ? this->value = max_value : this->value = value;
+		}
 		T get_value() const { return value; }
 
 		void add_max(T value) { this->max_value += value; }
-		void sub_max(T value) { this->max_value -= value; }
+		void sub_max(T value)
+		{
+			(this->max_value - value < 0) ? this->max_value = 0 : this->max_value -= value;
+		}
 		void set_max_value(T max_value) { this->max_value = max_value; }
 		T get_max_value() const { return max_value; }
 
-		ValueComponent(std::string name, T value) : Component(name), value(value) {}
+		ValueComponent(std::string name, T value) : Component(name), value(value), max_value(value) {}
 		ValueComponent(std::string name, T value, T max_value) : Component(name), value(value), max_value(max_value) {}
 
 	private:
@@ -1161,6 +1191,35 @@ namespace textworld::components
 
 	private:
 		std::unique_ptr<std::unordered_map<textworld::data::TriggerType, std::vector<textworld::data::TriggerInfo>>> triggers{};
+	};
+
+	class LootTableComponent : public textworld::ecs::Component
+	{
+	public:
+		LootTableComponent(std::string name) : Component(name)
+		{
+			loot_table = std::make_unique<std::vector<std::string>>();
+		}
+
+		void add_item(std::string item_id) { loot_table->emplace_back(item_id); }
+		void remove_item(std::string item_id)
+		{
+			auto it = std::find(loot_table->begin(), loot_table->end(), item_id);
+			if (it != loot_table->end())
+				loot_table->erase(it);
+		}
+		auto get_loot(size_t num) const
+		{
+			std::vector<std::string> loot{};
+
+			if (num > loot_table->size())
+				num = loot_table->size();
+
+			std::sample(loot_table->begin(), loot_table->end(), std::back_inserter(loot), num, std::mt19937{std::random_device{}()});
+		}
+
+	private:
+		std::unique_ptr<std::vector<std::string>> loot_table{};
 	};
 }
 
