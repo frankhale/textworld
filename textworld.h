@@ -507,6 +507,7 @@ namespace textworld::data
 		ITEM,
 		PLAYER,
 		NPC,
+		ENEMY,
 		ZONE,
 		DATA
 	};
@@ -960,19 +961,27 @@ namespace textworld::components
 	public:
 		void add(T value)
 		{
+			auto new_value = this->value + value;
+
 			if (this->value + value > max_value)
 			{
 				this->value = max_value;
 				return;
 			}
+
+			this->value = new_value;
 		}
 		void sub(T value)
 		{
+			auto new_value = this->value - value;
+
 			if (this->value - value < 0)
 			{
 				this->value = 0;
 				return;
 			}
+
+			this->value = new_value;
 		}
 		void set_value(T value)
 		{
@@ -1221,6 +1230,17 @@ namespace textworld::components
 	private:
 		std::unique_ptr<std::vector<std::string>> loot_table{};
 	};
+
+	class DamageComponent : public textworld::ecs::Component
+	{
+	public:
+		DamageComponent(std::string name, int damage) : Component(name), damage(damage) {}
+
+		auto get_damage() const { return damage; }
+
+	private:
+		int damage{};
+	};
 }
 
 namespace textworld::helpers
@@ -1242,6 +1262,7 @@ namespace textworld::helpers
 	extern void add_output_message(std::shared_ptr<textworld::ecs::EntityManager> entity_manager, std::string message);
 	extern void remove_npc_engagement_flag_from_player(std::shared_ptr<textworld::ecs::Entity> player_entity);
 
+	// DEBUG
 	extern void debug_items(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 
 	template <typename T>
@@ -1283,13 +1304,7 @@ namespace textworld::helpers
 
 		if (component != nullptr)
 		{
-			auto current_value = component->get_value();
-			auto max_value = component->get_max_value();
-
-			if (max_value > 0 && current_value + value > max_value)
-				component->set_value(max_value);
-			else
-				component->add(value);
+			component->add(value);
 		}
 	}
 
@@ -1300,12 +1315,7 @@ namespace textworld::helpers
 
 		if (component != nullptr)
 		{
-			auto current_value = component->get_value();
-
-			if (current_value - value < 0)
-				component->set_value(0);
-			else
-				component->sub(value);
+			component->sub(value);
 		}
 	}
 }
@@ -1324,6 +1334,7 @@ namespace textworld::core
 	extern void look_room_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void talk_to_npc(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void say_to_npc(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void engage_enemy_in_combat(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 
 	extern textworld::data::Direction get_opposite_direction(textworld::data::Direction dir);
 }

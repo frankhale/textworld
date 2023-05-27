@@ -284,7 +284,7 @@ namespace textworld::helpers
 		auto inventory_component = std::make_shared<textworld::components::InventoryComponent>("player inventory");
 		auto health_component = std::make_shared<textworld::components::ValueComponent<int>>("health", 10, 100);
 		auto description_component = std::make_shared<textworld::components::DescriptionComponent>("player description", description);
-		auto currency_component = std::make_shared<textworld::components::ValueComponent<int>>("gold", 10);
+		auto currency_component = std::make_shared<textworld::components::ValueComponent<int>>("gold", 10, 1000000);
 		auto score_component = std::make_shared<textworld::components::ValueComponent<int>>("score", 0);
 		auto command_set_component = std::make_shared<textworld::components::CommandSetComponent>(textworld::data::CommandSet::CORE, textworld::core::command_actions);
 		auto motd_description_component = std::make_shared<textworld::components::DescriptionComponent>("motd", motd_description);
@@ -554,6 +554,7 @@ namespace textworld::core
 			{"use", textworld::core::use_item_from_inventory_action},
 			{"talk to", textworld::core::talk_to_npc},
 			{"say", textworld::core::say_to_npc},
+			{"attack", textworld::core::engage_enemy_in_combat},
 			{"debug_items", textworld::helpers::debug_items}};
 
 	void quit_action(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
@@ -739,7 +740,7 @@ namespace textworld::core
 
 				textworld::helpers::add_item_to_player_inventory(player_entity, entity_manager, room_entity);
 
-				item_descriptions.emplace_back(fmt::format("{} ({}) : {}", item_component->get_item()->name, item_drop_component->get_quantity(), item_component->get_item()->description));
+				item_descriptions.emplace_back(fmt::format("{} ({})", item_component->get_item()->name, item_drop_component->get_quantity()));
 			}
 
 			auto all_item_descriptions = textworld::helpers::join(item_descriptions, "\n");
@@ -1088,6 +1089,10 @@ namespace textworld::core
 			auto output_component = std::make_shared<textworld::components::OutputComponent>("output for say to npc", "You feel foolish talking to yourself and you look around to see if anyone saw you...", textworld::data::OutputType::REGULAR);
 			output_entity->add_component(output_component);
 		}
+	}
+
+	void engage_enemy_in_combat(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
+	{
 	}
 
 	textworld::data::Direction get_opposite_direction(textworld::data::Direction dir)
@@ -1532,6 +1537,8 @@ namespace textworld::systems
 		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
 		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::COMBAT_SYSTEM_BYPASS))
 			return;
+
+		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 
 		// TODO: Implement combat system.
 	}

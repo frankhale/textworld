@@ -309,11 +309,13 @@ TEST(ECS, CanIncreaseValueOfValueComponent)
 {
 	auto player_entity = std::make_shared<textworld::ecs::Entity>("player_1");
 
-	auto value_component = std::make_shared<textworld::components::ValueComponent<int>>("value_component", 10);
+	auto value_component = std::make_shared<textworld::components::ValueComponent<int>>("value_component", 10, 100);
 
 	player_entity->add_component(value_component);
 
-	textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "value_component", 10);
+	value_component->add(10);
+
+	// textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "value_component", 10);
 
 	EXPECT_EQ(value_component->get_value(), 20);
 }
@@ -776,7 +778,7 @@ TEST(Actions, CanTakeAllItems)
 
 	auto output_component = output_entity->find_first_component_by_type<textworld::components::OutputComponent>();
 	EXPECT_NE(output_component, nullptr);
-	EXPECT_EQ(output_component->get_value(), "You've taken the following items:\nitem_1 (1) : This is a test item #1\nitem_2 (1) : This is a test item #2");
+	EXPECT_EQ(output_component->get_value(), "You've taken the following items:\nitem_1 (1)\nitem_2 (1)");
 
 	auto i1 = inventory_component->get_item(item_1->id);
 	auto i2 = inventory_component->get_item(item_2->id);
