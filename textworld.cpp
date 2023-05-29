@@ -1540,6 +1540,17 @@ namespace textworld::systems
 
 		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
 
-		// TODO: Implement combat system.
+		// TODO: Implement system.
+	}
+
+	void lua_script_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager)
+	{
+		auto flag_component = player_entity->find_first_component_by_type<textworld::components::FlagComponent>();
+		if (flag_component != nullptr && flag_component->is_set(textworld::data::Flag::LUA_SCRIPT_SYSTEM_BYPASS))
+			return;
+
+		auto output_entity = entity_manager->get_entity_by_name(textworld::ecs::EntityGroupName::CORE, "output");
+
+		// TODO: Implement system.
 	}
 }

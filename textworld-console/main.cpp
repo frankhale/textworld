@@ -75,11 +75,14 @@ int main(int argc, char *argv[])
 	{
 		textworld::systems::command_action_system(player_entity, entity_manager);
 		textworld::systems::question_response_sequence_system(player_entity, entity_manager);
-		// textworld::systems::combat_system(player_entity, entity_manager);
-		textworld::systems::quit_system(player_entity, entity_manager);
+
 		textworld::systems::room_movement_system(player_entity, entity_manager);
 		textworld::systems::description_system(player_entity, entity_manager);
 		textworld::systems::inventory_system(player_entity, entity_manager);
+		// textworld::systems::combat_system(player_entity, entity_manager);
+		// textworld::systems::lua_script_system(player_entity, entity_manager);
+
+		textworld::systems::quit_system(player_entity, entity_manager);
 		textworld::systems::unknown_command_system(player_entity, entity_manager);
 		textworld::systems::console_output_system(player_entity, entity_manager);
 		textworld::systems::console_input_system(player_entity, entity_manager);

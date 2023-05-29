@@ -315,9 +315,20 @@ TEST(ECS, CanIncreaseValueOfValueComponent)
 
 	value_component->add(10);
 
-	// textworld::helpers::increase_value_on_entity_value_component<int>(player_entity, "value_component", 10);
-
 	EXPECT_EQ(value_component->get_value(), 20);
+}
+
+TEST(ECS, CanDecreaseValueOfValueComponent)
+{
+	auto player_entity = std::make_shared<textworld::ecs::Entity>("player_1");
+
+	auto value_component = std::make_shared<textworld::components::ValueComponent<int>>("value_component", 50, 100);
+
+	player_entity->add_component(value_component);
+
+	value_component->sub(10);
+
+	EXPECT_EQ(value_component->get_value(), 40);
 }
 
 TEST(ECS, CanMakeItem)

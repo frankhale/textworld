@@ -21,8 +21,7 @@
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 #include <magic_enum.hpp>
-// #include <json/json.h>
-// #include <sol/sol.hpp>
+#include <sol/sol.hpp>
 
 #define to_lower(s) transform(s.begin(), s.end(), s.begin(), ::tolower);
 #define to_upper(s) transform(s.begin(), s.end(), s.begin(), ::toupper);
@@ -464,7 +463,8 @@ namespace textworld::data
 		NPC_DIALOG_ENGAGEMENT,
 		DESCRIPTION_SYSTEM_BYPASS,
 		QUESTION_RESPONSE_SEQUENCE_SYSTEM_BYPASS,
-		COMBAT_SYSTEM_BYPASS
+		COMBAT_SYSTEM_BYPASS,
+		LUA_SCRIPT_SYSTEM_BYPASS,
 	};
 
 	enum class Direction
@@ -571,10 +571,10 @@ namespace textworld::data
 
 namespace textworld::components
 {
-	class LuaScriptActionComponent : public textworld::ecs::Component
+	class LuaScriptComponent : public textworld::ecs::Component
 	{
 	public:
-		LuaScriptActionComponent(std::string name, std::string script) : Component(name), script(script) {}
+		LuaScriptComponent(std::string name, std::string script) : Component(name), script(script) {}
 
 		auto get_script() const { return script; }
 		void set_script(std::string script) { this->script = script; }
@@ -1352,4 +1352,5 @@ namespace textworld::systems
 	extern void inventory_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void question_response_sequence_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 	extern void combat_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
+	extern void lua_script_system(std::shared_ptr<textworld::ecs::Entity> player_entity, std::shared_ptr<textworld::ecs::EntityManager> entity_manager);
 }
