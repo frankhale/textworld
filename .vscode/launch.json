@@ -1,0 +1,26 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "request": "launch",
+      "name": "Tests",
+      "type": "node",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "C:\\Users\\frank\\deno\\deno.EXE",
+      "runtimeArgs": ["test", "--inspect-brk", "textworld_tests.ts"],
+      "attachSimplePort": 9229
+    },
+    {
+      "request": "launch",
+      "name": "Game",
+      "type": "node",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "C:\\Users\\frank\\deno\\deno.EXE",
+      "runtimeArgs": ["run", "--inspect-brk", "game.ts"],
+      "attachSimplePort": 9229
+    }
+  ]
+}
