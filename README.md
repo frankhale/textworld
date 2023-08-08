@@ -1,9 +1,10 @@
 # TextWorld
 
-A text based adventure game engine written in TypeScript on Deno.
+A text based role playing game engine written in TypeScript on Deno. This is still a work in progress but there is a lot here. There is a strong focus on test driven design to ensure the code works as expected. Eventually I will expose the engine through a web socket server and create a web front end for it.
 
 ## TODO
 
+- [x] Command line interface
 - [x] Parser
 - [x] Rooms/Zones
 - [x] Room/Zone movement
@@ -14,7 +15,7 @@ A text based adventure game engine written in TypeScript on Deno.
 - [x] Vendors
 - [x] Quests
 - [x] Mapping
-- [x] Comand help
+- [x] Basic command help
 - [ ] Leveling
 - [ ] Combat
 - [ ] Save/Load (Deno KV)

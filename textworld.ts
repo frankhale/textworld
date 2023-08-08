@@ -234,12 +234,6 @@ export class TextWorld {
     },
   ];
 
-  // private to_title_case(input: string): string {
-  //   return input
-  //     .toLowerCase()
-  //     .replace(/(^|\s)\S/g, (match) => match.toUpperCase());
-  // }
-
   constructor() {
     this.world = {
       zones: [],
