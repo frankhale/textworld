@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 7 August 2023
+// 9 August 2023
 //
 // TODO: Add error checking for any function that needs the player and make sure
 // the player is not null.
@@ -139,10 +139,7 @@ export interface QuestStep {
   action: ActionDecision | null;
 }
 
-export enum QuestActionType {
-  Start,
-  End,
-}
+export type QuestActionType = "Start" | "End";
 
 interface CommandAction {
   name: string;
@@ -321,7 +318,7 @@ export class TextWorld {
   ) {
     const quest = this.get_quest(quest_name);
     if (quest) {
-      if (action_type === QuestActionType.Start) {
+      if (action_type === "Start") {
         quest.start = action;
       } else {
         quest.end = action;

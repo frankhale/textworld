@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 7 August 2023
+// 9 August 2023
 
 import { assertEquals } from "https://deno.land/std@0.195.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.195.0/assert/assert_not_equals.ts";
@@ -1054,7 +1054,7 @@ Deno.test("player_can_complete_quest_with_multiple_steps", () => {
 
   textworld.place_npc("Zone1", "Room1", "Old Woman");
   textworld.create_quest("Quest1", "A quest");
-  textworld.add_quest_action("Quest1", tw.QuestActionType.End, (player) => {
+  textworld.add_quest_action("Quest1", "End", (player) => {
     if (textworld.has_flag(player, "took_gem")) {
       textworld.remove_flag(player, "took_gem");
       textworld.remove_flag(player, "visited_room2");
