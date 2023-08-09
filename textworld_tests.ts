@@ -11,7 +11,7 @@ const player = textworld.create_player(
   "player",
   "You are a strong adventurer",
   "Zone1",
-  "Room1",
+  "Room1"
 );
 
 Deno.test("can_get_player", () => {
@@ -67,7 +67,7 @@ Deno.test("can_create_room_command_action", () => {
     "A magical word that does amazing things!",
     ["xyzzy"],
     (_player: tw.Player, _input: string, _command: string, _args: string[]) =>
-      "How dare you utter the magical word XYZZY!",
+      "How dare you utter the magical word XYZZY!"
   );
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.command_actions.length, 1);
@@ -117,7 +117,7 @@ Deno.test("can_create_room_with_action", () => {
   const result = textworld.switch_room(player, "north");
   assertEquals(
     result,
-    `Room2\n\nThis is room 2\n\nExits: south\n\nThe healing waters have no effect on you.`,
+    `Room2\n\nThis is room 2\n\nExits: south\n\nThe healing waters have no effect on you.`
   );
   textworld.reset_world();
 });
@@ -126,8 +126,11 @@ Deno.test("can_create_recipe", () => {
   textworld.create_recipe(
     "Iron Sword",
     "A quality sword for the everyday fighter",
-    [{ name: "Iron", quantity: 2 }, { name: "Wood", quantity: 1 }],
-    { name: "Iron Sword", quantity: 1 },
+    [
+      { name: "Iron", quantity: 2 },
+      { name: "Wood", quantity: 1 },
+    ],
+    { name: "Iron Sword", quantity: 1 }
   );
   const recipe = textworld.get_recipe("Iron Sword");
   assertEquals(recipe?.name, "Iron Sword");
@@ -213,12 +216,12 @@ Deno.test("can_add_room_command_action", () => {
     "A magical word that does amazing things!",
     ["xyzzy"],
     (_player: tw.Player, _input: string, _command: string, _args: string[]) =>
-      "How dare you utter the magical word XYZZY!",
+      "How dare you utter the magical word XYZZY!"
   );
   const has_room_action = textworld.has_room_command_action(
     "Zone1",
     "Room1",
-    "xyzzy action",
+    "xyzzy action"
   );
   assertEquals(has_room_action, true);
   textworld.reset_world();
@@ -250,17 +253,13 @@ Deno.test("can_remove_room_command_action", () => {
     "A magical word that does amazing things!",
     ["xyzzy"],
     (_player: tw.Player, _input: string, _command: string, _args: string[]) =>
-      "How dare you utter the magical word XYZZY!",
+      "How dare you utter the magical word XYZZY!"
   );
-  textworld.remove_room_command_action(
-    "Zone1",
-    "Room1",
-    "xyzzy action",
-  );
+  textworld.remove_room_command_action("Zone1", "Room1", "xyzzy action");
   const has_room_action = textworld.has_room_command_action(
     "Zone1",
     "Room1",
-    "xyzzy action",
+    "xyzzy action"
   );
   assertEquals(has_room_action, false);
   textworld.reset_world();
@@ -578,10 +577,7 @@ Deno.test("can_parse_command_talk_to_npc_and_get_item", () => {
   textworld.place_npc("Zone1", "Room1", "Old_woman");
   let result = textworld.parse_command(player, "talk to Old_woman say hello");
   assertEquals(result, "Hi, I have a gem you may want!");
-  result = textworld.parse_command(
-    player,
-    "talk to Old_woman say take gem",
-  );
+  result = textworld.parse_command(player, "talk to Old_woman say take gem");
   assertEquals(result, "You took the Gem.");
   assertEquals(player.inventory.length, 1);
   result = textworld.parse_command(player, "talk to Old_woman say take gem");
@@ -603,7 +599,7 @@ Deno.test("can_parse_command_talk_to_vendor_and_list_items", () => {
   const result = textworld.parse_command(player, "talk to Vendor1 say items");
   assertEquals(
     result,
-    "Items for sale: Fried Chicken & Roasted Vegetables (2 gold)",
+    "Items for sale: Fried Chicken & Roasted Vegetables (2 gold)"
   );
   player.inventory.length = 0;
   textworld.reset_world();
@@ -618,7 +614,7 @@ Deno.test("can_parse_command_talk_to_vendor_and_purchase_item", () => {
   textworld.create_item(
     "Fried Chicken & Roasted Vegetables",
     "A delicious dinner of fried chicken and roasted vegetables.",
-    false,
+    false
   );
   textworld.create_vendor("Vendor1", "A friendly food vendor", [
     { name: "Fried Chicken & Roasted Vegetables", price: 2 },
@@ -626,11 +622,11 @@ Deno.test("can_parse_command_talk_to_vendor_and_purchase_item", () => {
   textworld.place_npc("Zone1", "Room1", "Vendor1");
   const result = textworld.parse_command(
     player,
-    "talk to Vendor1 say buy Fried Chicken & Roasted Vegetables",
+    "talk to Vendor1 say buy Fried Chicken & Roasted Vegetables"
   );
   assertEquals(
     result,
-    "You purchased Fried Chicken & Roasted Vegetables for 2 gold.",
+    "You purchased Fried Chicken & Roasted Vegetables for 2 gold."
   );
   player.inventory.length = 0;
   textworld.reset_world();
@@ -663,7 +659,7 @@ Deno.test("can_parse_room_command_action", () => {
     "A magical word that does amazing things!",
     ["xyzzy"],
     (_player: tw.Player, _input: string, _command: string, _args: string[]) =>
-      "How dare you utter the magical word XYZZY!",
+      "How dare you utter the magical word XYZZY!"
   );
   const result = textworld.parse_command(player, "xyzzy");
   assertEquals(result, "How dare you utter the magical word XYZZY!");
@@ -875,11 +871,11 @@ Deno.test("player_can_purchase_from_vendor", () => {
   const result = textworld.purchase_from_vendor(
     player,
     "Vendor1",
-    "Fried Chicken & Roasted Vegetables",
+    "Fried Chicken & Roasted Vegetables"
   );
   assertEquals(
     result,
-    "You purchased Fried Chicken & Roasted Vegetables for 2 gold.",
+    "You purchased Fried Chicken & Roasted Vegetables for 2 gold."
   );
   assertEquals(player.gold, 8);
   assertEquals(player.inventory.length, 1);
@@ -901,7 +897,7 @@ Deno.test("player_cant_purchase_nonexistant_item_from_vendor", () => {
   const result = textworld.purchase_from_vendor(
     player,
     "Vendor1",
-    "Fried Chicken & Roasted Vegetables",
+    "Fried Chicken & Roasted Vegetables"
   );
   assertEquals(result, "That item does not exist.");
   player.inventory.length = 0;
@@ -947,7 +943,7 @@ Deno.test("player_cant_pickup_more_quests_than_allowed", () => {
   const result = textworld.pickup_quest(player, "Quest6");
   assertEquals(
     result,
-    `You can't have more than ${tw.active_quest_limit} active quests at a time.`,
+    `You can't have more than ${tw.active_quest_limit} active quests at a time.`
   );
   player.quests.length = 0;
   textworld.reset_world();
@@ -973,7 +969,7 @@ Deno.test("player_can_complete_quest", () => {
         }
       }
       return false;
-    },
+    }
   );
   textworld.pickup_quest(player, "Quest1");
   textworld.take_item(player, ["Magic Ring"]);
@@ -1055,6 +1051,7 @@ Deno.test("player_can_complete_quest_with_multiple_steps", () => {
       },
     },
   ]);
+
   textworld.place_npc("Zone1", "Room1", "Old Woman");
   textworld.create_quest("Quest1", "A quest");
   textworld.add_quest_action("Quest1", tw.QuestActionType.End, (player) => {
@@ -1081,7 +1078,7 @@ Deno.test("player_can_complete_quest_with_multiple_steps", () => {
     player,
     "talk to Old Woman take gem",
     "talk to",
-    ["talk", "to", "Old", "Woman", "take", "gem"],
+    ["talk", "to", "Old", "Woman", "take", "gem"]
   );
   textworld.switch_room(player, "north");
   assertEquals(gem_result, "You took the Gem.");
@@ -1174,8 +1171,11 @@ Deno.test("player_can_learn_recipe", () => {
   textworld.create_recipe(
     "Iron Sword",
     "A quality sword for the everyday fighter",
-    [{ name: "Iron", quantity: 2 }, { name: "Wood", quantity: 1 }],
-    { name: "Iron Sword", quantity: 1 },
+    [
+      { name: "Iron", quantity: 2 },
+      { name: "Wood", quantity: 1 },
+    ],
+    { name: "Iron Sword", quantity: 1 }
   );
   textworld.create_item(
     "Iron Sword recipe",
@@ -1183,7 +1183,7 @@ Deno.test("player_can_learn_recipe", () => {
     true,
     (player) => {
       return textworld.learn_recipe(player, "Iron Sword");
-    },
+    }
   );
   textworld.place_item("Zone1", "Room1", "Iron Sword recipe");
   textworld.take_item(player, ["Iron Sword recipe"]);
@@ -1207,8 +1207,11 @@ Deno.test("player_can_craft_recipe", () => {
   textworld.create_recipe(
     "Iron Sword",
     "A quality sword for the everyday fighter",
-    [{ name: "Iron", quantity: 2 }, { name: "Wood", quantity: 1 }],
-    { name: "Iron Sword", quantity: 1 },
+    [
+      { name: "Iron", quantity: 2 },
+      { name: "Wood", quantity: 1 },
+    ],
+    { name: "Iron Sword", quantity: 1 }
   );
   textworld.learn_recipe(player, "Iron Sword");
   const result = textworld.craft_recipe(player, "Iron Sword");
@@ -1242,14 +1245,14 @@ Deno.test("player_can_talk_to_npc", () => {
     player,
     "talk to Big Guard say Hello",
     "talk to",
-    ["talk", "to", "Big", "Guard", "say", "Hello"],
+    ["talk", "to", "Big", "Guard", "say", "Hello"]
   );
   assertEquals(result, "Hello citizen, make sure you mind the law!");
   result = textworld.talk_to_npc(
     player,
     "talk to Big Guard say Goodbye",
     "talk to",
-    ["talk", "to", "Big", "Guard", "say", "Goodbye"],
+    ["talk", "to", "Big", "Guard", "say", "Goodbye"]
   );
   assertEquals(result, "hmm...");
   textworld.reset_world();
@@ -1260,7 +1263,7 @@ Deno.test("player_cant_talk_to_npc_that_doesnt_exist", () => {
     player,
     "talk to Big Guard say Hello",
     "talk to",
-    ["talk", "to", "Big", "Guard", "say", "Hello"],
+    ["talk", "to", "Big", "Guard", "say", "Hello"]
   );
   assertEquals(result, "That NPC does not exist.");
   textworld.reset_world();
@@ -1275,7 +1278,7 @@ Deno.test("player_can_talk_to_vendor_and_list_items", () => {
   textworld.create_item(
     "Fried Chicken & Roasted Vegetables",
     "A delicious dinner of fried chicken and roasted vegetables.",
-    false,
+    false
   );
   textworld.create_vendor("Vendor1", "A friendly food vendor", [
     { name: "Fried Chicken & Roasted Vegetables", price: 2 },
@@ -1285,11 +1288,11 @@ Deno.test("player_can_talk_to_vendor_and_list_items", () => {
     player,
     "talk to Vendor1 say items",
     "talk to",
-    ["talk", "to", "Vendor1", "say", "items"],
+    ["talk", "to", "Vendor1", "say", "items"]
   );
   assertEquals(
     result,
-    "Items for sale: Fried Chicken & Roasted Vegetables (2 gold)",
+    "Items for sale: Fried Chicken & Roasted Vegetables (2 gold)"
   );
   player.inventory.length = 0;
   textworld.reset_world();
@@ -1304,7 +1307,7 @@ Deno.test("player_can_talk_to_vendor_and_purchase_item", () => {
   textworld.create_item(
     "Fried Chicken & Roasted Vegetables",
     "A delicious dinner of fried chicken and roasted vegetables.",
-    false,
+    false
   );
   textworld.create_vendor("Vendor1", "A friendly food vendor", [
     { name: "Fried Chicken & Roasted Vegetables", price: 2 },
@@ -1314,11 +1317,11 @@ Deno.test("player_can_talk_to_vendor_and_purchase_item", () => {
     player,
     "talk to Vendor1 buy Fried Chicken & Roasted Vegetables",
     "talk to",
-    ["talk", "to", "Vendor1", "buy", "Fried Chicken & Roasted Vegetables"],
+    ["talk", "to", "Vendor1", "buy", "Fried Chicken & Roasted Vegetables"]
   );
   assertEquals(
     result,
-    "You purchased Fried Chicken & Roasted Vegetables for 2 gold.",
+    "You purchased Fried Chicken & Roasted Vegetables for 2 gold."
   );
   player.inventory.length = 0;
   textworld.reset_world();
@@ -1335,7 +1338,7 @@ Deno.test("player_can_talk_to_npc_without_dialog", () => {
     player,
     "talk to Big Guard say Hello",
     "talk to",
-    ["talk", "to", "Big", "Guard", "say", "Hello"],
+    ["talk", "to", "Big", "Guard", "say", "Hello"]
   );
   assertEquals(result, "Big Guard does not want to talk to you.");
   textworld.reset_world();
@@ -1369,7 +1372,7 @@ Deno.test("player_can_navigate_to_new_zone_using_custom_room_action", () => {
     ["warp"],
     (player, _input, _command, _args) => {
       return textworld.goto(player, ["zone", "Zone2"]);
-    },
+    }
   );
   const result = textworld.parse_command(player, "warp");
   assertEquals(result, "Room1\n\nThis is room 1 in zone 2");

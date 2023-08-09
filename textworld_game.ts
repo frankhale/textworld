@@ -13,8 +13,8 @@ function create_the_forest_zone() {
     "Pool of Water",
     "You are standing in a pool of water. The water is clear and you can see the bottom. You can see a small fish swimming around. The water is about 3 feet deep. There is an electricity about this water that makes your skin buzz.",
     (player) => {
-      if (player.health.value != player.health.max) {
-        player.health.value = player.health.max;
+      if (player.combat_stats.health.value != player.combat_stats.health.max) {
+        player.combat_stats.health.value = player.combat_stats.health.max;
         return `Your health has been regenerated.`;
       }
 
@@ -125,7 +125,7 @@ console.log(textworld.get_room_description(player));
 let game_running = true;
 while (game_running) {
   const input = prompt(
-    `${player.health.value}/${player.health.max}:${player.gold}>`,
+    `${player.combat_stats.health.value}/${player.combat_stats.health.max}:${player.gold}>`,
   );
   if (input !== null) {
     console.log(`command: ${input}\n`);

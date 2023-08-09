@@ -4,5 +4,5 @@
   "deno.lint": true,
   "editor.formatOnSave": true,
   "deno.testing.enable": true,
-  "[typescript]": { "editor.defaultFormatter": "denoland.vscode-deno" }
+  "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" }
 }
