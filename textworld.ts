@@ -1,9 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 9 August 2023
-//
-// TODO: Add error checking for any function that needs the player and make sure
-// the player is not null.
+// 15 August 2023
 
 export const input_character_limit = 256;
 export const active_quest_limit = 5;
@@ -23,7 +20,8 @@ export interface Player {
   name: string;
   description: string;
   score: number;
-  combat_stats: CombatStats;
+  stats: Resources;
+  damage_and_defense: DamageAndDefense;
   gold: number;
   progress: Level;
   zone: string;
@@ -35,10 +33,18 @@ export interface Player {
   known_recipes: string[];
 }
 
-export interface CombatStats {
+export interface Resources {
   health: Stat;
   stamina: Stat;
   magicka: Stat;
+}
+
+export interface DamageAndDefense {
+  physical_damage: number;
+  physical_defense: number;
+  spell_damage: number;
+  spell_defense: number;
+  critical_chance: number;
 }
 
 export interface Recipe {
@@ -49,7 +55,7 @@ export interface Recipe {
 }
 
 export interface Stat {
-  value: number;
+  current: number;
   max: number;
 }
 
@@ -61,10 +67,19 @@ export interface Level {
 export interface NPC {
   name: string;
   description: string;
+  stats: Resources;
   inventory: string[];
   dialog: Dialog[] | null;
   killable: boolean;
   vendor_items: VendorItem[] | null;
+}
+
+export interface Mob {
+  name: string;
+  description: string;
+  stats: Resources;
+  damage_and_defense: DamageAndDefense;
+  inventory: ItemDrop[];
 }
 
 export interface VendorItem {
@@ -102,8 +117,10 @@ export interface World {
   items: Item[];
   recipes: Recipe[];
   npcs: NPC[];
+  mobs: Mob[];
   player: Player[];
   quests: Quest[];
+  level_data: Level[];
 }
 
 export interface Zone {
@@ -119,6 +136,7 @@ export interface Room {
   items: ItemDrop[];
   npcs: NPC[];
   exits: Exit[];
+  mobs: Mob[];
   action: Action[] | null;
   command_actions: CommandAction[];
 }
@@ -149,7 +167,7 @@ interface CommandAction {
 }
 
 export class TextWorld {
-  private world: World;
+  private world: World = this.reset_world();
   private main_command_actions: CommandAction[] = [
     {
       name: "movement action",
@@ -235,32 +253,38 @@ export class TextWorld {
       synonyms: ["help"],
       action: (_player, _input, _command, _args) => this.get_help(),
     },
+    {
+      name: "attack action",
+      description: "Attack a mob.",
+      synonyms: ["attack"],
+      action: (player, _input, _command, args) => this.attack_mob(player, args),
+    },
   ];
 
-  constructor() {
-    this.world = {
-      zones: [],
-      items: [],
-      recipes: [],
-      npcs: [],
-      player: [],
-      quests: [],
-    };
-  }
+  constructor() {}
 
   reset_world() {
-    this.world = {
+    const world: World = {
       zones: [],
       items: [],
       recipes: [],
       npcs: [],
+      mobs: [],
       player: [],
       quests: [],
+      level_data: this.calculate_level_experience(1, 1.2, 50),
     };
+    this.world = world;
+    return world;
   }
 
-  // We are going to run this once when we initialize Deno KV. This will
-  // generate the amount of experience needed to level up.
+  to_title_case(str: string): string {
+    return str
+      .split(" ")
+      .map((word) => word[0].toUpperCase() + word.slice(1))
+      .join(" ");
+  }
+
   calculate_level_experience(
     starting_experience: number,
     growth_rate: number,
@@ -467,19 +491,26 @@ export class TextWorld {
       name,
       description,
       score: 0,
-      combat_stats: {
+      stats: {
         health: {
-          value: 10,
+          current: 10,
           max: 10,
         },
         stamina: {
-          value: 10,
+          current: 10,
           max: 10,
         },
         magicka: {
-          value: 10,
+          current: 10,
           max: 10,
         },
+      },
+      damage_and_defense: {
+        physical_damage: 10,
+        physical_defense: 10,
+        spell_damage: 10,
+        spell_defense: 5,
+        critical_chance: 0.1,
       },
       progress: {
         level: 1,
@@ -496,6 +527,84 @@ export class TextWorld {
     };
     this.world.player.push(player);
     return player;
+  }
+
+  create_mob(
+    name: string,
+    description: string,
+    stats: Resources,
+    damage_and_defense: DamageAndDefense,
+    inventory: ItemDrop[]
+  ) {
+    const mob: Mob = {
+      name,
+      description,
+      stats,
+      damage_and_defense,
+      inventory,
+    };
+    this.world.mobs.push(mob);
+    return mob;
+  }
+
+  get_mob(name: string): Mob | null {
+    return (
+      this.world.mobs.find(
+        (mob) => mob.name.toLowerCase() === name.toLowerCase()
+      ) ?? null
+    );
+  }
+
+  place_mob(zone_name: string, in_room_name: string, mob_name: string) {
+    const in_room = this.get_room(zone_name, in_room_name);
+    const mob = this.get_mob(mob_name);
+    if (in_room && mob) {
+      in_room.mobs.push(structuredClone(mob));
+    } else {
+      throw new Error(
+        `Room ${in_room_name} or MOB ${mob_name} does not exist.`
+      );
+    }
+  }
+
+  create_resources(
+    health_current: number,
+    health_max: number,
+    stamina_current: number,
+    stamina_max: number,
+    magicka_current: number,
+    magicka_max: number
+  ): Resources {
+    return {
+      health: {
+        current: health_current,
+        max: health_max,
+      },
+      stamina: {
+        current: stamina_current,
+        max: stamina_max,
+      },
+      magicka: {
+        current: magicka_current,
+        max: magicka_max,
+      },
+    };
+  }
+
+  create_damage_and_defense(
+    physical_damage: number,
+    physical_defense: number,
+    spell_damage: number,
+    spell_defense: number,
+    critical_chance: number
+  ): DamageAndDefense {
+    return {
+      physical_damage,
+      physical_defense,
+      spell_damage,
+      spell_defense,
+      critical_chance,
+    };
   }
 
   get_player(id: string) {
@@ -741,6 +850,23 @@ export class TextWorld {
     return false;
   }
 
+  get_room_mob(
+    zone_name: string,
+    room_name: string,
+    mob_name: string
+  ): Mob | null {
+    const zone = this.get_zone(zone_name);
+    const room = zone.rooms.find((room) => room.name === room_name);
+    if (room) {
+      return (
+        room.mobs.find(
+          (mob) => mob.name.toLowerCase() === mob_name.toLowerCase()
+        ) ?? null
+      );
+    }
+    return null;
+  }
+
   get_room_item(
     zone_name: string,
     room_name: string,
@@ -810,6 +936,7 @@ export class TextWorld {
       zone_start: false,
       items: [],
       npcs: [],
+      mobs: [],
       exits: [],
       action: actions,
       command_actions: [],
@@ -1423,6 +1550,7 @@ export class TextWorld {
       name,
       description,
       inventory: [],
+      stats: this.create_resources(10, 10, 10, 10, 10, 10),
       killable: false,
       dialog,
       vendor_items: null,
@@ -1433,6 +1561,7 @@ export class TextWorld {
     this.world.npcs.push({
       name,
       description,
+      stats: this.create_resources(10, 10, 10, 10, 10, 10),
       inventory: [],
       killable: false,
       dialog: [
@@ -1476,7 +1605,7 @@ export class TextWorld {
     vendor_name: string,
     item_name: string
   ): string {
-    const npc = this.world.npcs.find((npc) => npc.name === vendor_name);
+    const npc = this.get_npc(vendor_name);
     if (npc && npc.vendor_items) {
       const vendor_item = npc.vendor_items.find(
         (vendor_item) =>
@@ -1518,17 +1647,14 @@ export class TextWorld {
   }
 
   place_npc(zone_name: string, in_room_name: string, npc_name: string) {
-    const zone = this.get_zone(zone_name);
-    if (zone) {
-      const in_room = zone.rooms.find((room) => room.name === in_room_name);
-      const npc = this.world.npcs.find((npc) => npc.name === npc_name);
-      if (in_room && npc) {
-        in_room.npcs.push(npc);
-      } else {
-        throw new Error(
-          `Room ${in_room_name} or NPC ${npc_name} does not exist.`
-        );
-      }
+    const in_room = this.get_room(zone_name, in_room_name);
+    const npc = this.world.npcs.find((npc) => npc.name === npc_name);
+    if (in_room && npc) {
+      in_room.npcs.push(npc);
+    } else {
+      throw new Error(
+        `Room ${in_room_name} or NPC ${npc_name} does not exist.`
+      );
     }
   }
 
@@ -1560,7 +1686,7 @@ export class TextWorld {
     const zone = this.get_players_zone(player);
     if (zone) {
       const possible_triggers = this.generate_combinations(args);
-      const current_room = zone.rooms.find((room) => room.name === player.room);
+      const current_room = this.get_players_room(player);
       const npc = this.world.npcs.find(
         (npc) =>
           npc.name.toLowerCase() ===
@@ -1601,6 +1727,69 @@ export class TextWorld {
       }
     }
     return "That NPC does not exist.";
+  }
+
+  attack(attacker: Player | Mob, defender: Player | Mob): string {
+    const attackerDamage =
+      Math.random() < attacker.damage_and_defense.critical_chance
+        ? attacker.damage_and_defense.physical_damage * 2
+        : attacker.damage_and_defense.physical_damage;
+
+    const damageDealt = Math.max(
+      0,
+      attackerDamage - defender.damage_and_defense.physical_defense
+    );
+
+    defender.stats.health.current -= damageDealt;
+
+    let result = `${attacker.name} attacks ${defender.name} for ${damageDealt} damage.\n${defender.name} health: ${defender.stats.health.current}`;
+    if (
+      defender.stats.health.current <= 0 ||
+      attacker.stats.health.current <= 0
+    ) {
+      result += `\n${
+        defender.stats.health.current <= 0 ? defender.name : attacker.name
+      } has been defeated!`;
+    }
+    return result;
+  }
+
+  attack_mob(
+    player: Player,
+    args: string[],
+    should_mob_attack = false
+  ): string {
+    const zone = this.get_players_zone(player);
+    if (zone) {
+      const possible_mobs = this.generate_combinations(args);
+      const current_room = this.get_players_room(player);
+      if (current_room) {
+        const mob = current_room?.mobs.find(
+          (mob) =>
+            mob.name.toLowerCase() ===
+            possible_mobs
+              .find((mob_name) => {
+                return mob_name.toLowerCase() === mob_name.toLowerCase();
+              })
+              ?.toLowerCase()
+        );
+        if (mob) {
+          let result = this.attack(player, mob);
+          if (should_mob_attack) {
+            result += `\n${this.attack(mob, player)}`;
+          }
+
+          if (mob.stats.health.current <= 0) {
+            current_room.items.push(...mob.inventory);
+            current_room.mobs = current_room.mobs.filter(
+              (mob) => mob.name !== mob.name
+            );
+          }
+          return result;
+        }
+      }
+    }
+    return "That mob does not exist.";
   }
 
   parse_command(player: Player, input: string): string {

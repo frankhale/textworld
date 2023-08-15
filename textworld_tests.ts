@@ -1,14 +1,16 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 9 August 2023
+// 15 August 2023
 
 import { assertEquals } from "https://deno.land/std@0.195.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.195.0/assert/assert_not_equals.ts";
+import { assertStringIncludes } from "https://deno.land/std@0.195.0/assert/assert_string_includes.ts";
+
 import * as tw from "./textworld.ts";
 
 const textworld = new tw.TextWorld();
 const player = textworld.create_player(
-  "player",
+  "Player",
   "You are a strong adventurer",
   "Zone1",
   "Room1"
@@ -16,7 +18,7 @@ const player = textworld.create_player(
 
 Deno.test("can_get_player", () => {
   const p1 = textworld.get_player(player.id);
-  assertEquals(p1?.name, "player");
+  assertEquals(p1?.name, "Player");
   textworld.reset_world();
 });
 
@@ -166,6 +168,161 @@ Deno.test("can_place_item_in_room", () => {
   textworld.reset_world();
 });
 
+Deno.test("can_create_mob", () => {
+  textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_resources(10, 10, 10, 10, 10, 10),
+    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    []
+  );
+  const mob = textworld.get_mob("Goblin");
+  assertEquals(mob?.name, "Goblin");
+  textworld.reset_world();
+});
+
+Deno.test("can_place_mob_in_room", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_resources(10, 10, 10, 10, 10, 10),
+    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    []
+  );
+  textworld.place_mob("Zone1", "Room1", "Goblin");
+  const room = textworld.get_room("Zone1", "Room1");
+  assertEquals(room?.mobs.length, 1);
+  assertEquals(room?.mobs[0].name, "Goblin");
+  textworld.reset_world();
+});
+
+Deno.test("player_can_attack_mob", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  const mob = textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_resources(10, 10, 10, 10, 10, 10),
+    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    []
+  );
+  textworld.place_mob("Zone1", "Room1", "Goblin");
+  const result = textworld.attack(player, mob);
+  assertStringIncludes(result, "Player attacks Goblin");
+  textworld.reset_world();
+});
+
+Deno.test("mob_can_attack_player", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  const mob = textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_resources(10, 10, 10, 10, 10, 10),
+    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    []
+  );
+  textworld.place_mob("Zone1", "Room1", "Goblin");
+  const result = textworld.attack(mob, player);
+  assertStringIncludes(result, "Goblin attacks Player");
+  textworld.reset_world();
+});
+
+Deno.test("player_can_kill_mob", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  const mob = textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_resources(1, 1, 10, 10, 10, 10),
+    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    []
+  );
+  textworld.place_mob("Zone1", "Room1", "Goblin");
+  const result = textworld.attack(player, mob);
+  assertStringIncludes(result, "Player attacks Goblin");
+  assertStringIncludes(result, "Goblin has been defeated!");
+  textworld.reset_world();
+});
+
+Deno.test("player_can_kill_mob_and_drop_loot", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_item("Shield", "A strong shield", false);
+  textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_resources(1, 1, 10, 10, 10, 10),
+    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    [
+      { name: "Sword", quantity: 1 },
+      { name: "Shield", quantity: 1 },
+    ]
+  );
+  textworld.place_mob("Zone1", "Room1", "Goblin");
+  const result = textworld.attack_mob(player, ["goblin"]);
+  assertStringIncludes(result, "Player attacks Goblin");
+  assertStringIncludes(result, "Goblin has been defeated!");
+  const room = textworld.get_room("Zone1", "Room1");
+  assertEquals(room?.items.length, 2);
+  assertEquals(room?.items[0].name, "Sword");
+  assertEquals(room?.items[1].name, "Shield");
+  textworld.reset_world();
+});
+
+Deno.test("player_attack_mob_and_mob_attack_player", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_resources(100, 10, 10, 10, 10, 10),
+    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    []
+  );
+  textworld.place_mob("Zone1", "Room1", "Goblin");
+  const result = textworld.attack_mob(player, ["goblin"], true);
+  console.log(result);
+  assertStringIncludes(result, "Player attacks Goblin");
+  assertStringIncludes(result, "Goblin attacks Player");
+  textworld.reset_world();
+});
+
+Deno.test("player_can_die_from_mob_attack", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_resources(100, 10, 10, 10, 10, 10),
+    textworld.create_damage_and_defense(55, 55, 55, 55, 5),
+    []
+  );
+  textworld.place_mob("Zone1", "Room1", "Goblin");
+  const result = textworld.attack_mob(player, ["goblin"], true);
+  assertStringIncludes(result, "Player attacks Goblin");
+  assertStringIncludes(result, "Goblin attacks Player");
+  assertStringIncludes(result, "Player has been defeated!");
+  textworld.reset_world();
+});
+
 Deno.test("can_create_npc", () => {
   textworld.create_npc("Guard", "A strong guard", []);
   const npc = textworld.get_npc("Guard");
@@ -302,6 +459,24 @@ Deno.test("can_process_get_exit_with_no_rooms", () => {
   } catch (e) {
     assertEquals(e.message, "The room or zone does not exist.");
   }
+});
+
+Deno.test("can_parse_command_attack_mob", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_resources(10, 10, 10, 10, 10, 10),
+    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    []
+  );
+  textworld.place_mob("Zone1", "Room1", "Goblin");
+  const result = textworld.parse_command(player, "attack goblin");
+  assertStringIncludes(result, "Player attacks Goblin");
+  textworld.reset_world();
 });
 
 Deno.test("can_parse_command_direction", () => {
