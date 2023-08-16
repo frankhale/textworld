@@ -17,6 +17,7 @@ A text based role playing game engine written in TypeScript on Deno. This is sti
 - [x] Mapping
 - [x] Basic command help
 - [x] Combat
+- [ ] Announce mobs in room
 - [ ] Leveling
 - [ ] Save/Load (Deno KV)
 - [ ] Multiplayer?
@@ -37,4 +38,4 @@ Frank Hale &lt;frankhale AT gmail.com&gt;
 
 ## Date
 
-15 August 2023
+16 August 2023

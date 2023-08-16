@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 15 August 2023
+// 16 August 2023
 
 import * as tw from "./textworld.ts";
 
@@ -113,12 +113,22 @@ place_items();
 create_npcs();
 place_npcs();
 
+textworld.create_mob(
+  "Goblin",
+  "A small goblin",
+  textworld.create_resources(100, 10, 10, 10, 10, 10),
+  textworld.create_damage_and_defense(55, 55, 55, 55, 5),
+  []
+);
+textworld.place_mob("The Forest", "Open Field", "Goblin");
+
 const player = textworld.create_player(
   "player",
   "You are a curious person who is looking for adventure.",
   "The Forest",
   "Open Field"
 );
+player.stats.health.current = 1;
 
 console.log(textworld.get_room_description(player));
 
@@ -134,8 +144,7 @@ while (game_running) {
     if (!(player.stats.health.current <= 0)) {
       result = textworld.parse_command(player, input);
     } else {
-      result = "You can only resurrect or quit the game.\n\n";
-      result += textworld.parse_command(
+      result = textworld.parse_command(
         player,
         input,
         textworld.player_dead_command_actions

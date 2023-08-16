@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 15 August 2023
+// 16 August 2023
 
 import { assertEquals } from "https://deno.land/std@0.195.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.195.0/assert/assert_not_equals.ts";
@@ -340,6 +340,32 @@ Deno.test("player_can_die_from_mob_attack", () => {
   assertStringIncludes(result, "Player attacks Goblin");
   assertStringIncludes(result, "Goblin attacks Player");
   assertStringIncludes(result, "Player has been defeated!");
+  textworld.reset_world();
+});
+
+Deno.test("player_can_die_from_mob_attack_and_ressurect", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_resources(100, 10, 10, 10, 10, 10),
+    textworld.create_damage_and_defense(55, 55, 55, 55, 5),
+    []
+  );
+  textworld.place_mob("Zone1", "Room1", "Goblin");
+  let result = textworld.attack_mob(player, ["goblin"], true);
+  assertStringIncludes(result, "Player attacks Goblin");
+  assertStringIncludes(result, "Goblin attacks Player");
+  assertStringIncludes(result, "Player has been defeated!");
+  result = textworld.parse_command(
+    player,
+    "resurrect",
+    textworld.player_dead_command_actions
+  );
+  assertEquals(result, "You have been resurrected.");
   textworld.reset_world();
 });
 

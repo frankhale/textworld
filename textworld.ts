@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 15 August 2023
+// 16 August 2023
 
 export const input_character_limit = 256;
 export const active_quest_limit = 5;
@@ -257,7 +257,8 @@ export class TextWorld {
       name: "attack action",
       description: "Attack a mob.",
       synonyms: ["attack"],
-      action: (player, _input, _command, args) => this.attack_mob(player, args),
+      action: (player, _input, _command, args) =>
+        this.attack_mob(player, args, true),
     },
   ];
   player_dead_command_actions: CommandAction[] = [
@@ -269,7 +270,7 @@ export class TextWorld {
     },
     {
       name: "resurrect action",
-      description: "Resurrect yourself.",
+      description: "resurrect yourself.",
       synonyms: ["resurrect", "rez"],
       action: (player, _input, _command, _args) =>
         this.resurrect_player(player),
@@ -1710,14 +1711,10 @@ export class TextWorld {
     if (zone) {
       const possible_triggers = this.generate_combinations(args);
       const current_room = this.get_players_room(player);
-      const npc = this.world.npcs.find(
-        (npc) =>
-          npc.name.toLowerCase() ===
-          possible_triggers
-            .find((trigger) => {
-              return trigger.toLowerCase() === npc.name.toLowerCase();
-            })
-            ?.toLowerCase()
+      const npc = this.world.npcs.find((npc) =>
+        possible_triggers.some(
+          (trigger) => npc.name.toLowerCase() === trigger.toLowerCase()
+        )
       );
 
       if (npc && !npc.dialog) {
@@ -1728,25 +1725,15 @@ export class TextWorld {
         npc.dialog &&
         current_room.npcs.includes(npc)
       ) {
-        const dialog = npc.dialog!.find((dialog) =>
-          dialog.trigger.includes(
-            possible_triggers.find((trigger) =>
-              dialog.trigger.includes(trigger)
-            )!
-          )
+        const dialog = npc.dialog?.find((dialog) =>
+          dialog.trigger.some((trigger) => possible_triggers.includes(trigger))
         );
 
-        if (dialog) {
-          const result =
-            dialog.response ??
-            (dialog.action && dialog.action(player, input, command, args));
-
-          if (result) {
-            return result;
-          }
-        }
-
-        return "hmm...";
+        return dialog
+          ? dialog.response ||
+              dialog.action?.(player, input, command, args) ||
+              "hmm..."
+          : "hmm...";
       }
     }
     return "That NPC does not exist.";
@@ -1765,7 +1752,11 @@ export class TextWorld {
 
     defender.stats.health.current -= damageDealt;
 
+    defender.stats.health.current = Math.max(0, defender.stats.health.current);
+    attacker.stats.health.current = Math.max(0, attacker.stats.health.current);
+
     let result = `${attacker.name} attacks ${defender.name} for ${damageDealt} damage.\n${defender.name} health: ${defender.stats.health.current}`;
+
     if (
       defender.stats.health.current <= 0 ||
       attacker.stats.health.current <= 0
@@ -1774,6 +1765,7 @@ export class TextWorld {
         defender.stats.health.current <= 0 ? defender.name : attacker.name
       } has been defeated!`;
     }
+
     return result;
   }
 
@@ -1804,10 +1796,12 @@ export class TextWorld {
 
           // check players health
           if (player.stats.health.current <= 0) {
+            player.stats.health.current = 0;
             // TODO: Need to decide what to do when a player dies
           }
 
           if (mob.stats.health.current <= 0) {
+            mob.stats.health.current = 0;
             current_room.items.push(...mob.inventory);
             current_room.mobs = current_room.mobs.filter(
               (mob) => mob.name !== mob.name
@@ -1826,37 +1820,23 @@ export class TextWorld {
     input: string,
     alternate_command_actions: CommandAction[] | null = null
   ): string {
-    input =
-      input.length > input_character_limit
-        ? input.slice(0, input_character_limit)
-        : input;
+    const inputLimit = Math.min(input_character_limit, input.length);
+    input = input.substring(0, inputLimit);
 
-    const command = input.split(" ")[0]?.toLowerCase();
-    const args = input
-      .split(" ")
-      .slice(1)
-      .map((argument) => argument.toLowerCase());
-    let possible_actions = this.generate_combinations(input.split(" "));
+    const [command, ...args] = input.toLowerCase().split(" ");
+    const possible_actions = this.generate_combinations(input.split(" "));
 
-    // Prioritize `talk to` command since it may contain other triggers that
-    // would be picked up accidentally during the command parsing.
-    const talk_to = possible_actions.find((possible_action) =>
-      possible_action.toLowerCase().startsWith("talk to")
+    const talk_to = possible_actions.find((action) =>
+      action.toLowerCase().startsWith("talk to")
     );
-    if (talk_to) {
-      possible_actions = possible_actions.filter((possible_action) =>
-        possible_action.toLowerCase().includes(talk_to.toLowerCase())
-      );
-    }
+    const filtered_actions = possible_actions.filter((action) =>
+      talk_to ? action.toLowerCase().includes(talk_to) : true
+    );
 
-    const command_actions = alternate_command_actions
-      ? alternate_command_actions
-      : this.main_command_actions;
-
-    const command_action = command_actions.find((command_action) =>
-      command_action.synonyms.some((synonym) =>
-        possible_actions.includes(synonym)
-      )
+    const command_actions =
+      alternate_command_actions || this.main_command_actions;
+    const command_action = command_actions.find((action) =>
+      action.synonyms.some((synonym) => filtered_actions.includes(synonym))
     );
 
     if (command_action) {
@@ -1867,14 +1847,16 @@ export class TextWorld {
       const players_room = this.get_players_room(player);
       if (players_room) {
         const room_command_action = players_room.command_actions.find(
-          (command_action) =>
-            command_action.synonyms.some((synonym) =>
-              possible_actions.includes(synonym)
+          (action) =>
+            action.synonyms.some((synonym) =>
+              filtered_actions.includes(synonym)
             )
         );
 
         if (room_command_action) {
           return room_command_action.action(player, input, command, args);
+        } else {
+          return "I don't understand that command.";
         }
       } else {
         return "Player's room does not exist.";
