@@ -129,7 +129,18 @@ while (game_running) {
   );
   if (input !== null) {
     console.log(`command: ${input}\n`);
-    const result = textworld.parse_command(player, input);
+
+    let result: string | null;
+    if (!(player.stats.health.current <= 0)) {
+      result = textworld.parse_command(player, input);
+    } else {
+      result = "You can only resurrect or quit the game.\n\n";
+      result += textworld.parse_command(
+        player,
+        input,
+        textworld.player_dead_command_actions
+      );
+    }
     console.log(result);
     if (result === "You quit the game.") {
       game_running = false;

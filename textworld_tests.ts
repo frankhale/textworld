@@ -255,6 +255,26 @@ Deno.test("player_can_kill_mob", () => {
   textworld.reset_world();
 });
 
+Deno.test("mob_can_kill_player", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  player.stats.health.current = 1;
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  const mob = textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_resources(1, 1, 10, 10, 10, 10),
+    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    []
+  );
+  textworld.place_mob("Zone1", "Room1", "Goblin");
+  const result = textworld.attack(mob, player);
+  assertStringIncludes(result, "Goblin attacks Player");
+  assertStringIncludes(result, "Player has been defeated!");
+  textworld.reset_world();
+});
+
 Deno.test("player_can_kill_mob_and_drop_loot", () => {
   player.zone = "Zone1";
   player.room = "Room1";

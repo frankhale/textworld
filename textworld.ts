@@ -260,6 +260,21 @@ export class TextWorld {
       action: (player, _input, _command, args) => this.attack_mob(player, args),
     },
   ];
+  player_dead_command_actions: CommandAction[] = [
+    {
+      name: "quit action",
+      description: "Quit the game.",
+      synonyms: ["quit"],
+      action: (_player, _input, _command, _args) => "You quit the game.",
+    },
+    {
+      name: "resurrect action",
+      description: "Resurrect yourself.",
+      synonyms: ["resurrect", "rez"],
+      action: (player, _input, _command, _args) =>
+        this.resurrect_player(player),
+    },
+  ];
 
   constructor() {}
 
@@ -527,6 +542,14 @@ export class TextWorld {
     };
     this.world.player.push(player);
     return player;
+  }
+
+  resurrect_player(player: Player) {
+    player.stats.health.current = player.stats.health.max;
+    player.stats.stamina.current = player.stats.stamina.max;
+    player.stats.magicka.current = player.stats.magicka.max;
+    // TODO: Move player to starting room
+    return "You have been resurrected.";
   }
 
   create_mob(
@@ -1779,12 +1802,18 @@ export class TextWorld {
             result += `\n${this.attack(mob, player)}`;
           }
 
+          // check players health
+          if (player.stats.health.current <= 0) {
+            // TODO: Need to decide what to do when a player dies
+          }
+
           if (mob.stats.health.current <= 0) {
             current_room.items.push(...mob.inventory);
             current_room.mobs = current_room.mobs.filter(
               (mob) => mob.name !== mob.name
             );
           }
+
           return result;
         }
       }
@@ -1792,7 +1821,11 @@ export class TextWorld {
     return "That mob does not exist.";
   }
 
-  parse_command(player: Player, input: string): string {
+  parse_command(
+    player: Player,
+    input: string,
+    alternate_command_actions: CommandAction[] | null = null
+  ): string {
     input =
       input.length > input_character_limit
         ? input.slice(0, input_character_limit)
@@ -1816,7 +1849,11 @@ export class TextWorld {
       );
     }
 
-    const command_action = this.main_command_actions.find((command_action) =>
+    const command_actions = alternate_command_actions
+      ? alternate_command_actions
+      : this.main_command_actions;
+
+    const command_action = command_actions.find((command_action) =>
       command_action.synonyms.some((synonym) =>
         possible_actions.includes(synonym)
       )
