@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 16 August 2023
+// 17 August 2023
 
 export const input_character_limit = 256;
 export const active_quest_limit = 5;
@@ -251,7 +251,7 @@ export class TextWorld {
       name: "help action",
       description: "Show the help text.",
       synonyms: ["help"],
-      action: (_player, _input, _command, _args) => this.get_help(),
+      action: (player, _input, _command, _args) => this.get_help(player),
     },
     {
       name: "attack action",
@@ -261,12 +261,18 @@ export class TextWorld {
         this.attack_mob(player, args, true),
     },
   ];
-  player_dead_command_actions: CommandAction[] = [
+  private player_dead_command_actions: CommandAction[] = [
     {
       name: "quit action",
       description: "Quit the game.",
       synonyms: ["quit"],
       action: (_player, _input, _command, _args) => "You quit the game.",
+    },
+    {
+      name: "help action",
+      description: "Show the help text.",
+      synonyms: ["help"],
+      action: (player, _input, _command, _args) => this.get_help(player),
     },
     {
       name: "resurrect action",
@@ -333,8 +339,12 @@ export class TextWorld {
     return result.filter((str) => str !== "");
   }
 
-  get_help() {
-    const result = this.main_command_actions
+  get_help(player: Player) {
+    const command_actions =
+      player.stats.health.current <= 0
+        ? this.player_dead_command_actions
+        : this.main_command_actions;
+    const result = command_actions
       .map((action) => `${action.synonyms.join(", ")} - ${action.description}`)
       .join("\n");
     return `Commands:\n\n${result}`;
@@ -1815,11 +1825,7 @@ export class TextWorld {
     return "That mob does not exist.";
   }
 
-  parse_command(
-    player: Player,
-    input: string,
-    alternate_command_actions: CommandAction[] | null = null
-  ): string {
+  parse_command(player: Player, input: string): string {
     const inputLimit = Math.min(input_character_limit, input.length);
     input = input.substring(0, inputLimit);
 
@@ -1834,7 +1840,10 @@ export class TextWorld {
     );
 
     const command_actions =
-      alternate_command_actions || this.main_command_actions;
+      player.stats.health.current <= 0
+        ? this.player_dead_command_actions
+        : this.main_command_actions;
+
     const command_action = command_actions.find((action) =>
       action.synonyms.some((synonym) => filtered_actions.includes(synonym))
     );

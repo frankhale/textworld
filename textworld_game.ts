@@ -139,17 +139,7 @@ while (game_running) {
   );
   if (input !== null) {
     console.log(`command: ${input}\n`);
-
-    let result: string | null;
-    if (!(player.stats.health.current <= 0)) {
-      result = textworld.parse_command(player, input);
-    } else {
-      result = textworld.parse_command(
-        player,
-        input,
-        textworld.player_dead_command_actions
-      );
-    }
+    const result = textworld.parse_command(player, input);
     console.log(result);
     if (result === "You quit the game.") {
       game_running = false;
