@@ -285,70 +285,106 @@ export class TextWorld {
 
   constructor() {}
 
-  reset_world() {
-    const world: World = {
-      zones: [],
-      items: [],
-      recipes: [],
-      npcs: [],
-      mobs: [],
-      player: [],
+  ////////////
+  // PLAYER //
+  ////////////
+
+  create_player(
+    name: string,
+    description: string,
+    zone_name: string,
+    room_name: string
+  ) {
+    const player: Player = {
+      id: crypto.randomUUID(),
+      name,
+      description,
+      score: 0,
+      stats: {
+        health: {
+          current: 10,
+          max: 10,
+        },
+        stamina: {
+          current: 10,
+          max: 10,
+        },
+        magicka: {
+          current: 10,
+          max: 10,
+        },
+      },
+      damage_and_defense: {
+        physical_damage: 10,
+        physical_defense: 10,
+        spell_damage: 10,
+        spell_defense: 5,
+        critical_chance: 0.1,
+      },
+      progress: {
+        level: 1,
+        xp: 0,
+      },
+      gold: 0,
+      zone: zone_name,
+      room: room_name,
+      flags: [],
+      inventory: [],
       quests: [],
-      level_data: this.calculate_level_experience(1, 1.2, 50),
+      quests_completed: [],
+      known_recipes: [],
     };
-    this.world = world;
-    return world;
+    this.world.player.push(player);
+    return player;
   }
 
-  to_title_case(str: string): string {
-    return str
-      .split(" ")
-      .map((word) => word[0].toUpperCase() + word.slice(1))
-      .join(" ");
+  resurrect_player(player: Player) {
+    player.stats.health.current = player.stats.health.max;
+    player.stats.stamina.current = player.stats.stamina.max;
+    player.stats.magicka.current = player.stats.magicka.max;
+    // TODO: Move player to starting room
+    return "You have been resurrected.";
   }
 
-  calculate_level_experience(
-    starting_experience: number,
-    growth_rate: number,
-    num_levels: number
-  ): Level[] {
-    const required_experience_points: Level[] = [];
+  get_player(id: string) {
+    return this.world.player.find((player) => player.id === id);
+  }
 
-    for (let level = 1; level <= num_levels; level++) {
-      const xp = starting_experience * Math.pow(growth_rate, level - 1);
-      required_experience_points.push({ level, xp });
+  remove_player(player: Player) {
+    this.world.player = this.world.player.filter((p) => p.name !== player.name);
+  }
+
+  get_players_zone(player: Player): Zone | null {
+    if (!player) return null;
+    return this.world.zones.find((zone) => zone.name === player.zone)!;
+  }
+
+  get_players_room(player: Player): Room | null {
+    const zone = this.get_players_zone(player);
+    if (zone) {
+      return zone.rooms.find(
+        (room) => room.name.toLowerCase() === player.room.toLowerCase()
+      )!;
     }
-
-    return required_experience_points;
+    return null;
   }
 
-  generate_combinations(input_array: string[]): string[] {
-    const result: string[] = [];
+  look_self(player: Player): string {
+    if (!player) return "You can't see anything.";
 
-    function generate_helper(combination: string, startIdx: number) {
-      result.push(combination.trim());
+    const inventory = player.inventory
+      .map((item) => `${item.name} (${item.quantity})`)
+      .join(", ");
+    const result = `${player.description}${
+      player.inventory.length > 0 ? `\n\ninventory: ${inventory}` : ""
+    }`;
 
-      for (let i = startIdx; i < input_array.length; i++) {
-        const new_combination =
-          combination + (combination.length > 0 ? " " : "") + input_array[i];
-        generate_helper(new_combination, i + 1);
-      }
-    }
-
-    generate_helper("", 0);
-    return result.filter((str) => str !== "");
+    return result;
   }
 
-  get_help(player: Player) {
-    const command_actions =
-      player.stats.health.current <= 0
-        ? this.player_dead_command_actions
-        : this.main_command_actions;
-    const result = command_actions
-      .map((action) => `${action.synonyms.join(", ")} - ${action.description}`)
-      .join("\n");
-    return `Commands:\n\n${result}`;
-  }
+  ///////////
+  // QUEST //
+  ///////////
 
   create_quest(name: string, description: string) {
     this.world.quests.push({
@@ -506,343 +542,236 @@ export class TextWorld {
     return `The quest ${quest_name} does not exist.`;
   }
 
-  create_player(
-    name: string,
-    description: string,
-    zone_name: string,
-    room_name: string
-  ) {
-    const player: Player = {
-      id: crypto.randomUUID(),
-      name,
-      description,
-      score: 0,
-      stats: {
-        health: {
-          current: 10,
-          max: 10,
-        },
-        stamina: {
-          current: 10,
-          max: 10,
-        },
-        magicka: {
-          current: 10,
-          max: 10,
-        },
-      },
-      damage_and_defense: {
-        physical_damage: 10,
-        physical_defense: 10,
-        spell_damage: 10,
-        spell_defense: 5,
-        critical_chance: 0.1,
-      },
-      progress: {
-        level: 1,
-        xp: 0,
-      },
-      gold: 0,
-      zone: zone_name,
-      room: room_name,
-      flags: [],
-      inventory: [],
-      quests: [],
-      quests_completed: [],
-      known_recipes: [],
-    };
-    this.world.player.push(player);
-    return player;
+  show_quests(player: Player): string {
+    if (!player || player.quests.length === 0) {
+      return "You have no quests.";
+    }
+
+    const quests_description = player.quests.map((player_quest) => {
+      const quest = this.world.quests.find(
+        (quest) => quest.name === player_quest
+      );
+      return `${quest!.name} - ${quest!.description}`;
+    });
+
+    return quests_description.join("\n\n");
   }
 
-  resurrect_player(player: Player) {
-    player.stats.health.current = player.stats.health.max;
-    player.stats.stamina.current = player.stats.stamina.max;
-    player.stats.magicka.current = player.stats.magicka.max;
-    // TODO: Move player to starting room
-    return "You have been resurrected.";
+  /////////
+  // NPC //
+  /////////
+
+  remove_npc(name: string) {
+    this.world.zones.forEach((zone) => {
+      zone.rooms.forEach((room) => {
+        room.npcs = room.npcs.filter((npc) => npc.name !== name);
+      });
+    });
+    this.world.npcs = this.world.npcs.filter((npc) => npc.name !== name);
   }
 
-  create_mob(
-    name: string,
-    description: string,
-    stats: Resources,
-    damage_and_defense: DamageAndDefense,
-    inventory: ItemDrop[]
-  ) {
-    const mob: Mob = {
-      name,
-      description,
-      stats,
-      damage_and_defense,
-      inventory,
-    };
-    this.world.mobs.push(mob);
-    return mob;
-  }
-
-  get_mob(name: string): Mob | null {
+  get_npc(name: string): NPC | null {
     return (
-      this.world.mobs.find(
-        (mob) => mob.name.toLowerCase() === name.toLowerCase()
+      this.world.npcs.find(
+        (npc) => npc.name.toLowerCase() === name.toLowerCase()
       ) ?? null
     );
   }
 
-  place_mob(zone_name: string, in_room_name: string, mob_name: string) {
+  place_npc(zone_name: string, in_room_name: string, npc_name: string) {
     const in_room = this.get_room(zone_name, in_room_name);
-    const mob = this.get_mob(mob_name);
-    if (in_room && mob) {
-      in_room.mobs.push(structuredClone(mob));
-    } else {
+    const npc = this.world.npcs.find((npc) => npc.name === npc_name);
+
+    if (!in_room || !npc) {
       throw new Error(
-        `Room ${in_room_name} or MOB ${mob_name} does not exist.`
+        `Room ${in_room_name} or NPC ${npc_name} does not exist.`
       );
     }
+
+    in_room.npcs.push(npc);
   }
 
-  create_resources(
-    health_current: number,
-    health_max: number,
-    stamina_current: number,
-    stamina_max: number,
-    magicka_current: number,
-    magicka_max: number
-  ): Resources {
-    return {
-      health: {
-        current: health_current,
-        max: health_max,
-      },
-      stamina: {
-        current: stamina_current,
-        max: stamina_max,
-      },
-      magicka: {
-        current: magicka_current,
-        max: magicka_max,
-      },
-    };
+  get_room_npc(
+    zone_name: string,
+    room_name: string,
+    npc_name: string
+  ): NPC | null {
+    const zone = this.get_zone(zone_name);
+    const room = zone?.rooms.find((room) => room.name === room_name);
+    return (
+      room?.npcs.find(
+        (npc) => npc.name.toLowerCase() === npc_name.toLowerCase()
+      ) || null
+    );
   }
 
-  create_damage_and_defense(
-    physical_damage: number,
-    physical_defense: number,
-    spell_damage: number,
-    spell_defense: number,
-    critical_chance: number
-  ): DamageAndDefense {
-    return {
-      physical_damage,
-      physical_defense,
-      spell_damage,
-      spell_defense,
-      critical_chance,
-    };
-  }
-
-  get_player(id: string) {
-    return this.world.player.find((player) => player.id === id);
-  }
-
-  set_godmode(player: Player) {
-    this.set_flag(player, "godmode");
-  }
-
-  remove_godmode(player: Player) {
-    this.remove_flag(player, "godmode");
-  }
-
-  set_flag(player: Player, flag: string) {
-    if (player && !player.flags.includes(flag)) {
-      player.flags.push(flag);
-    }
-  }
-
-  has_flag(player: Player, flag: string) {
-    return player && player.flags.includes(flag);
-  }
-
-  remove_flag(player: Player, flag: string) {
-    if (player && player.flags.includes(flag)) {
-      player.flags = player.flags.filter((f) => f !== flag);
-    }
-  }
-
-  remove_player(player: Player) {
-    this.world.player = this.world.player.filter((p) => p.name !== player.name);
-  }
-
-  get_players_zone(player: Player): Zone | null {
-    if (!player) return null;
-    return this.world.zones.find((zone) => zone.name === player.zone)!;
-  }
-
-  get_players_room(player: Player): Room | null {
+  talk_to_npc(
+    player: Player,
+    input: string,
+    command: string,
+    args: string[]
+  ): string {
     const zone = this.get_players_zone(player);
     if (zone) {
-      return zone.rooms.find(
-        (room) => room.name.toLowerCase() === player.room.toLowerCase()
-      )!;
+      const possible_triggers = this.generate_combinations(args);
+      const current_room = this.get_players_room(player);
+      const npc = this.world.npcs.find((npc) =>
+        possible_triggers.some(
+          (trigger) => npc.name.toLowerCase() === trigger.toLowerCase()
+        )
+      );
+
+      if (npc && !npc.dialog) {
+        return `${npc.name} does not want to talk to you.`;
+      } else if (
+        npc &&
+        current_room &&
+        npc.dialog &&
+        current_room.npcs.includes(npc)
+      ) {
+        const dialog = npc.dialog?.find((dialog) =>
+          dialog.trigger.some((trigger) => possible_triggers.includes(trigger))
+        );
+
+        return dialog
+          ? dialog.response ||
+              dialog.action?.(player, input, command, args) ||
+              "hmm..."
+          : "hmm...";
+      }
+    }
+    return "That NPC does not exist.";
+  }
+
+  create_npc(name: string, description: string, dialog: Dialog[] | null) {
+    this.world.npcs.push({
+      name,
+      description,
+      inventory: [],
+      stats: this.create_resources(10, 10, 10, 10, 10, 10),
+      killable: false,
+      dialog,
+      vendor_items: null,
+    });
+  }
+
+  ////////////
+  // VENDOR //
+  ////////////
+
+  create_vendor(name: string, description: string, vendor_items: VendorItem[]) {
+    this.world.npcs.push({
+      name,
+      description,
+      stats: this.create_resources(10, 10, 10, 10, 10, 10),
+      inventory: [],
+      killable: false,
+      dialog: [
+        {
+          trigger: ["items"],
+          response: null,
+          action: (_player, _input, _command, _args) => {
+            const items = vendor_items.map(
+              (vendor_item) => `${vendor_item.name} (${vendor_item.price} gold)`
+            );
+            return `Items for sale: ${items.join(", ")}`;
+          },
+        },
+        {
+          trigger: ["purchase", "buy"],
+          response: null,
+          action: (player, input, _command, _args) => {
+            if (input) {
+              const command_bits = input.split(" ");
+              if (command_bits) {
+                let trigger_word = command_bits.lastIndexOf("purchase") ?? -1;
+                if (trigger_word === -1) {
+                  trigger_word = command_bits.lastIndexOf("buy") ?? -1;
+                  const item_name = command_bits
+                    .slice(trigger_word + 1)
+                    .join(" ");
+                  return this.purchase_from_vendor(player, name, item_name!);
+                }
+              }
+            }
+            return "You must specify an item to purchase.";
+          },
+        },
+      ],
+      vendor_items,
+    });
+  }
+
+  purchase_from_vendor(
+    player: Player,
+    vendor_name: string,
+    item_name: string
+  ): string {
+    const npc = this.get_npc(vendor_name);
+
+    if (!npc || !npc.vendor_items) {
+      return "That vendor does not exist.";
+    }
+
+    const vendor_item = npc.vendor_items.find(
+      (item) => item.name.toLowerCase() === item_name.toLowerCase()
+    );
+    const item = this.world.items.find(
+      (item) => item.name.toLowerCase() === item_name.toLowerCase()
+    );
+
+    if (!vendor_item || !item) {
+      return "That item does not exist.";
+    }
+
+    if (player.gold >= vendor_item.price) {
+      player.gold -= vendor_item.price;
+      player.inventory.push({ name: vendor_item.name, quantity: 1 });
+      return `You purchased ${vendor_item.name} for ${vendor_item.price} gold.`;
+    }
+
+    return `You don't have enough gold to purchase ${vendor_item.name}.`;
+  }
+
+  //////////
+  // ITEM //
+  //////////
+
+  get_room_item(
+    zone_name: string,
+    room_name: string,
+    item_name: string
+  ): ItemDrop | null {
+    const zone = this.get_zone(zone_name);
+    const room = zone.rooms.find((room) => room.name === room_name);
+    if (room) {
+      return (
+        room.items.find(
+          (item) => item.name.toLowerCase() === item_name.toLowerCase()
+        ) ?? null
+      );
     }
     return null;
   }
 
-  get_zone(zone_name: string): Zone {
-    return this.world.zones.find(
-      (zone) => zone.name.toLowerCase() === zone_name.toLowerCase()
-    )!;
-  }
-
-  plot_room_map(player: Player, window_size: number) {
-    const zone = this.get_players_zone(player);
-    if (zone) {
-      let rooms = zone.rooms;
-
-      if (window_size != 0) {
-        const current_room_index = rooms.findIndex(
-          (room) => room.name === player.room
-        );
-        let window_start = current_room_index - 5;
-        let window_end = current_room_index + 5;
-        if (window_start - window_size <= 0) window_start = 0;
-        if (window_end + window_size >= rooms.length) window_end = rooms.length;
-        rooms = rooms.slice(window_start, window_end);
-      }
-
-      const room_grid: { [key: string]: string } = {};
-      const visited_rooms = new Set<string>();
-      let current_room = rooms[0];
-      let current_x = 0;
-      let current_y = 0;
-      room_grid[`${current_x},${current_y}`] =
-        current_room.name === player.room ? "@" : "#";
-
-      const queue = [{ room: current_room, x: current_x, y: current_y }];
-      const direction_to_coords: Record<string, [number, number]> = {
-        north: [0, 1],
-        south: [0, -1],
-        east: [1, 0],
-        west: [-1, 0],
-      };
-      const direction_to_symbol: Record<string, string> = {
-        north: "|",
-        south: "|",
-        east: "-",
-        west: "-",
-      };
-
-      while (queue.length > 0) {
-        const item = queue.shift();
-        if (item) {
-          current_room = item.room;
-          current_x = item.x;
-          current_y = item.y;
-
-          if (visited_rooms.has(current_room.name)) continue;
-          visited_rooms.add(current_room.name);
-
-          current_room.exits.forEach((exit) => {
-            if (exit.hidden) return;
-            const room = rooms.find((room) => room.name === exit.location);
-            if (room && direction_to_coords[exit.name]) {
-              const [dx, dy] = direction_to_coords[exit.name];
-              const symbol = direction_to_symbol[exit.name];
-              room_grid[`${current_x + dx},${current_y + dy}`] =
-                room.name === player.room ? "@" : "#";
-              room_grid[`${current_x + dx / 2},${current_y + dy / 2}`] = symbol;
-              queue.push({ room, x: current_x + dx, y: current_y + dy });
-            }
-          });
-        }
-      }
-
-      const keys = Object.keys(room_grid);
-      const xs = keys.map((key) => parseFloat(key.split(",")[0]));
-      const ys = keys.map((key) => parseFloat(key.split(",")[1]));
-      const min_x = Math.min(...xs);
-      const max_x = Math.max(...xs);
-      const min_y = Math.min(...ys);
-      const max_y = Math.max(...ys);
-      const result: string[] = [];
-
-      for (let y = max_y; y >= min_y; y -= 0.5) {
-        let row = "";
-        for (let x = min_x; x <= max_x; x += 0.5) {
-          row += room_grid[`${x},${y}`] || " ";
-        }
-        result.push(row);
-      }
-      return `Map:\n\n${result.join("\n")}\n`;
-    }
-    return "You are not in a zone.";
-  }
-
-  create_recipe(
-    name: string,
-    description: string,
-    ingredients: ItemDrop[],
-    crafted_item: ItemDrop
+  place_item(
+    zone_name: string,
+    in_room_name: string,
+    item_name: string,
+    quantity = 1
   ) {
-    this.world.recipes.push({
-      name,
-      description,
-      ingredients,
-      crafted_item,
-    });
-  }
-
-  get_recipe(name: string): Recipe | null {
-    return (
-      this.world.recipes.find(
-        (recipe) => recipe.name.toLowerCase() === name.toLowerCase()
-      ) ?? null
-    );
-  }
-
-  learn_recipe(player: Player, recipe_name: string): string {
-    const recipe = this.get_recipe(recipe_name);
-    if (recipe) {
-      player.known_recipes.push(recipe.name);
-      return `You learned the recipe for ${recipe.name}.`;
+    const zone = this.get_zone(zone_name);
+    const in_room = zone.rooms.find((room) => room.name === in_room_name);
+    if (in_room) {
+      in_room.items.push({
+        name: item_name,
+        quantity,
+      });
+    } else {
+      throw new Error(
+        `Room ${in_room_name} does not exist in zone ${zone_name}.`
+      );
     }
-    return "That recipe does not exist.";
-  }
-
-  craft_recipe(player: Player, recipe_name: string): string {
-    const knows_recipe = player.known_recipes.includes(recipe_name);
-    if (knows_recipe) {
-      const recipe = this.get_recipe(recipe_name);
-      if (recipe) {
-        let has_ingredients = true;
-        recipe.ingredients.forEach((ingredient) => {
-          if (
-            !this.has_item_in_quantity(
-              player,
-              ingredient.name,
-              ingredient.quantity
-            )
-          ) {
-            has_ingredients = false;
-          }
-        });
-
-        if (has_ingredients) {
-          recipe.ingredients.forEach((ingredient) => {
-            for (let i = 0; i < ingredient.quantity; i++) {
-              this.remove_player_item(player, ingredient.name);
-            }
-          });
-          player.inventory.push({
-            name: recipe.crafted_item.name,
-            quantity: recipe.crafted_item.quantity,
-          });
-          return `${recipe.crafted_item.name} has been crafted.`;
-        }
-        return "You don't have the ingredients to craft that.";
-      }
-    }
-    return "You don't know how to craft that.";
   }
 
   create_item(
@@ -884,6 +813,258 @@ export class TextWorld {
     return false;
   }
 
+  take_item(player: Player, args: string[]): string {
+    const zone = this.get_players_zone(player);
+    if (zone) {
+      const current_room = zone.rooms.find((room) => room.name === player.room);
+      if (current_room) {
+        const possible_items = this.generate_combinations(args);
+
+        if (possible_items.includes("all")) {
+          return this.take_all_items(player);
+        } else {
+          const room_item = current_room.items.find((item) =>
+            possible_items.find(
+              (possible_item) =>
+                item.name.toLowerCase() === possible_item.toLowerCase()
+            )
+          );
+
+          if (room_item) {
+            player.inventory.push({
+              name: room_item.name,
+              quantity: room_item.quantity,
+            });
+            current_room.items = current_room.items.filter(
+              (item) => item.name !== room_item.name
+            );
+            return `You took the ${room_item.name}.`;
+          }
+        }
+      }
+    }
+    return "That item does not exist.";
+  }
+
+  take_all_items(player: Player): string {
+    const current_room = this.get_players_zone(player)?.rooms.find(
+      (room) => room.name === player.room
+    );
+
+    if (!current_room) {
+      return "That item does not exist.";
+    }
+
+    current_room.items.forEach((item) => {
+      player.inventory.push({ ...item });
+    });
+
+    current_room.items = [];
+
+    return "You took all items.";
+  }
+
+  use_item(player: Player, args: string[]): string {
+    if (player) {
+      const possible_items = this.generate_combinations(args);
+      const player_item = player.inventory.find((item) =>
+        possible_items.find(
+          (possible_item) =>
+            item.name.toLowerCase() === possible_item.toLowerCase()
+        )
+      );
+
+      if (player_item) {
+        const item_definition = this.world.items.find(
+          (item) => item.name === player_item.name
+        );
+        if (item_definition) {
+          if (!item_definition.usable) return "You can't use that item.";
+
+          let result: string | null = null;
+
+          if (item_definition.action) {
+            result = item_definition.action(player);
+          }
+
+          if (!result) {
+            result = "You used the item but nothing happened.";
+          }
+
+          player_item.quantity--;
+          if (player_item.quantity === 0) {
+            player.inventory = player.inventory.filter(
+              (item) => item.name !== player_item.name
+            );
+          }
+
+          return result;
+        }
+      }
+    }
+    return "That item does not exist.";
+  }
+
+  remove_player_item(player: Player, item_name: string) {
+    const itemIndex = player?.inventory.findIndex(
+      (item) => item.name.toLowerCase() === item_name.toLowerCase()
+    );
+
+    if (itemIndex !== undefined && itemIndex !== -1) {
+      player.inventory[itemIndex].quantity--;
+
+      if (player.inventory[itemIndex].quantity === 0) {
+        player.inventory.splice(itemIndex, 1);
+      }
+    }
+  }
+
+  remove_item(item_name: string) {
+    this.world.items = this.world.items.filter(
+      (item) => item.name !== item_name
+    );
+  }
+
+  drop_item(player: Player, args: string[]): string {
+    const zone = this.get_players_zone(player);
+    if (zone) {
+      const possible_items = this.generate_combinations(args);
+
+      if (possible_items.includes("all")) {
+        return this.drop_all_items(player);
+      } else {
+        const player_item = player.inventory.find((item) =>
+          possible_items.find(
+            (possible_item) =>
+              item.name.toLowerCase() === possible_item.toLowerCase()
+          )
+        );
+
+        if (player_item) {
+          const current_room = zone.rooms.find(
+            (room) => room.name === player.room
+          );
+          if (current_room) {
+            current_room.items.push({
+              name: player_item.name,
+              quantity: player_item.quantity,
+            });
+            player.inventory = player.inventory.filter(
+              (item) => item.name !== player_item.name
+            );
+            return `You dropped the ${player_item.name}.`;
+          }
+        }
+      }
+    }
+    return "That item does not exist.";
+  }
+
+  drop_all_items(player: Player): string {
+    const current_room = this.get_players_zone(player)?.rooms.find(
+      (room) => room.name === player.room
+    );
+
+    if (!current_room || player.inventory.length === 0) {
+      return "You have no items to drop.";
+    }
+
+    current_room.items.push(...player.inventory);
+    player.inventory = [];
+
+    return "You dropped all your items.";
+  }
+
+  show_item(player: Player, args: string[]): string {
+    const possible_items = this.generate_combinations(args);
+
+    if (possible_items.includes("all")) {
+      return this.show_all_items(player);
+    } else if (possible_items.includes("quests")) {
+      return this.show_quests(player);
+    } else {
+      if (player) {
+        const player_item = player.inventory.find((item) =>
+          possible_items.find(
+            (possible_item) =>
+              item.name.toLowerCase() === possible_item.toLowerCase()
+          )
+        );
+
+        if (player_item) {
+          const item = this.world.items.find(
+            (item) => item.name === player_item.name
+          );
+          if (item) {
+            return item.description;
+          }
+        }
+      }
+    }
+    return "That item does not exist.";
+  }
+
+  show_all_items(player: Player): string {
+    if (!player || player.inventory.length === 0) {
+      return "You have no items to show.";
+    }
+
+    const items_description = player.inventory
+      .map((item) => {
+        const item_definition = this.world.items.find(
+          (item_definition) => item_definition.name === item.name
+        );
+        return item_definition
+          ? `${item_definition.name} - ${item_definition.description}`
+          : null;
+      })
+      .filter(Boolean);
+
+    return items_description.join("\n\n");
+  }
+
+  /////////
+  // MOB //
+  /////////
+
+  create_mob(
+    name: string,
+    description: string,
+    stats: Resources,
+    damage_and_defense: DamageAndDefense,
+    inventory: ItemDrop[]
+  ) {
+    const mob: Mob = {
+      name,
+      description,
+      stats,
+      damage_and_defense,
+      inventory,
+    };
+    this.world.mobs.push(mob);
+    return mob;
+  }
+
+  get_mob(name: string): Mob | null {
+    return (
+      this.world.mobs.find(
+        (mob) => mob.name.toLowerCase() === name.toLowerCase()
+      ) ?? null
+    );
+  }
+
+  place_mob(zone_name: string, in_room_name: string, mob_name: string) {
+    const in_room = this.get_room(zone_name, in_room_name);
+    const mob = this.get_mob(mob_name);
+    if (in_room && mob) {
+      in_room.mobs.push(structuredClone(mob));
+    } else {
+      throw new Error(
+        `Room ${in_room_name} or MOB ${mob_name} does not exist.`
+      );
+    }
+  }
+
   get_room_mob(
     zone_name: string,
     room_name: string,
@@ -901,42 +1082,79 @@ export class TextWorld {
     return null;
   }
 
-  get_room_item(
-    zone_name: string,
-    room_name: string,
-    item_name: string
-  ): ItemDrop | null {
-    const zone = this.get_zone(zone_name);
-    const room = zone.rooms.find((room) => room.name === room_name);
-    if (room) {
-      return (
-        room.items.find(
-          (item) => item.name.toLowerCase() === item_name.toLowerCase()
-        ) ?? null
-      );
+  attack(attacker: Player | Mob, defender: Player | Mob): string {
+    const attackerDamage =
+      Math.random() < attacker.damage_and_defense.critical_chance
+        ? attacker.damage_and_defense.physical_damage * 2
+        : attacker.damage_and_defense.physical_damage;
+
+    const damageDealt = Math.max(
+      0,
+      attackerDamage - defender.damage_and_defense.physical_defense
+    );
+
+    defender.stats.health.current -= damageDealt;
+
+    defender.stats.health.current = Math.max(0, defender.stats.health.current);
+    attacker.stats.health.current = Math.max(0, attacker.stats.health.current);
+
+    let result = `${attacker.name} attacks ${defender.name} for ${damageDealt} damage.\n${defender.name} health: ${defender.stats.health.current}`;
+
+    if (
+      defender.stats.health.current <= 0 ||
+      attacker.stats.health.current <= 0
+    ) {
+      result += `\n${
+        defender.stats.health.current <= 0 ? defender.name : attacker.name
+      } has been defeated!`;
     }
-    return null;
+
+    return result;
   }
 
-  place_item(
-    zone_name: string,
-    in_room_name: string,
-    item_name: string,
-    quantity = 1
-  ) {
-    const zone = this.get_zone(zone_name);
-    const in_room = zone.rooms.find((room) => room.name === in_room_name);
-    if (in_room) {
-      in_room.items.push({
-        name: item_name,
-        quantity,
-      });
-    } else {
-      throw new Error(
-        `Room ${in_room_name} does not exist in zone ${zone_name}.`
-      );
+  attack_mob(
+    player: Player,
+    args: string[],
+    should_mob_attack = false
+  ): string {
+    const zone = this.get_players_zone(player);
+    if (zone) {
+      const possible_mobs = this.generate_combinations(args);
+      const current_room = this.get_players_room(player);
+      if (current_room) {
+        const mob = current_room?.mobs.find(
+          (mob) =>
+            mob.name.toLowerCase() ===
+            possible_mobs
+              .find((mob_name) => {
+                return mob_name.toLowerCase() === mob_name.toLowerCase();
+              })
+              ?.toLowerCase()
+        );
+        if (mob) {
+          let result = this.attack(player, mob);
+          if (should_mob_attack && mob.stats.health.current > 0) {
+            result += `\n${this.attack(mob, player)}`;
+          }
+
+          if (mob.stats.health.current <= 0) {
+            mob.stats.health.current = 0;
+            current_room.items.push(...mob.inventory);
+            current_room.mobs = current_room.mobs.filter(
+              (mob) => mob.name !== mob.name
+            );
+          }
+
+          return result;
+        }
+      }
     }
+    return "That mob does not exist.";
   }
+
+  //////////
+  // ZONE //
+  //////////
 
   create_zone(name: string) {
     this.world.zones.push({
@@ -949,125 +1167,15 @@ export class TextWorld {
     this.world.zones = this.world.zones.filter((zone) => zone.name !== name);
   }
 
-  create_room(
-    zone_name: string,
-    name: string,
-    description: string,
-    action: Action | null = null
-  ) {
-    const zone = this.get_zone(zone_name);
-    if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
-
-    let actions: Action[] | null = null;
-    if (action) {
-      actions = [action];
-    }
-
-    zone.rooms.push({
-      id: crypto.randomUUID(),
-      name: name,
-      description: description,
-      zone_start: false,
-      items: [],
-      npcs: [],
-      mobs: [],
-      exits: [],
-      action: actions,
-      command_actions: [],
-    });
+  get_zone(zone_name: string): Zone {
+    return this.world.zones.find(
+      (zone) => zone.name.toLowerCase() === zone_name.toLowerCase()
+    )!;
   }
 
-  set_room_as_zone_starter(zone_name: string, room_name: string) {
-    const zone = this.get_zone(zone_name);
-    if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
-    const room = zone.rooms.find((room) => room.name === room_name);
-    if (room) {
-      room.zone_start = true;
-    } else {
-      throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
-    }
-  }
-
-  add_room_action(zone_name: string, room_name: string, action: Action) {
-    const room = this.get_room(zone_name, room_name);
-    if (room) {
-      if (!room.action) {
-        room.action = [];
-      }
-      room.action.push(action);
-    }
-  }
-
-  get_room(zone_name: string, room_name: string): Room | null {
-    const zone = this.get_zone(zone_name);
-    if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
-    return (
-      zone.rooms.find(
-        (room) => room.name.toLowerCase() === room_name.toLowerCase()
-      ) ?? null
-    );
-  }
-
-  get_zone_starter_room(zone_name: string): Room | null {
-    const zone = this.get_zone(zone_name);
-    return zone.rooms.find((room) => room.zone_start) ?? null;
-  }
-
-  goto(player: Player, args: string[]): string {
-    let newZoneName: string | null = null;
-    let newRoomName: string | null = null;
-    const possibleRoomsOrZones = this.generate_combinations(args);
-
-    for (const possibleRoomOrZone of possibleRoomsOrZones) {
-      const room_or_zone = possibleRoomOrZone.toLowerCase();
-
-      if (room_or_zone.startsWith("room")) {
-        const roomName = possibleRoomOrZone.replace(/room/, "").trim();
-        const newRoom = this.get_room(player.zone, roomName);
-
-        if (newRoom) {
-          newRoomName = newRoom.name;
-          break;
-        }
-      } else if (room_or_zone.startsWith("zone")) {
-        const zoneName = possibleRoomOrZone.replace(/zone/, "").trim();
-        const newZone = this.get_zone(zoneName);
-
-        if (newZone) {
-          newZoneName = newZone.name;
-          break;
-        }
-      }
-    }
-
-    if (newZoneName) {
-      player.zone = newZoneName;
-      const starterRoom = this.get_zone_starter_room(player.zone);
-
-      if (starterRoom) {
-        newRoomName = starterRoom.name;
-      }
-    }
-
-    if (newRoomName) {
-      player.room = newRoomName;
-      let newRoomDescription = this.get_room_description(player);
-
-      const newRoom = this.get_players_room(player);
-      if (newRoom?.action) {
-        const actionResult = newRoom.action
-          .map((action) => action(player))
-          .filter((result) => result)
-          .join("");
-
-        newRoomDescription = `${newRoomDescription}\n\n${actionResult}`;
-      }
-
-      return newRoomDescription;
-    }
-
-    return "That room or zone does not exist.";
-  }
+  //////////
+  // ROOM //
+  //////////
 
   remove_room(zone_name: string, room_name: string) {
     const zone = this.get_zone(zone_name);
@@ -1275,166 +1383,175 @@ export class TextWorld {
     return "You can't go that way.";
   }
 
-  take_item(player: Player, args: string[]): string {
+  plot_room_map(player: Player, window_size: number) {
     const zone = this.get_players_zone(player);
     if (zone) {
-      const current_room = zone.rooms.find((room) => room.name === player.room);
-      if (current_room) {
-        const possible_items = this.generate_combinations(args);
+      let rooms = zone.rooms;
 
-        if (possible_items.includes("all")) {
-          return this.take_all_items(player);
-        } else {
-          const room_item = current_room.items.find((item) =>
-            possible_items.find(
-              (possible_item) =>
-                item.name.toLowerCase() === possible_item.toLowerCase()
-            )
-          );
+      if (window_size != 0) {
+        const current_room_index = rooms.findIndex(
+          (room) => room.name === player.room
+        );
+        let window_start = current_room_index - 5;
+        let window_end = current_room_index + 5;
+        if (window_start - window_size <= 0) window_start = 0;
+        if (window_end + window_size >= rooms.length) window_end = rooms.length;
+        rooms = rooms.slice(window_start, window_end);
+      }
 
-          if (room_item) {
-            player.inventory.push({
-              name: room_item.name,
-              quantity: room_item.quantity,
-            });
-            current_room.items = current_room.items.filter(
-              (item) => item.name !== room_item.name
-            );
-            return `You took the ${room_item.name}.`;
-          }
+      const room_grid: { [key: string]: string } = {};
+      const visited_rooms = new Set<string>();
+      let current_room = rooms[0];
+      let current_x = 0;
+      let current_y = 0;
+      room_grid[`${current_x},${current_y}`] =
+        current_room.name === player.room ? "@" : "#";
+
+      const queue = [{ room: current_room, x: current_x, y: current_y }];
+      const direction_to_coords: Record<string, [number, number]> = {
+        north: [0, 1],
+        south: [0, -1],
+        east: [1, 0],
+        west: [-1, 0],
+      };
+      const direction_to_symbol: Record<string, string> = {
+        north: "|",
+        south: "|",
+        east: "-",
+        west: "-",
+      };
+
+      while (queue.length > 0) {
+        const item = queue.shift();
+        if (item) {
+          current_room = item.room;
+          current_x = item.x;
+          current_y = item.y;
+
+          if (visited_rooms.has(current_room.name)) continue;
+          visited_rooms.add(current_room.name);
+
+          current_room.exits.forEach((exit) => {
+            if (exit.hidden) return;
+            const room = rooms.find((room) => room.name === exit.location);
+            if (room && direction_to_coords[exit.name]) {
+              const [dx, dy] = direction_to_coords[exit.name];
+              const symbol = direction_to_symbol[exit.name];
+              room_grid[`${current_x + dx},${current_y + dy}`] =
+                room.name === player.room ? "@" : "#";
+              room_grid[`${current_x + dx / 2},${current_y + dy / 2}`] = symbol;
+              queue.push({ room, x: current_x + dx, y: current_y + dy });
+            }
+          });
         }
       }
+
+      const keys = Object.keys(room_grid);
+      const xs = keys.map((key) => parseFloat(key.split(",")[0]));
+      const ys = keys.map((key) => parseFloat(key.split(",")[1]));
+      const min_x = Math.min(...xs);
+      const max_x = Math.max(...xs);
+      const min_y = Math.min(...ys);
+      const max_y = Math.max(...ys);
+      const result: string[] = [];
+
+      for (let y = max_y; y >= min_y; y -= 0.5) {
+        let row = "";
+        for (let x = min_x; x <= max_x; x += 0.5) {
+          row += room_grid[`${x},${y}`] || " ";
+        }
+        result.push(row);
+      }
+      return `Map:\n\n${result.join("\n")}\n`;
     }
-    return "That item does not exist.";
+    return "You are not in a zone.";
   }
 
-  take_all_items(player: Player): string {
+  create_room(
+    zone_name: string,
+    name: string,
+    description: string,
+    action: Action | null = null
+  ) {
+    const zone = this.get_zone(zone_name);
+    if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
+
+    let actions: Action[] | null = null;
+    if (action) {
+      actions = [action];
+    }
+
+    zone.rooms.push({
+      id: crypto.randomUUID(),
+      name: name,
+      description: description,
+      zone_start: false,
+      items: [],
+      npcs: [],
+      mobs: [],
+      exits: [],
+      action: actions,
+      command_actions: [],
+    });
+  }
+
+  set_room_as_zone_starter(zone_name: string, room_name: string) {
+    const zone = this.get_zone(zone_name);
+    if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
+    const room = zone.rooms.find((room) => room.name === room_name);
+    if (room) {
+      room.zone_start = true;
+    } else {
+      throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
+    }
+  }
+
+  add_room_action(zone_name: string, room_name: string, action: Action) {
+    const room = this.get_room(zone_name, room_name);
+    if (room) {
+      if (!room.action) {
+        room.action = [];
+      }
+      room.action.push(action);
+    }
+  }
+
+  get_room(zone_name: string, room_name: string): Room | null {
+    const zone = this.get_zone(zone_name);
+    if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
+    return (
+      zone.rooms.find(
+        (room) => room.name.toLowerCase() === room_name.toLowerCase()
+      ) ?? null
+    );
+  }
+
+  get_zone_starter_room(zone_name: string): Room | null {
+    const zone = this.get_zone(zone_name);
+    return zone.rooms.find((room) => room.zone_start) ?? null;
+  }
+
+  inspect_room(player: Player): string {
     const current_room = this.get_players_zone(player)?.rooms.find(
       (room) => room.name === player.room
     );
 
     if (!current_room) {
-      return "That item does not exist.";
+      return "There is nothing else of interest here.";
     }
 
-    current_room.items.forEach((item) => {
-      player.inventory.push({ ...item });
-    });
-
-    current_room.items = [];
-
-    return "You took all items.";
-  }
-
-  use_item(player: Player, args: string[]): string {
-    if (player) {
-      const possible_items = this.generate_combinations(args);
-      const player_item = player.inventory.find((item) =>
-        possible_items.find(
-          (possible_item) =>
-            item.name.toLowerCase() === possible_item.toLowerCase()
-        )
-      );
-
-      if (player_item) {
-        const item_definition = this.world.items.find(
-          (item) => item.name === player_item.name
-        );
-        if (item_definition) {
-          if (!item_definition.usable) return "You can't use that item.";
-
-          let result: string | null = null;
-
-          if (item_definition.action) {
-            result = item_definition.action(player);
-          }
-
-          if (!result) {
-            result = "You used the item but nothing happened.";
-          }
-
-          player_item.quantity--;
-          if (player_item.quantity === 0) {
-            player.inventory = player.inventory.filter(
-              (item) => item.name !== player_item.name
-            );
-          }
-
-          return result;
-        }
-      }
-    }
-    return "That item does not exist.";
-  }
-
-  remove_player_item(player: Player, item_name: string) {
-    const itemIndex = player?.inventory.findIndex(
-      (item) => item.name.toLowerCase() === item_name.toLowerCase()
+    const items = current_room.items.map(
+      (item) => `${item.name} (${item.quantity})`
     );
+    const itemsString =
+      items.length > 0
+        ? `Items: ${items.join(", ")}`
+        : "There is nothing else of interest here.";
 
-    if (itemIndex !== undefined && itemIndex !== -1) {
-      player.inventory[itemIndex].quantity--;
+    const mobs = current_room.mobs.map((mob) => mob.name);
+    const mobsString = mobs.length > 0 ? `Mobs: ${mobs.join(", ")}` : "";
 
-      if (player.inventory[itemIndex].quantity === 0) {
-        player.inventory.splice(itemIndex, 1);
-      }
-    }
-  }
-
-  remove_item(item_name: string) {
-    this.world.items = this.world.items.filter(
-      (item) => item.name !== item_name
-    );
-  }
-
-  drop_item(player: Player, args: string[]): string {
-    const zone = this.get_players_zone(player);
-    if (zone) {
-      const possible_items = this.generate_combinations(args);
-
-      if (possible_items.includes("all")) {
-        return this.drop_all_items(player);
-      } else {
-        const player_item = player.inventory.find((item) =>
-          possible_items.find(
-            (possible_item) =>
-              item.name.toLowerCase() === possible_item.toLowerCase()
-          )
-        );
-
-        if (player_item) {
-          const current_room = zone.rooms.find(
-            (room) => room.name === player.room
-          );
-          if (current_room) {
-            current_room.items.push({
-              name: player_item.name,
-              quantity: player_item.quantity,
-            });
-            player.inventory = player.inventory.filter(
-              (item) => item.name !== player_item.name
-            );
-            return `You dropped the ${player_item.name}.`;
-          }
-        }
-      }
-    }
-    return "That item does not exist.";
-  }
-
-  drop_all_items(player: Player): string {
-    const current_room = this.get_players_zone(player)?.rooms.find(
-      (room) => room.name === player.room
-    );
-
-    if (!current_room || player.inventory.length === 0) {
-      return "You have no items to drop.";
-    }
-
-    current_room.items.push(...player.inventory);
-    player.inventory = [];
-
-    return "You dropped all your items.";
+    return [mobsString, itemsString].filter(Boolean).join("\n");
   }
 
   look(player: Player, args: string[]): string {
@@ -1462,341 +1579,264 @@ export class TextWorld {
     return "You can't see anything.";
   }
 
-  look_self(player: Player): string {
-    if (!player) return "You can't see anything.";
+  //////////////
+  // CRAFTING //
+  //////////////
 
-    const inventory = player.inventory
-      .map((item) => `${item.name} (${item.quantity})`)
-      .join(", ");
-    const result = `${player.description}${
-      player.inventory.length > 0 ? `\n\ninventory: ${inventory}` : ""
-    }`;
-
-    return result;
-  }
-
-  inspect_room(player: Player): string {
-    const current_room = this.get_players_zone(player)?.rooms.find(
-      (room) => room.name === player.room
-    );
-
-    if (!current_room) {
-      return "There is nothing else of interest here.";
-    }
-
-    const items = current_room.items.map(
-      (item) => `${item.name} (${item.quantity})`
-    );
-    const itemsString =
-      items.length > 0
-        ? `Items: ${items.join(", ")}`
-        : "There is nothing else of interest here.";
-
-    const mobs = current_room.mobs.map((mob) => mob.name);
-    const mobsString = mobs.length > 0 ? `Mobs: ${mobs.join(", ")}` : "";
-
-    return [mobsString, itemsString].filter(Boolean).join("\n");
-  }
-
-  show_item(player: Player, args: string[]): string {
-    const possible_items = this.generate_combinations(args);
-
-    if (possible_items.includes("all")) {
-      return this.show_all_items(player);
-    } else if (possible_items.includes("quests")) {
-      return this.show_quests(player);
-    } else {
-      if (player) {
-        const player_item = player.inventory.find((item) =>
-          possible_items.find(
-            (possible_item) =>
-              item.name.toLowerCase() === possible_item.toLowerCase()
-          )
-        );
-
-        if (player_item) {
-          const item = this.world.items.find(
-            (item) => item.name === player_item.name
-          );
-          if (item) {
-            return item.description;
-          }
-        }
-      }
-    }
-    return "That item does not exist.";
-  }
-
-  show_all_items(player: Player): string {
-    if (!player || player.inventory.length === 0) {
-      return "You have no items to show.";
-    }
-
-    const items_description = player.inventory
-      .map((item) => {
-        const item_definition = this.world.items.find(
-          (item_definition) => item_definition.name === item.name
-        );
-        return item_definition
-          ? `${item_definition.name} - ${item_definition.description}`
-          : null;
-      })
-      .filter(Boolean);
-
-    return items_description.join("\n\n");
-  }
-
-  show_quests(player: Player): string {
-    if (!player || player.quests.length === 0) {
-      return "You have no quests.";
-    }
-
-    const quests_description = player.quests.map((player_quest) => {
-      const quest = this.world.quests.find(
-        (quest) => quest.name === player_quest
-      );
-      return `${quest!.name} - ${quest!.description}`;
-    });
-
-    return quests_description.join("\n\n");
-  }
-
-  create_npc(name: string, description: string, dialog: Dialog[] | null) {
-    this.world.npcs.push({
+  create_recipe(
+    name: string,
+    description: string,
+    ingredients: ItemDrop[],
+    crafted_item: ItemDrop
+  ) {
+    this.world.recipes.push({
       name,
       description,
-      inventory: [],
-      stats: this.create_resources(10, 10, 10, 10, 10, 10),
-      killable: false,
-      dialog,
-      vendor_items: null,
+      ingredients,
+      crafted_item,
     });
   }
 
-  create_vendor(name: string, description: string, vendor_items: VendorItem[]) {
-    this.world.npcs.push({
-      name,
-      description,
-      stats: this.create_resources(10, 10, 10, 10, 10, 10),
-      inventory: [],
-      killable: false,
-      dialog: [
-        {
-          trigger: ["items"],
-          response: null,
-          action: (_player, _input, _command, _args) => {
-            const items = vendor_items.map(
-              (vendor_item) => `${vendor_item.name} (${vendor_item.price} gold)`
-            );
-            return `Items for sale: ${items.join(", ")}`;
-          },
-        },
-        {
-          trigger: ["purchase", "buy"],
-          response: null,
-          action: (player, input, _command, _args) => {
-            if (input) {
-              const command_bits = input.split(" ");
-              if (command_bits) {
-                let trigger_word = command_bits.lastIndexOf("purchase") ?? -1;
-                if (trigger_word === -1) {
-                  trigger_word = command_bits.lastIndexOf("buy") ?? -1;
-                  const item_name = command_bits
-                    .slice(trigger_word + 1)
-                    .join(" ");
-                  return this.purchase_from_vendor(player, name, item_name!);
-                }
-              }
-            }
-            return "You must specify an item to purchase.";
-          },
-        },
-      ],
-      vendor_items,
-    });
-  }
-
-  purchase_from_vendor(
-    player: Player,
-    vendor_name: string,
-    item_name: string
-  ): string {
-    const npc = this.get_npc(vendor_name);
-
-    if (!npc || !npc.vendor_items) {
-      return "That vendor does not exist.";
-    }
-
-    const vendor_item = npc.vendor_items.find(
-      (item) => item.name.toLowerCase() === item_name.toLowerCase()
-    );
-    const item = this.world.items.find(
-      (item) => item.name.toLowerCase() === item_name.toLowerCase()
-    );
-
-    if (!vendor_item || !item) {
-      return "That item does not exist.";
-    }
-
-    if (player.gold >= vendor_item.price) {
-      player.gold -= vendor_item.price;
-      player.inventory.push({ name: vendor_item.name, quantity: 1 });
-      return `You purchased ${vendor_item.name} for ${vendor_item.price} gold.`;
-    }
-
-    return `You don't have enough gold to purchase ${vendor_item.name}.`;
-  }
-
-  remove_npc(name: string) {
-    this.world.zones.forEach((zone) => {
-      zone.rooms.forEach((room) => {
-        room.npcs = room.npcs.filter((npc) => npc.name !== name);
-      });
-    });
-    this.world.npcs = this.world.npcs.filter((npc) => npc.name !== name);
-  }
-
-  get_npc(name: string): NPC | null {
+  get_recipe(name: string): Recipe | null {
     return (
-      this.world.npcs.find(
-        (npc) => npc.name.toLowerCase() === name.toLowerCase()
+      this.world.recipes.find(
+        (recipe) => recipe.name.toLowerCase() === name.toLowerCase()
       ) ?? null
     );
   }
 
-  place_npc(zone_name: string, in_room_name: string, npc_name: string) {
-    const in_room = this.get_room(zone_name, in_room_name);
-    const npc = this.world.npcs.find((npc) => npc.name === npc_name);
-
-    if (!in_room || !npc) {
-      throw new Error(
-        `Room ${in_room_name} or NPC ${npc_name} does not exist.`
-      );
+  learn_recipe(player: Player, recipe_name: string): string {
+    const recipe = this.get_recipe(recipe_name);
+    if (recipe) {
+      player.known_recipes.push(recipe.name);
+      return `You learned the recipe for ${recipe.name}.`;
     }
-
-    in_room.npcs.push(npc);
+    return "That recipe does not exist.";
   }
 
-  get_room_npc(
-    zone_name: string,
-    room_name: string,
-    npc_name: string
-  ): NPC | null {
-    const zone = this.get_zone(zone_name);
-    const room = zone?.rooms.find((room) => room.name === room_name);
-    return (
-      room?.npcs.find(
-        (npc) => npc.name.toLowerCase() === npc_name.toLowerCase()
-      ) || null
-    );
-  }
+  craft_recipe(player: Player, recipe_name: string): string {
+    const knows_recipe = player.known_recipes.includes(recipe_name);
+    if (knows_recipe) {
+      const recipe = this.get_recipe(recipe_name);
+      if (recipe) {
+        let has_ingredients = true;
+        recipe.ingredients.forEach((ingredient) => {
+          if (
+            !this.has_item_in_quantity(
+              player,
+              ingredient.name,
+              ingredient.quantity
+            )
+          ) {
+            has_ingredients = false;
+          }
+        });
 
-  talk_to_npc(
-    player: Player,
-    input: string,
-    command: string,
-    args: string[]
-  ): string {
-    const zone = this.get_players_zone(player);
-    if (zone) {
-      const possible_triggers = this.generate_combinations(args);
-      const current_room = this.get_players_room(player);
-      const npc = this.world.npcs.find((npc) =>
-        possible_triggers.some(
-          (trigger) => npc.name.toLowerCase() === trigger.toLowerCase()
-        )
-      );
-
-      if (npc && !npc.dialog) {
-        return `${npc.name} does not want to talk to you.`;
-      } else if (
-        npc &&
-        current_room &&
-        npc.dialog &&
-        current_room.npcs.includes(npc)
-      ) {
-        const dialog = npc.dialog?.find((dialog) =>
-          dialog.trigger.some((trigger) => possible_triggers.includes(trigger))
-        );
-
-        return dialog
-          ? dialog.response ||
-              dialog.action?.(player, input, command, args) ||
-              "hmm..."
-          : "hmm...";
+        if (has_ingredients) {
+          recipe.ingredients.forEach((ingredient) => {
+            for (let i = 0; i < ingredient.quantity; i++) {
+              this.remove_player_item(player, ingredient.name);
+            }
+          });
+          player.inventory.push({
+            name: recipe.crafted_item.name,
+            quantity: recipe.crafted_item.quantity,
+          });
+          return `${recipe.crafted_item.name} has been crafted.`;
+        }
+        return "You don't have the ingredients to craft that.";
       }
     }
-    return "That NPC does not exist.";
+    return "You don't know how to craft that.";
   }
 
-  attack(attacker: Player | Mob, defender: Player | Mob): string {
-    const attackerDamage =
-      Math.random() < attacker.damage_and_defense.critical_chance
-        ? attacker.damage_and_defense.physical_damage * 2
-        : attacker.damage_and_defense.physical_damage;
+  //////////
+  // MISC //
+  //////////
 
-    const damageDealt = Math.max(
-      0,
-      attackerDamage - defender.damage_and_defense.physical_defense
-    );
+  reset_world() {
+    const world: World = {
+      zones: [],
+      items: [],
+      recipes: [],
+      npcs: [],
+      mobs: [],
+      player: [],
+      quests: [],
+      level_data: this.calculate_level_experience(1, 1.2, 50),
+    };
+    this.world = world;
+    return world;
+  }
 
-    defender.stats.health.current -= damageDealt;
+  to_title_case(str: string): string {
+    return str
+      .split(" ")
+      .map((word) => word[0].toUpperCase() + word.slice(1))
+      .join(" ");
+  }
 
-    defender.stats.health.current = Math.max(0, defender.stats.health.current);
-    attacker.stats.health.current = Math.max(0, attacker.stats.health.current);
+  calculate_level_experience(
+    starting_experience: number,
+    growth_rate: number,
+    num_levels: number
+  ): Level[] {
+    const required_experience_points: Level[] = [];
 
-    let result = `${attacker.name} attacks ${defender.name} for ${damageDealt} damage.\n${defender.name} health: ${defender.stats.health.current}`;
-
-    if (
-      defender.stats.health.current <= 0 ||
-      attacker.stats.health.current <= 0
-    ) {
-      result += `\n${
-        defender.stats.health.current <= 0 ? defender.name : attacker.name
-      } has been defeated!`;
+    for (let level = 1; level <= num_levels; level++) {
+      const xp = starting_experience * Math.pow(growth_rate, level - 1);
+      required_experience_points.push({ level, xp });
     }
 
-    return result;
+    return required_experience_points;
   }
 
-  attack_mob(
-    player: Player,
-    args: string[],
-    should_mob_attack = false
-  ): string {
-    const zone = this.get_players_zone(player);
-    if (zone) {
-      const possible_mobs = this.generate_combinations(args);
-      const current_room = this.get_players_room(player);
-      if (current_room) {
-        const mob = current_room?.mobs.find(
-          (mob) =>
-            mob.name.toLowerCase() ===
-            possible_mobs
-              .find((mob_name) => {
-                return mob_name.toLowerCase() === mob_name.toLowerCase();
-              })
-              ?.toLowerCase()
-        );
-        if (mob) {
-          let result = this.attack(player, mob);
-          if (should_mob_attack && mob.stats.health.current > 0) {
-            result += `\n${this.attack(mob, player)}`;
-          }
+  generate_combinations(input_array: string[]): string[] {
+    const result: string[] = [];
 
-          if (mob.stats.health.current <= 0) {
-            mob.stats.health.current = 0;
-            current_room.items.push(...mob.inventory);
-            current_room.mobs = current_room.mobs.filter(
-              (mob) => mob.name !== mob.name
-            );
-          }
+    function generate_helper(combination: string, startIdx: number) {
+      result.push(combination.trim());
 
-          return result;
+      for (let i = startIdx; i < input_array.length; i++) {
+        const new_combination =
+          combination + (combination.length > 0 ? " " : "") + input_array[i];
+        generate_helper(new_combination, i + 1);
+      }
+    }
+
+    generate_helper("", 0);
+    return result.filter((str) => str !== "");
+  }
+
+  get_help(player: Player) {
+    const command_actions =
+      player.stats.health.current <= 0
+        ? this.player_dead_command_actions
+        : this.main_command_actions;
+    const result = command_actions
+      .map((action) => `${action.synonyms.join(", ")} - ${action.description}`)
+      .join("\n");
+    return `Commands:\n\n${result}`;
+  }
+
+  create_resources(
+    health_current: number,
+    health_max: number,
+    stamina_current: number,
+    stamina_max: number,
+    magicka_current: number,
+    magicka_max: number
+  ): Resources {
+    return {
+      health: {
+        current: health_current,
+        max: health_max,
+      },
+      stamina: {
+        current: stamina_current,
+        max: stamina_max,
+      },
+      magicka: {
+        current: magicka_current,
+        max: magicka_max,
+      },
+    };
+  }
+
+  create_damage_and_defense(
+    physical_damage: number,
+    physical_defense: number,
+    spell_damage: number,
+    spell_defense: number,
+    critical_chance: number
+  ): DamageAndDefense {
+    return {
+      physical_damage,
+      physical_defense,
+      spell_damage,
+      spell_defense,
+      critical_chance,
+    };
+  }
+
+  set_godmode(player: Player) {
+    this.set_flag(player, "godmode");
+  }
+
+  remove_godmode(player: Player) {
+    this.remove_flag(player, "godmode");
+  }
+
+  set_flag(player: Player, flag: string) {
+    if (player && !player.flags.includes(flag)) {
+      player.flags.push(flag);
+    }
+  }
+
+  has_flag(player: Player, flag: string) {
+    return player && player.flags.includes(flag);
+  }
+
+  remove_flag(player: Player, flag: string) {
+    if (player && player.flags.includes(flag)) {
+      player.flags = player.flags.filter((f) => f !== flag);
+    }
+  }
+
+  goto(player: Player, args: string[]): string {
+    let newZoneName: string | null = null;
+    let newRoomName: string | null = null;
+    const possibleRoomsOrZones = this.generate_combinations(args);
+
+    for (const possibleRoomOrZone of possibleRoomsOrZones) {
+      const room_or_zone = possibleRoomOrZone.toLowerCase();
+
+      if (room_or_zone.startsWith("room")) {
+        const roomName = possibleRoomOrZone.replace(/room/, "").trim();
+        const newRoom = this.get_room(player.zone, roomName);
+
+        if (newRoom) {
+          newRoomName = newRoom.name;
+          break;
+        }
+      } else if (room_or_zone.startsWith("zone")) {
+        const zoneName = possibleRoomOrZone.replace(/zone/, "").trim();
+        const newZone = this.get_zone(zoneName);
+
+        if (newZone) {
+          newZoneName = newZone.name;
+          break;
         }
       }
     }
-    return "That mob does not exist.";
+
+    if (newZoneName) {
+      player.zone = newZoneName;
+      const starterRoom = this.get_zone_starter_room(player.zone);
+
+      if (starterRoom) {
+        newRoomName = starterRoom.name;
+      }
+    }
+
+    if (newRoomName) {
+      player.room = newRoomName;
+      let newRoomDescription = this.get_room_description(player);
+
+      const newRoom = this.get_players_room(player);
+      if (newRoom?.action) {
+        const actionResult = newRoom.action
+          .map((action) => action(player))
+          .filter((result) => result)
+          .join("");
+
+        newRoomDescription = `${newRoomDescription}\n\n${actionResult}`;
+      }
+
+      return newRoomDescription;
+    }
+
+    return "That room or zone does not exist.";
   }
 
   parse_command(player: Player, input: string): string {
