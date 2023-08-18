@@ -15,13 +15,19 @@ type CommandParserAction = (
   args: string[]
 ) => string;
 
-export interface Player {
+export interface Entity {
   id: string;
   name: string;
   description: string;
-  score: number;
+}
+
+export interface Stats {
   stats: Resources;
   damage_and_defense: DamageAndDefense;
+}
+
+export interface Player extends Entity, Stats {
+  score: number;
   gold: number;
   progress: Level;
   zone: string;
@@ -47,9 +53,7 @@ export interface DamageAndDefense {
   critical_chance: number;
 }
 
-export interface Recipe {
-  name: string;
-  description: string;
+export interface Recipe extends Entity {
   ingredients: ItemDrop[];
   crafted_item: ItemDrop;
 }
@@ -64,9 +68,7 @@ export interface Level {
   xp: number;
 }
 
-export interface NPC {
-  name: string;
-  description: string;
+export interface NPC extends Entity {
   stats: Resources;
   inventory: string[];
   dialog: Dialog[] | null;
@@ -74,11 +76,7 @@ export interface NPC {
   vendor_items: VendorItem[] | null;
 }
 
-export interface Mob {
-  name: string;
-  description: string;
-  stats: Resources;
-  damage_and_defense: DamageAndDefense;
+export interface Mob extends Entity, Stats {
   inventory: ItemDrop[];
 }
 
@@ -93,10 +91,11 @@ export interface Dialog {
   action: CommandParserAction | null;
 }
 
-export interface Item {
-  id: string;
-  name: string;
-  description: string;
+export interface RoomObject extends Entity {
+  dialog: Dialog[] | null;
+}
+
+export interface Item extends Entity {
   usable: boolean;
   action: Action | null;
 }
@@ -128,40 +127,32 @@ export interface Zone {
   rooms: Room[];
 }
 
-export interface Room {
-  id: string;
-  name: string;
-  description: string;
+export interface Room extends Entity {
   zone_start: boolean;
   items: ItemDrop[];
   npcs: NPC[];
   exits: Exit[];
   mobs: Mob[];
+  objects: RoomObject[];
   action: Action[] | null;
   command_actions: CommandAction[];
 }
 
-export interface Quest {
-  name: string;
-  description: string;
+export interface Quest extends Entity {
   complete: boolean;
   steps: QuestStep[] | null;
   start: ActionNoOutput | null;
   end: ActionNoOutput | null;
 }
 
-export interface QuestStep {
-  name: string;
-  description: string;
+export interface QuestStep extends Entity {
   complete: boolean;
   action: ActionDecision | null;
 }
 
-export type QuestActionType = "Start" | "End";
+type QuestActionType = "Start" | "End";
 
-interface CommandAction {
-  name: string;
-  description: string;
+export interface CommandAction extends Entity {
   synonyms: string[];
   action: CommandParserAction;
 }
@@ -169,118 +160,114 @@ interface CommandAction {
 export class TextWorld {
   private world: World = this.reset_world();
   private main_command_actions: CommandAction[] = [
-    {
-      name: "movement action",
-      description: "Commands for moving around the world.",
-      synonyms: ["north", "south", "east", "west"],
-      action: (player, _input, command, _args) =>
-        this.switch_room(player, command),
-    },
-    {
-      name: "take action",
-      description: "Take an item from the room or an NPC.",
-      synonyms: ["take", "get"],
-      action: (player, _input, _command, args) => this.take_item(player, args),
-    },
-    {
-      name: "use action",
-      description: "Use an item in your inventory.",
-      synonyms: ["use"],
-      action: (player, _input, _command, args) => this.use_item(player, args),
-    },
-    {
-      name: "drop action",
-      description: "Drop an item or all your items from your inventory.",
-      synonyms: ["drop"],
-      action: (player, _input, _command, args) => this.drop_item(player, args),
-    },
-    {
-      name: "look action",
-      description: "Look around the room or at yourself.",
-      synonyms: ["look", "l"],
-      action: (player, _input, _command, args) => this.look(player, args),
-    },
-    {
-      name: "inspect action",
-      description: "Inspect a room to see what items are there.",
-      synonyms: ["inspect", "i"],
-      action: (player, _input, _command, _args) => this.inspect_room(player),
-    },
-    {
-      name: "map action",
-      description: "Plot a map showing nearby rooms.",
-      synonyms: ["map"],
-      action: (player, _input, _command, _args) =>
-        this.plot_room_map(player, 5),
-    },
-    {
-      name: "show action",
-      description: "Show an item in your inventory.",
-      synonyms: ["show"],
-      action: (player, _input, _command, args) => this.show_item(player, args),
-    },
-    {
-      name: "talk to action",
-      description: "Talk to an NPC or Vendor.",
-      synonyms: ["talk to", "tt"],
-      action: (player, input, command, args) => {
+    this.create_command_action(
+      "movement action",
+      "Commands for moving around the world.",
+      ["north", "south", "east", "west"],
+      (player, _input, command, _args) => this.switch_room(player, command)
+    ),
+    this.create_command_action(
+      "take action",
+      "Take an item from the room or an NPC.",
+      ["take", "get"],
+      (player, _input, _command, args) => this.take_item(player, args)
+    ),
+    this.create_command_action(
+      "use action",
+      "Use an item in your inventory.",
+      ["use"],
+      (player, _input, _command, args) => this.use_item(player, args)
+    ),
+    this.create_command_action(
+      "drop action",
+      "Drop an item or all your items from your inventory.",
+      ["drop"],
+      (player, _input, _command, args) => this.drop_item(player, args)
+    ),
+    this.create_command_action(
+      "look action",
+      "Look around the room or at yourself.",
+      ["look", "l"],
+      (player, _input, _command, args) => this.look(player, args)
+    ),
+    this.create_command_action(
+      "inspect action",
+      "Inspect a room to see what items are there.",
+      ["inspect", "i"],
+      (player, _input, _command, _args) => this.inspect_room(player)
+    ),
+    this.create_command_action(
+      "map action",
+      "Plot a map showing nearby rooms.",
+      ["map"],
+      (player, _input, _command, _args) => this.plot_room_map(player, 5)
+    ),
+    this.create_command_action(
+      "show action",
+      "Show an item in your inventory.",
+      ["show"],
+      (player, _input, _command, args) => this.show_item(player, args)
+    ),
+    this.create_command_action(
+      "talk to action",
+      "Talk to an NPC or Vendor.",
+      ["talk to", "tt"],
+      (player, input, command, args) => {
         if (args) {
           return this.talk_to_npc(player, input, command, args);
         }
         return "You must specify an NPC to talk to.";
-      },
-    },
-    {
-      name: "quit action",
-      description: "Quit the game.",
-      synonyms: ["quit"],
-      action: (_player, _input, _command, _args) => "You quit the game.",
-    },
-    {
-      name: "goto action",
-      description: "Go to a room or zone.",
-      synonyms: ["goto"],
-      action: (player, _input, _command, args) => {
+      }
+    ),
+    this.create_command_action(
+      "quit action",
+      "Quit the game.",
+      ["quit"],
+      (_player, _input, _command, _args) => "You quit the game."
+    ),
+    this.create_command_action(
+      "goto action",
+      "Go to a room or zone.",
+      ["goto"],
+      (player, _input, _command, args) => {
         if (this.has_flag(player, "godmode")) {
           return this.goto(player, args);
         }
         return "I don't understand that command.";
-      },
-    },
-    {
-      name: "help action",
-      description: "Show the help text.",
-      synonyms: ["help"],
-      action: (player, _input, _command, _args) => this.get_help(player),
-    },
-    {
-      name: "attack action",
-      description: "Attack a mob.",
-      synonyms: ["attack"],
-      action: (player, _input, _command, args) =>
-        this.attack_mob(player, args, true),
-    },
+      }
+    ),
+    this.create_command_action(
+      "help action",
+      "Show the help text.",
+      ["help"],
+      (player, _input, _command, _args) => this.get_help(player)
+    ),
+    this.create_command_action(
+      "attack action",
+      "Attack a mob.",
+      ["attack"],
+      (player, _input, _command, args) => this.attack_mob(player, args, true)
+    ),
   ];
   private player_dead_command_actions: CommandAction[] = [
-    {
-      name: "quit action",
-      description: "Quit the game.",
-      synonyms: ["quit"],
-      action: (_player, _input, _command, _args) => "You quit the game.",
-    },
-    {
-      name: "help action",
-      description: "Show the help text.",
-      synonyms: ["help"],
-      action: (player, _input, _command, _args) => this.get_help(player),
-    },
-    {
-      name: "resurrect action",
-      description: "resurrect yourself.",
-      synonyms: ["resurrect", "rez"],
-      action: (player, _input, _command, _args) =>
-        this.resurrect_player(player),
-    },
+    this.create_command_action(
+      "quit action",
+      "Quit the game.",
+      ["quit"],
+      (_player, _input, _command, _args) => "You quit the game."
+    ),
+    this.create_command_action(
+      "help action",
+      "Show the help text.",
+      ["help"],
+      (player, _input, _command, _args) => this.get_help(player)
+    ),
+    this.create_command_action(
+      "resurrect action",
+      "resurrect yourself.",
+      ["resurrect", "rez"],
+      (player, _input, _command, _args) => this.resurrect_player(player)
+    ),
   ];
 
   constructor() {}
@@ -388,6 +375,7 @@ export class TextWorld {
 
   create_quest(name: string, description: string) {
     this.world.quests.push({
+      id: crypto.randomUUID(),
       name,
       description,
       complete: false,
@@ -422,6 +410,7 @@ export class TextWorld {
     if (quest) {
       if (!quest.steps) quest.steps = [];
       quest.steps.push({
+        id: crypto.randomUUID(),
         name,
         description,
         complete: false,
@@ -645,6 +634,7 @@ export class TextWorld {
 
   create_npc(name: string, description: string, dialog: Dialog[] | null) {
     this.world.npcs.push({
+      id: crypto.randomUUID(),
       name,
       description,
       inventory: [],
@@ -661,6 +651,7 @@ export class TextWorld {
 
   create_vendor(name: string, description: string, vendor_items: VendorItem[]) {
     this.world.npcs.push({
+      id: crypto.randomUUID(),
       name,
       description,
       stats: this.create_resources(10, 10, 10, 10, 10, 10),
@@ -1035,6 +1026,7 @@ export class TextWorld {
     inventory: ItemDrop[]
   ) {
     const mob: Mob = {
+      id: crypto.randomUUID(),
       name,
       description,
       stats,
@@ -1193,6 +1185,7 @@ export class TextWorld {
     const room = this.get_room(zone_name, room_name);
     if (room) {
       room.command_actions.push({
+        id: crypto.randomUUID(),
         name,
         description,
         synonyms,
@@ -1489,6 +1482,7 @@ export class TextWorld {
       items: [],
       npcs: [],
       mobs: [],
+      objects: [],
       exits: [],
       action: actions,
       command_actions: [],
@@ -1579,6 +1573,42 @@ export class TextWorld {
     return "You can't see anything.";
   }
 
+  /////////////////
+  // ROOM OBJECT //
+  /////////////////
+
+  create_room_object(
+    zone_name: string,
+    room_name: string,
+    name: string,
+    description: string
+  ) {
+    const room = this.get_room(zone_name, room_name);
+    if (!room)
+      throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
+    room.objects.push({
+      id: crypto.randomUUID(),
+      name,
+      description,
+      dialog: null,
+    });
+  }
+
+  get_room_object(
+    zone_name: string,
+    room_name: string,
+    object_name: string
+  ): RoomObject | null {
+    const room = this.get_room(zone_name, room_name);
+    if (!room)
+      throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
+    return (
+      room.objects.find(
+        (object) => object.name.toLowerCase() === object_name.toLowerCase()
+      ) ?? null
+    );
+  }
+
   //////////////
   // CRAFTING //
   //////////////
@@ -1590,6 +1620,7 @@ export class TextWorld {
     crafted_item: ItemDrop
   ) {
     this.world.recipes.push({
+      id: crypto.randomUUID(),
       name,
       description,
       ingredients,
@@ -1653,6 +1684,21 @@ export class TextWorld {
   //////////
   // MISC //
   //////////
+
+  create_command_action(
+    name: string,
+    description: string,
+    synonyms: string[],
+    action: CommandParserAction
+  ): CommandAction {
+    return {
+      id: crypto.randomUUID(),
+      name,
+      description,
+      synonyms,
+      action,
+    };
+  }
 
   reset_world() {
     const world: World = {
