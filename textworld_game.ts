@@ -116,8 +116,8 @@ place_npcs();
 textworld.create_mob(
   "Goblin",
   "A small goblin",
-  textworld.create_resources(100, 10, 10, 10, 10, 10),
-  textworld.create_damage_and_defense(55, 55, 55, 55, 5),
+  textworld.create_resources(5, 5, 5, 5, 5, 5),
+  textworld.create_damage_and_defense(1, 1, 1, 1, 0),
   []
 );
 textworld.place_mob("The Forest", "Open Field", "Goblin");
@@ -128,7 +128,6 @@ const player = textworld.create_player(
   "The Forest",
   "Open Field"
 );
-player.stats.health.current = 1;
 
 console.log(textworld.get_room_description(player));
 

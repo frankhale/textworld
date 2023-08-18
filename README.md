@@ -17,7 +17,6 @@ A text based role playing game engine written in TypeScript on Deno. This is sti
 - [x] Mapping
 - [x] Basic command help
 - [x] Combat
-- [ ] Announce mobs in room
 - [ ] Leveling
 - [ ] Save/Load (Deno KV)
 - [ ] Multiplayer?

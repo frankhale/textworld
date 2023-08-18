@@ -1285,15 +1285,11 @@ export class TextWorld {
         if (possible_items.includes("all")) {
           return this.take_all_items(player);
         } else {
-          const room_item = current_room.items.find(
-            (item) =>
-              item.name.toLowerCase() ===
-              possible_items
-                .find(
-                  (possible_item) =>
-                    item.name.toLowerCase() === possible_item.toLowerCase()
-                )
-                ?.toLowerCase()
+          const room_item = current_room.items.find((item) =>
+            possible_items.find(
+              (possible_item) =>
+                item.name.toLowerCase() === possible_item.toLowerCase()
+            )
           );
 
           if (room_item) {
@@ -1313,32 +1309,31 @@ export class TextWorld {
   }
 
   take_all_items(player: Player): string {
-    const zone = this.get_players_zone(player);
-    if (zone) {
-      const current_room = zone.rooms.find((room) => room.name === player.room);
-      if (current_room) {
-        current_room.items.forEach((item) => {
-          player.inventory.push({ name: item.name, quantity: item.quantity });
-        });
-        current_room.items = [];
-        return "You took all items.";
-      }
+    const current_room = this.get_players_zone(player)?.rooms.find(
+      (room) => room.name === player.room
+    );
+
+    if (!current_room) {
+      return "That item does not exist.";
     }
-    return "That item does not exist.";
+
+    current_room.items.forEach((item) => {
+      player.inventory.push({ ...item });
+    });
+
+    current_room.items = [];
+
+    return "You took all items.";
   }
 
   use_item(player: Player, args: string[]): string {
     if (player) {
       const possible_items = this.generate_combinations(args);
-      const player_item = player.inventory.find(
-        (item) =>
-          item.name.toLowerCase() ===
-          possible_items
-            .find(
-              (possible_item) =>
-                item.name.toLowerCase() === possible_item.toLowerCase()
-            )
-            ?.toLowerCase()
+      const player_item = player.inventory.find((item) =>
+        possible_items.find(
+          (possible_item) =>
+            item.name.toLowerCase() === possible_item.toLowerCase()
+        )
       );
 
       if (player_item) {
@@ -1373,17 +1368,15 @@ export class TextWorld {
   }
 
   remove_player_item(player: Player, item_name: string) {
-    if (player) {
-      const item = player.inventory.find(
-        (item) => item.name.toLowerCase() === item_name.toLowerCase()
-      );
-      if (item) {
-        item.quantity--;
-        if (item.quantity === 0) {
-          player.inventory = player.inventory.filter(
-            (item) => item.name !== item_name
-          );
-        }
+    const itemIndex = player?.inventory.findIndex(
+      (item) => item.name.toLowerCase() === item_name.toLowerCase()
+    );
+
+    if (itemIndex !== undefined && itemIndex !== -1) {
+      player.inventory[itemIndex].quantity--;
+
+      if (player.inventory[itemIndex].quantity === 0) {
+        player.inventory.splice(itemIndex, 1);
       }
     }
   }
@@ -1402,15 +1395,11 @@ export class TextWorld {
       if (possible_items.includes("all")) {
         return this.drop_all_items(player);
       } else {
-        const player_item = player.inventory.find(
-          (item) =>
-            item.name.toLowerCase() ===
-            possible_items
-              .find(
-                (possible_item) =>
-                  item.name.toLowerCase() === possible_item.toLowerCase()
-              )
-              ?.toLowerCase()
+        const player_item = player.inventory.find((item) =>
+          possible_items.find(
+            (possible_item) =>
+              item.name.toLowerCase() === possible_item.toLowerCase()
+          )
         );
 
         if (player_item) {
@@ -1434,18 +1423,18 @@ export class TextWorld {
   }
 
   drop_all_items(player: Player): string {
-    const zone = this.get_players_zone(player);
-    if (zone) {
-      const current_room = zone.rooms.find((room) => room.name === player.room);
-      if (current_room && player.inventory.length > 0) {
-        player.inventory.forEach((item) => {
-          current_room.items.push({ name: item.name, quantity: item.quantity });
-        });
-        player.inventory = [];
-        return "You dropped all your items.";
-      }
+    const current_room = this.get_players_zone(player)?.rooms.find(
+      (room) => room.name === player.room
+    );
+
+    if (!current_room || player.inventory.length === 0) {
+      return "You have no items to drop.";
     }
-    return "You have no items to drop.";
+
+    current_room.items.push(...player.inventory);
+    player.inventory = [];
+
+    return "You dropped all your items.";
   }
 
   look(player: Player, args: string[]): string {
@@ -1453,65 +1442,60 @@ export class TextWorld {
 
     if (possible_actions.includes("self")) {
       return this.look_self(player);
-    } else {
-      const zone = this.get_players_zone(player);
-      if (zone) {
-        const current_room = zone.rooms.find(
-          (room) => room.name === player.room
-        );
-
-        if (current_room) {
-          let description = current_room.description;
-
-          const exits: string[] = [];
-          current_room.exits.forEach((exit) => {
-            if (!exit.hidden) {
-              exits.push(exit.name);
-            }
-          });
-          if (exits.length > 0) {
-            description += `\n\nexits: ${exits.join(", ")}`;
-          }
-
-          return description;
-        }
-      }
     }
+
+    const current_room = this.get_players_zone(player)?.rooms.find(
+      (room) => room.name === player.room
+    );
+
+    if (current_room) {
+      const exits = current_room.exits
+        .filter((exit) => !exit.hidden)
+        .map((exit) => exit.name)
+        .join(", ");
+      const description = `${current_room.description}${
+        exits.length > 0 ? `\n\nexits: ${exits}` : ""
+      }`;
+      return description;
+    }
+
     return "You can't see anything.";
   }
 
   look_self(player: Player): string {
     if (!player) return "You can't see anything.";
 
-    let result = player.description;
-
-    if (player.inventory.length > 0) {
-      result += "\n\ninventory: ";
-
-      const inventory: string[] = [];
-      player.inventory.forEach((item) => {
-        inventory.push(`${item.name} (${item.quantity})`);
-      });
-
-      result += inventory.join(", ");
-    }
+    const inventory = player.inventory
+      .map((item) => `${item.name} (${item.quantity})`)
+      .join(", ");
+    const result = `${player.description}${
+      player.inventory.length > 0 ? `\n\ninventory: ${inventory}` : ""
+    }`;
 
     return result;
   }
 
   inspect_room(player: Player): string {
-    const zone = this.get_players_zone(player);
-    if (zone) {
-      const current_room = zone.rooms.find((room) => room.name === player.room);
-      if (current_room && current_room.items.length > 0) {
-        const items: string[] = [];
-        current_room.items.forEach((item) => {
-          items.push(`${item.name} (${item.quantity})`);
-        });
-        return items.join(", ");
-      }
+    const current_room = this.get_players_zone(player)?.rooms.find(
+      (room) => room.name === player.room
+    );
+
+    if (!current_room) {
+      return "There is nothing else of interest here.";
     }
-    return "There are no items here.";
+
+    const items = current_room.items.map(
+      (item) => `${item.name} (${item.quantity})`
+    );
+    const itemsString =
+      items.length > 0
+        ? `Items: ${items.join(", ")}`
+        : "There is nothing else of interest here.";
+
+    const mobs = current_room.mobs.map((mob) => mob.name);
+    const mobsString = mobs.length > 0 ? `Mobs: ${mobs.join(", ")}` : "";
+
+    return [mobsString, itemsString].filter(Boolean).join("\n");
   }
 
   show_item(player: Player, args: string[]): string {
@@ -1523,15 +1507,11 @@ export class TextWorld {
       return this.show_quests(player);
     } else {
       if (player) {
-        const player_item = player.inventory.find(
-          (item) =>
-            item.name.toLowerCase() ===
-            possible_items
-              .find(
-                (possible_item) =>
-                  item.name.toLowerCase() === possible_item.toLowerCase()
-              )
-              ?.toLowerCase()
+        const player_item = player.inventory.find((item) =>
+          possible_items.find(
+            (possible_item) =>
+              item.name.toLowerCase() === possible_item.toLowerCase()
+          )
         );
 
         if (player_item) {
@@ -1548,35 +1528,37 @@ export class TextWorld {
   }
 
   show_all_items(player: Player): string {
-    if (player && player.inventory.length > 0) {
-      const items_description: string[] = [];
-      player.inventory.forEach((item) => {
+    if (!player || player.inventory.length === 0) {
+      return "You have no items to show.";
+    }
+
+    const items_description = player.inventory
+      .map((item) => {
         const item_definition = this.world.items.find(
           (item_definition) => item_definition.name === item.name
         );
-        if (item_definition) {
-          items_description.push(
-            `${item_definition.name} - ${item_definition.description}`
-          );
-        }
-      });
-      return items_description.join("\n\n");
-    }
-    return "You have no items to show.";
+        return item_definition
+          ? `${item_definition.name} - ${item_definition.description}`
+          : null;
+      })
+      .filter(Boolean);
+
+    return items_description.join("\n\n");
   }
 
   show_quests(player: Player): string {
-    if (player && player.quests.length > 0) {
-      const quests_description: string[] = [];
-      player.quests.forEach((player_quest) => {
-        const quest = this.world.quests.find(
-          (quest) => quest.name === player_quest
-        );
-        quests_description.push(`${quest!.name} - ${quest!.description}`);
-      });
-      return quests_description.join("\n\n");
+    if (!player || player.quests.length === 0) {
+      return "You have no quests.";
     }
-    return "You have no quests.";
+
+    const quests_description = player.quests.map((player_quest) => {
+      const quest = this.world.quests.find(
+        (quest) => quest.name === player_quest
+      );
+      return `${quest!.name} - ${quest!.description}`;
+    });
+
+    return quests_description.join("\n\n");
   }
 
   create_npc(name: string, description: string, dialog: Dialog[] | null) {
@@ -1640,27 +1622,29 @@ export class TextWorld {
     item_name: string
   ): string {
     const npc = this.get_npc(vendor_name);
-    if (npc && npc.vendor_items) {
-      const vendor_item = npc.vendor_items.find(
-        (vendor_item) =>
-          vendor_item.name.toLowerCase() === item_name.toLowerCase()
-      );
-      const item = this.world.items.find(
-        (item) => item.name.toLowerCase() === item_name.toLowerCase()
-      );
-      if (vendor_item && item) {
-        if (player.gold >= vendor_item.price) {
-          player.gold -= vendor_item.price;
-          player.inventory.push({ name: vendor_item.name, quantity: 1 });
-          return `You purchased ${vendor_item.name} for ${vendor_item.price} gold.`;
-        }
 
-        return `You don't have enough gold to purchase ${vendor_item.name}.`;
-      } else {
-        return "That item does not exist.";
-      }
+    if (!npc || !npc.vendor_items) {
+      return "That vendor does not exist.";
     }
-    return "That vendor does not exist.";
+
+    const vendor_item = npc.vendor_items.find(
+      (item) => item.name.toLowerCase() === item_name.toLowerCase()
+    );
+    const item = this.world.items.find(
+      (item) => item.name.toLowerCase() === item_name.toLowerCase()
+    );
+
+    if (!vendor_item || !item) {
+      return "That item does not exist.";
+    }
+
+    if (player.gold >= vendor_item.price) {
+      player.gold -= vendor_item.price;
+      player.inventory.push({ name: vendor_item.name, quantity: 1 });
+      return `You purchased ${vendor_item.name} for ${vendor_item.price} gold.`;
+    }
+
+    return `You don't have enough gold to purchase ${vendor_item.name}.`;
   }
 
   remove_npc(name: string) {
@@ -1683,13 +1667,14 @@ export class TextWorld {
   place_npc(zone_name: string, in_room_name: string, npc_name: string) {
     const in_room = this.get_room(zone_name, in_room_name);
     const npc = this.world.npcs.find((npc) => npc.name === npc_name);
-    if (in_room && npc) {
-      in_room.npcs.push(npc);
-    } else {
+
+    if (!in_room || !npc) {
       throw new Error(
         `Room ${in_room_name} or NPC ${npc_name} does not exist.`
       );
     }
+
+    in_room.npcs.push(npc);
   }
 
   get_room_npc(
@@ -1698,17 +1683,12 @@ export class TextWorld {
     npc_name: string
   ): NPC | null {
     const zone = this.get_zone(zone_name);
-    if (zone) {
-      const room = zone.rooms.find((room) => room.name === room_name);
-      if (room) {
-        return (
-          room.npcs.find(
-            (npc) => npc.name.toLowerCase() === npc_name.toLowerCase()
-          ) ?? null
-        );
-      }
-    }
-    return null;
+    const room = zone?.rooms.find((room) => room.name === room_name);
+    return (
+      room?.npcs.find(
+        (npc) => npc.name.toLowerCase() === npc_name.toLowerCase()
+      ) || null
+    );
   }
 
   talk_to_npc(
@@ -1800,14 +1780,8 @@ export class TextWorld {
         );
         if (mob) {
           let result = this.attack(player, mob);
-          if (should_mob_attack) {
+          if (should_mob_attack && mob.stats.health.current > 0) {
             result += `\n${this.attack(mob, player)}`;
-          }
-
-          // check players health
-          if (player.stats.health.current <= 0) {
-            player.stats.health.current = 0;
-            // TODO: Need to decide what to do when a player dies
           }
 
           if (mob.stats.health.current <= 0) {
