@@ -192,6 +192,13 @@ export class TextWorld {
       (player, input, command, args) => this.look(player, input, command, args)
     ),
     this.create_command_action(
+      "look self action",
+      "Look at yourself.",
+      ["ls"],
+      (player, input, _command, _args) =>
+        this.look(player, input, "look self", ["look", "self"])
+    ),
+    this.create_command_action(
       "examine action",
       "Examine an object in a room.",
       ["examine", "x"],
@@ -736,6 +743,22 @@ export class TextWorld {
   // ITEM //
   //////////
 
+  add_item_drops_to_room(player: Player, item_drops: ItemDrop[]) {
+    const current_room = this.get_players_room(player);
+    if (current_room) {
+      item_drops.forEach((item) => {
+        const room_item = current_room.items.find(
+          (room_item) => room_item.name === item.name
+        );
+        if (room_item) {
+          room_item.quantity += item.quantity;
+        } else {
+          current_room.items.push(item);
+        }
+      });
+    }
+  }
+
   get_room_item(
     zone_name: string,
     room_name: string,
@@ -1139,7 +1162,10 @@ export class TextWorld {
 
           if (mob.stats.health.current <= 0) {
             mob.stats.health.current = 0;
-            current_room.items.push(...mob.inventory);
+            this.add_item_drops_to_room(player, mob.inventory);
+            result += `\n${mob.name} dropped: ${mob.inventory
+              .map((item) => item.name)
+              .join(", ")}`;
             current_room.mobs = current_room.mobs.filter(
               (mob) => mob.name !== mob.name
             );
@@ -1624,6 +1650,9 @@ export class TextWorld {
     );
   }
 
+  // TODO: Objects are almost entirely NPCs except for the fact that we interact
+  // with them differently. We could definitely benefit from having one function
+  // that handles both NPCs and objects.
   look_at_or_examine_object(
     player: Player,
     input: string,

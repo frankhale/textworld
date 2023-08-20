@@ -558,6 +558,45 @@ Deno.test("can_parse_command_look_at_self", () => {
   assertEquals(result, "You are a strong adventurer");
 });
 
+Deno.test("can_parse_command_look_at_object", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_and_place_room_object(
+    "Zone1",
+    "Room1",
+    "Sword",
+    "A sharp sword"
+  );
+  const result = textworld.parse_command(player, "look at sword");
+  assertEquals(result, "A sharp sword");
+  textworld.reset_world();
+});
+
+Deno.test("can_parse_command_examine_object", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_and_place_room_object(
+    "Zone1",
+    "Room1",
+    "Fireplace",
+    "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
+    [
+      {
+        trigger: ["fan flame"],
+        response: "The flames become stronger as you fan them.",
+        action: null,
+      },
+    ]
+  );
+  const result = textworld.parse_command(player, "examine fireplace fan flame");
+  assertEquals(result, "The flames become stronger as you fan them.");
+  textworld.reset_world();
+});
+
 Deno.test("can_parse_command_inspect_room_with_no_items", () => {
   player.zone = "Zone1";
   player.room = "Room1";
@@ -912,6 +951,37 @@ Deno.test("player_can_kill_mob_and_drop_loot", () => {
   assertEquals(room?.items.length, 2);
   assertEquals(room?.items[0].name, "Sword");
   assertEquals(room?.items[1].name, "Shield");
+  textworld.reset_world();
+});
+
+Deno.test("player_can_kill_mob_and_pickup_look", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_item("Shield", "A strong shield", false);
+  textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_resources(1, 1, 10, 10, 10, 10),
+    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    [
+      { name: "Sword", quantity: 1 },
+      { name: "Shield", quantity: 1 },
+    ]
+  );
+  textworld.place_mob("Zone1", "Room1", "Goblin");
+  const result = textworld.attack_mob(player, ["goblin"], true);
+  assertStringIncludes(result, "Player attacks Goblin");
+  assertStringIncludes(result, "Goblin has been defeated!");
+  textworld.take_all_items(player);
+  const room = textworld.get_room("Zone1", "Room1");
+  assertEquals(room?.items.length, 0);
+  assertEquals(player.inventory.length, 2);
+  assertEquals(player.inventory[0].name, "Sword");
+  assertEquals(player.inventory[1].name, "Shield");
+  player.inventory.length = 0;
   textworld.reset_world();
 });
 
