@@ -9,6 +9,7 @@ A text based role playing game engine written in TypeScript on Deno. This is sti
 - [x] Rooms/Zones
 - [x] Room/Zone movement
 - [x] Items (pickup, use, drop)
+- [x] Objects (look, examine)
 - [x] Crafting
 - [x] NPCs
 - [x] NPC interaction
@@ -37,4 +38,4 @@ Frank Hale &lt;frankhale AT gmail.com&gt;
 
 ## Date
 
-17 August 2023
+20 August 2023

@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 17 August 2023
+// 20 August 2023
 
 import { assertEquals } from "https://deno.land/std@0.195.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.195.0/assert/assert_not_equals.ts";
@@ -323,6 +323,72 @@ Deno.test("can_set_and_remove_godmode_on_player", () => {
   textworld.remove_godmode(player);
   result = textworld.has_flag(player, "godmode");
   assertEquals(result, false);
+});
+
+Deno.test("can_create_room_object", () => {
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_and_place_room_object(
+    "Zone1",
+    "Room1",
+    "Fireplace",
+    "A warm fire burns in the fireplace and you can feel the heat radiating from it."
+  );
+  const object = textworld.get_room_object("Zone1", "Room1", "Fireplace");
+  assertEquals(object?.name, "Fireplace");
+  assertEquals(
+    object?.description,
+    "A warm fire burns in the fireplace and you can feel the heat radiating from it."
+  );
+  textworld.reset_world();
+});
+
+Deno.test("can_process_look_at_room_object", () => {
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_and_place_room_object(
+    "Zone1",
+    "Room1",
+    "Fireplace",
+    "A warm fire burns in the fireplace and you can feel the heat radiating from it."
+  );
+  const result = textworld.look_at_or_examine_object(
+    player,
+    "look at fireplace",
+    "look at",
+    ["look", "at", "fireplace"]
+  );
+  assertEquals(
+    result,
+    "A warm fire burns in the fireplace and you can feel the heat radiating from it."
+  );
+  textworld.reset_world();
+});
+
+Deno.test("can_process_examine_room_object", () => {
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_and_place_room_object(
+    "Zone1",
+    "Room1",
+    "Fireplace",
+    "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
+    [
+      {
+        trigger: ["fan flame"],
+        response: "The flames become stronger as you fan them.",
+        action: null,
+      },
+    ]
+  );
+  const result = textworld.look_at_or_examine_object(
+    player,
+    "examine fireplace fan flame",
+    "examine",
+    ["examine", "fireplace", "fan", "flame"]
+  );
+  assertEquals(result, "The flames become stronger as you fan them.");
+  textworld.reset_world();
 });
 
 Deno.test("can_process_get_room_description_with_no_rooms", () => {
@@ -1010,13 +1076,13 @@ Deno.test("player_can_look", () => {
   player.room = "Room1";
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  const result = textworld.look(player, ["look"]);
+  const result = textworld.look(player, "look", "look", ["look"]);
   assertEquals(result, "This is room 1");
   textworld.reset_world();
 });
 
 Deno.test("player_can_look_at_self_without_inventory", () => {
-  const result = textworld.look(player, ["look", "self"]);
+  const result = textworld.look(player, "look", "look", ["look", "self"]);
   assertEquals(result, "You are a strong adventurer");
 });
 

@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 17 August 2023
+// 20 August 2023
 
 export const input_character_limit = 256;
 export const active_quest_limit = 5;
@@ -93,6 +93,7 @@ export interface Dialog {
 
 export interface RoomObject extends Entity {
   dialog: Dialog[] | null;
+  inventory: string[];
 }
 
 export interface Item extends Entity {
@@ -188,7 +189,14 @@ export class TextWorld {
       "look action",
       "Look around the room or at yourself.",
       ["look", "l"],
-      (player, _input, _command, args) => this.look(player, args)
+      (player, input, command, args) => this.look(player, input, command, args)
+    ),
+    this.create_command_action(
+      "examine action",
+      "Examine an object in a room.",
+      ["examine", "x"],
+      (player, input, command, args) =>
+        this.look_at_or_examine_object(player, input, command, args)
     ),
     this.create_command_action(
       "inspect action",
@@ -1548,11 +1556,15 @@ export class TextWorld {
     return [mobsString, itemsString].filter(Boolean).join("\n");
   }
 
-  look(player: Player, args: string[]): string {
+  look(player: Player, input: string, command: string, args: string[]): string {
     const possible_actions = this.generate_combinations(args);
 
     if (possible_actions.includes("self")) {
       return this.look_self(player);
+    }
+
+    if (possible_actions.includes("at")) {
+      return this.look_at_or_examine_object(player, input, command, args);
     }
 
     const current_room = this.get_players_zone(player)?.rooms.find(
@@ -1577,11 +1589,12 @@ export class TextWorld {
   // ROOM OBJECT //
   /////////////////
 
-  create_room_object(
+  create_and_place_room_object(
     zone_name: string,
     room_name: string,
     name: string,
-    description: string
+    description: string,
+    dialog: Dialog[] | null = null
   ) {
     const room = this.get_room(zone_name, room_name);
     if (!room)
@@ -1590,7 +1603,8 @@ export class TextWorld {
       id: crypto.randomUUID(),
       name,
       description,
-      dialog: null,
+      inventory: [],
+      dialog,
     });
   }
 
@@ -1600,13 +1614,51 @@ export class TextWorld {
     object_name: string
   ): RoomObject | null {
     const room = this.get_room(zone_name, room_name);
-    if (!room)
+    if (!room) {
       throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
+    }
     return (
       room.objects.find(
         (object) => object.name.toLowerCase() === object_name.toLowerCase()
       ) ?? null
     );
+  }
+
+  look_at_or_examine_object(
+    player: Player,
+    input: string,
+    command: string,
+    args: string[]
+  ): string {
+    const zone = this.get_players_zone(player);
+    if (zone) {
+      const possible_triggers = this.generate_combinations(args);
+      const current_room = this.get_players_room(player);
+      const obj = current_room?.objects.find((obj) =>
+        possible_triggers.some(
+          (trigger) => obj.name.toLowerCase() === trigger.toLowerCase()
+        )
+      );
+
+      if (obj && current_room && current_room.objects.includes(obj)) {
+        if (input.startsWith("look at")) {
+          return obj.description;
+        } else if (input.startsWith("examine") && obj.dialog) {
+          const dialog = obj.dialog.find((dialog) =>
+            dialog.trigger.some((trigger) =>
+              possible_triggers.includes(trigger)
+            )
+          );
+
+          if (dialog?.action) {
+            dialog.action?.(player, input, command, args);
+          } else if (dialog?.response) {
+            return dialog.response;
+          }
+        }
+      }
+    }
+    return "That object does not exist.";
   }
 
   //////////////
