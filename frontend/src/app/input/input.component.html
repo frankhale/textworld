@@ -1,0 +1,7 @@
+<div>
+  <app-infobar></app-infobar>
+  <app-output [input]="response"></app-output>
+  <div class="input-style">
+    &gt;<input type="text" [(ngModel)]="input" (keydown)="onKeyDown($event)" autofocus class="input" />
+  </div>
+</div>

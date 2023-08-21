@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 20 August 2023
+// 21 August 2023
 
 import * as tw from "./textworld.ts";
 
@@ -189,19 +189,26 @@ class TextworldGame {
       if (e) {
         const { socket, response } = Deno.upgradeWebSocket(e.request);
         socket.onopen = () => {
-          socket.send("Connected to game server...");
+          const result = {
+            player: this.player,
+            response: this.textworld.get_room_description(this.player),
+          };
+          socket.send(JSON.stringify(result));
         };
         socket.onmessage = (e) => {
           console.log(`player: ${e.data}`);
-          const result = this.textworld.parse_command(this.player, e.data);
-          console.log(`game: ${result}`);
-          socket.send(result);
-          if (result === "You quit the game.") {
+          const result = {
+            player: this.player,
+            response: this.textworld.parse_command(this.player, e.data),
+          };
+          console.log(`game: ${result.response}`);
+          socket.send(JSON.stringify(result));
+          if (result.response === "You quit the game.") {
             socket.close();
           }
         };
-        socket.onclose = () => console.log("WebSocket has been closed.");
-        socket.onerror = (e) => console.error("WebSocket error:", e);
+        //socket.onclose = () => console.log("WebSocket has been closed.");
+        //socket.onerror = (e) => console.error("WebSocket error:", e);
         e.respondWith(response);
       }
     }

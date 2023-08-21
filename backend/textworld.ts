@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 20 August 2023
+// 21 August 2023
 
 export const input_character_limit = 256;
 export const active_quest_limit = 5;

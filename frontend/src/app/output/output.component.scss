@@ -1,0 +1,15 @@
+.output-style {
+  // border: 1px solid blue;
+  overflow-y: scroll;
+  height: calc(100vh - 100px);
+  width: calc(100vw - 15px);
+  padding-left: 5px;
+}
+
+pre {
+  // border: 1px solid brown;
+  white-space: pre-wrap;
+  word-break: keep-all;
+  margin: 10px;
+  padding: 0;
+}

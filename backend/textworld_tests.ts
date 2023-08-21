@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 20 August 2023
+// 21 August 2023
 
 import { assertEquals } from "https://deno.land/std@0.195.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.195.0/assert/assert_not_equals.ts";
