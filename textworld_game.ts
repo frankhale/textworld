@@ -162,7 +162,7 @@ class TextworldGame {
     this.textworld.place_mob("The Forest", "Open Field", "Goblin");
   }
 
-  run_game_loop() {
+  run_cli_game_loop() {
     console.log(this.textworld.get_room_description(this.player));
 
     let game_running = true;
@@ -180,44 +180,34 @@ class TextworldGame {
       }
     }
   }
+
+  async run_web_game_loop(port: number) {
+    const server = Deno.listen({ port });
+    for await (const conn of server) {
+      const httpConn = Deno.serveHttp(conn);
+      const e = await httpConn.nextRequest();
+      if (e) {
+        const { socket, response } = Deno.upgradeWebSocket(e.request);
+        socket.onopen = () => {
+          socket.send("Connected to game server...");
+        };
+        socket.onmessage = (e) => {
+          console.log(`player: ${e.data}`);
+          const result = this.textworld.parse_command(this.player, e.data);
+          console.log(`game: ${result}`);
+          socket.send(result);
+          if (result === "You quit the game.") {
+            socket.close();
+          }
+        };
+        socket.onclose = () => console.log("WebSocket has been closed.");
+        socket.onerror = (e) => console.error("WebSocket error:", e);
+        e.respondWith(response);
+      }
+    }
+  }
 }
 
 const game = new TextworldGame();
-game.run_game_loop();
-
-// const server = Deno.listen({ port: 8080 });
-// for await (const conn of server) {
-//   const httpConn = Deno.serveHttp(conn);
-//   const e = await httpConn.nextRequest();
-//   if (e) {
-//     const { socket, response } = Deno.upgradeWebSocket(e.request);
-//     socket.onopen = () => {
-//       socket.send("Connected to game server...");
-//     };
-//     socket.onmessage = (e) => {
-//       console.log(`player: ${e.data}`);
-//       const result = tw.parse_command(player, rooms, items, npcs, e.data);
-//       console.log(`game: ${result}`);
-//       socket.send(result);
-//       if (result === "You quit the game.") {
-//         socket.close();
-//       }
-//     };
-//     //socket.onclose = () => console.log("WebSocket has been closed.");
-//     socket.onerror = (e) => console.error("WebSocket error:", e);
-//     e.respondWith(response);
-//   }
-// }
-
-//// @deno-types="npm:@types/lodash"
-// import _ from "npm:lodash@4.17.21";
-
-// const foo = {
-//   name: "foo",
-//   action: () => {
-//     console.log("Hello, World!");
-//   }
-// }
-
-// const baz = _.cloneDeep(foo);
-// baz.action();
+//game.run_cli_game_loop();
+await game.run_web_game_loop(8080);
