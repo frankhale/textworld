@@ -1165,7 +1165,7 @@ Deno.test("player_can_look_at_self_with_inventory", () => {
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.take_item(player, ["Sword"]);
   const result = textworld.look_self(player);
-  assertEquals(result, `You are a strong adventurer\n\ninventory: Sword (1)`);
+  assertEquals(result, `You are a strong adventurer\n\nInventory: Sword (1)`);
   player.inventory.length = 0;
   textworld.reset_world();
 });

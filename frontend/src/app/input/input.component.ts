@@ -1,45 +1,57 @@
-import { Component } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { GameService, GameMessage } from '../game.service';
 import { OutputComponent } from '../output/output.component';
-import { InfobarComponent } from '../infobar/infobar.component';
 
 @Component({
   selector: 'app-input',
   standalone: true,
-  imports: [CommonModule, FormsModule, OutputComponent, InfobarComponent],
+  imports: [CommonModule, FormsModule, OutputComponent],
   templateUrl: './input.component.html',
   styleUrls: ['./input.component.scss']
 })
 export class InputComponent {
-  input: string = "";
+  playerInput: string = "";
   history: string[] = [];
   currentIndex: number = 0;
-  response: string = "";
+  response: string[] = [];
+
+  @ViewChild('playerTextInput', { static: false }) playerTextInput!: ElementRef;
 
   constructor(private game: GameService) {
     this.game.messages$.subscribe((message: GameMessage) => {
-      console.log(message);
-      this.response = message.response;
+      this.response.length = 0;
+      this.response = message.response.split("\n");
+      this.response = this.response.filter(message => message.trim() !== '');
+      console.table("MESSAGE RECEIVED FROM GAME SERVER", this.response);
     });
   }
 
   onKeyDown(event: KeyboardEvent): void {
     if (event.key === 'Enter') {
-      if (this.input === "/clear") {
-        this.response = "/clear";
+      this.response.length = 0;
+      if (this.playerInput.startsWith("/clear")) {
+        this.response = [this.playerInput];
       } else {
-        this.game.send(this.input);
+        this.game.send(this.playerInput);
       }
-      this.history.push(this.input);
-      this.input = '';
+      if (!this.history.includes(this.playerInput)) {
+        this.history.push(this.playerInput);
+      }
+      this.playerInput = '';
     } else if (event.key === 'ArrowUp') {
       this.currentIndex = (this.currentIndex - 1 + this.history.length) % this.history.length;
-      this.input = this.history[this.currentIndex];
+      this.playerInput = this.history[this.currentIndex];
+      this.playerTextInput.nativeElement.selectionStart =
+        this.playerTextInput.nativeElement.selectionEnd = this.playerTextInput.nativeElement.value.length;
+      console.log("INPUT LENGTH", this.playerTextInput.nativeElement.value.length);
     } else if (event.key === 'ArrowDown') {
       this.currentIndex = (this.currentIndex + 1) % this.history.length;
-      this.input = this.history[this.currentIndex];
+      this.playerInput = this.history[this.currentIndex];
+      this.playerTextInput.nativeElement.selectionStart =
+        this.playerTextInput.nativeElement.selectionEnd = this.playerTextInput.nativeElement.value.length;
+      console.log("INPUT LENGTH", this.playerTextInput.nativeElement.value.length);
     }
   }
 }

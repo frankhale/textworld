@@ -1,4 +1,4 @@
-import { Component, ElementRef, Input, Renderer2, ViewChild } from '@angular/core';
+import { Component, ElementRef, Input, Renderer2, SimpleChanges, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
@@ -9,7 +9,7 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./output.component.scss']
 })
 export class OutputComponent {
-  @Input() input: string = '';
+  @Input() serverOutput: string[] = [];
   history: string[] = [];
 
   @ViewChild('scrollContainer', { static: false }) scrollContainer!: ElementRef;
@@ -17,14 +17,30 @@ export class OutputComponent {
   constructor(private renderer: Renderer2) { }
 
   ngOnChanges() {
-    if (this.input === "/clear") {
+    if (this.serverOutput.includes("/clear")) {
       this.history = [];
-    }
-    else {
-      this.history.push(this.input);
-      this.history = this.history.filter(message => message.trim() !== '');
+    } else {
+      this.serverOutput = this.serverOutput.filter(message =>
+        message.trim() !== '' &&
+        !message.startsWith("Location:"));
+
+      this.history.push(...this.serverOutput);
       this.scrollToBottom();
     }
+  }
+
+  getCssClass(message: string): string {
+    if (message.startsWith("command:")) {
+      return "command-text";
+    } else if (message.startsWith("Exits:")) {
+      return "exits-text";
+    } else if (message.startsWith("NPCs:")) {
+      return "npcs-text";
+    } else if (message.startsWith("Inventory:")) {
+      return "inventory-text";
+    }
+
+    return "response-text";
   }
 
   ngAfterViewChecked() {

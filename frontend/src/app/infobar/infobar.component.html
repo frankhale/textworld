@@ -1,5 +1,6 @@
 <div class="infobar">
-  <span *ngIf="zone && room">
+  <span *ngIf="gameMessage">
     <span>{{ zone }}</span> | <span>{{ room }}</span>
+    <span class="player_info">{{ health}} | {{ gold }}</span>
   </span>
 </div>

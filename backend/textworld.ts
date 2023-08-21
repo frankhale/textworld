@@ -378,7 +378,7 @@ export class TextWorld {
       .map((item) => `${item.name} (${item.quantity})`)
       .join(", ");
     const result = `${player.description}${
-      player.inventory.length > 0 ? `\n\ninventory: ${inventory}` : ""
+      player.inventory.length > 0 ? `\n\nInventory: ${inventory}` : ""
     }`;
 
     return result;
@@ -1361,10 +1361,10 @@ export class TextWorld {
           });
         }
 
-        let result = `${current_room.name}\n\n${current_room.description}`;
+        let result = `Location: ${current_room.name}\n\n${current_room.description}`;
 
         if (npcs_in_room.length > 0) {
-          result += `\n\nNPCS: ${npcs_in_room}`;
+          result += `\n\NPCs: ${npcs_in_room}`;
         }
 
         if (exits.length > 0) {
@@ -1603,7 +1603,7 @@ export class TextWorld {
         .map((exit) => exit.name)
         .join(", ");
       const description = `${current_room.description}${
-        exits.length > 0 ? `\n\nexits: ${exits}` : ""
+        exits.length > 0 ? `\n\nExits: ${exits}` : ""
       }`;
       return description;
     }
