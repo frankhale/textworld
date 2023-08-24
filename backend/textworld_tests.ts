@@ -1,10 +1,10 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 21 August 2023
+// 23 August 2023
 
-import { assertEquals } from "https://deno.land/std@0.195.0/assert/assert_equals.ts";
-import { assertNotEquals } from "https://deno.land/std@0.195.0/assert/assert_not_equals.ts";
-import { assertStringIncludes } from "https://deno.land/std@0.195.0/assert/assert_string_includes.ts";
+import { assertEquals } from "https://deno.land/std@0.199.0/assert/assert_equals.ts";
+import { assertNotEquals } from "https://deno.land/std@0.199.0/assert/assert_not_equals.ts";
+import { assertStringIncludes } from "https://deno.land/std@0.199.0/assert/assert_string_includes.ts";
 
 import * as tw from "./textworld.ts";
 
@@ -119,7 +119,7 @@ Deno.test("can_create_room_with_action", () => {
   const result = textworld.switch_room(player, "north");
   assertEquals(
     result,
-    `Room2\n\nThis is room 2\n\nExits: south\n\nThe healing waters have no effect on you.`
+    `Location: Room2\n\nThis is room 2\n\nExits: south\n\nThe healing waters have no effect on you.`
   );
   textworld.reset_world();
 });
@@ -432,7 +432,7 @@ Deno.test("can_parse_command_direction", () => {
   textworld.create_room("Zone1", "Room2", "This is room 2");
   textworld.create_exit("Zone1", "Room1", "north", "Room2");
   const result = textworld.parse_command(player, "north");
-  assertEquals(result, "Room2\n\nThis is room 2\n\nExits: south");
+  assertEquals(result, "Location: Room2\n\nThis is room 2\n\nExits: south");
   textworld.reset_world();
 });
 
@@ -444,7 +444,7 @@ Deno.test("can_parse_command_goto_room", () => {
   textworld.create_room("Zone1", "The Room1", "This is room 1");
   textworld.create_room("Zone1", "The Room2", "This is room 2");
   const result = textworld.parse_command(player, "goto room The Room2");
-  assertEquals(result, "The Room2\n\nThis is room 2");
+  assertEquals(result, "Location: The Room2\n\nThis is room 2");
   textworld.remove_godmode(player);
   textworld.reset_world();
 });
@@ -459,7 +459,7 @@ Deno.test("can_parse_command_goto_zone", () => {
   textworld.create_room("Zone2", "The Forest", "This is the forest");
   textworld.set_room_as_zone_starter("Zone2", "The Forest");
   const result = textworld.parse_command(player, "goto zone Zone2");
-  assertEquals(result, "The Forest\n\nThis is the forest");
+  assertEquals(result, "Location: The Forest\n\nThis is the forest");
   textworld.remove_godmode(player);
   textworld.reset_world();
 });
@@ -603,7 +603,10 @@ Deno.test("can_parse_command_inspect_room_with_no_items", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   const result = textworld.parse_command(player, "inspect");
-  assertEquals(result, "There is nothing else of interest here.");
+  assertEquals(
+    result,
+    "You inspect the room and found:\n\nThere is nothing else of interest here."
+  );
   textworld.reset_world();
 });
 
@@ -617,7 +620,10 @@ Deno.test("can_parse_command_inspect_room_with_items", () => {
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   const result = textworld.parse_command(player, "inspect");
-  assertEquals(result, "Items: Sword (1), Potion (2)");
+  assertEquals(
+    result,
+    "You inspect the room and found:\n\nItems: Sword (1), Potion (2)"
+  );
   textworld.reset_world();
 });
 
@@ -1176,7 +1182,10 @@ Deno.test("player_can_inspect_room_with_no_items", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   const result = textworld.inspect_room(player);
-  assertEquals(result, "There is nothing else of interest here.");
+  assertEquals(
+    result,
+    "You inspect the room and found:\n\nThere is nothing else of interest here."
+  );
   textworld.reset_world();
 });
 
@@ -1190,7 +1199,10 @@ Deno.test("player_can_inspect_room_with_items", () => {
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   const result = textworld.inspect_room(player);
-  assertEquals(result, "Items: Sword (1), Potion (2)");
+  assertEquals(
+    result,
+    "You inspect the room and found:\n\nItems: Sword (1), Potion (2)"
+  );
   textworld.reset_world();
 });
 
@@ -1512,7 +1524,7 @@ Deno.test("player_can_goto_new_zone", () => {
   textworld.create_room("Zone2", "Room1", "This is room 1 in zone 2");
   textworld.set_room_as_zone_starter("Zone2", "Room1");
   const result = textworld.goto(player, ["zone", "Zone2"]);
-  assertEquals(result, "Room1\n\nThis is room 1 in zone 2");
+  assertEquals(result, "Location: Room1\n\nThis is room 1 in zone 2");
   textworld.reset_world();
 });
 
@@ -1714,7 +1726,7 @@ Deno.test("player_can_goto_any_room_in_zone", () => {
   textworld.create_room("Zone1", "The Room1", "This is room 1");
   textworld.create_room("Zone1", "The Room2", "This is room 2");
   const result = textworld.goto(player, ["room", "The", "Room2"]);
-  assertEquals(result, "The Room2\n\nThis is room 2");
+  assertEquals(result, "Location: The Room2\n\nThis is room 2");
   textworld.reset_world();
 });
 
@@ -1738,7 +1750,7 @@ Deno.test("player_can_navigate_to_new_zone_using_custom_room_action", () => {
     }
   );
   const result = textworld.parse_command(player, "warp");
-  assertEquals(result, "Room1\n\nThis is room 1 in zone 2");
+  assertEquals(result, "Location: Room1\n\nThis is room 1 in zone 2");
   assertEquals(player.zone, "Zone2");
   assertEquals(player.room, "Room1");
   textworld.reset_world();

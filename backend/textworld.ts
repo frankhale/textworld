@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 21 August 2023
+// 23 August 2023
 
 export const input_character_limit = 256;
 export const active_quest_limit = 5;
@@ -1579,7 +1579,10 @@ export class TextWorld {
     const mobs = current_room.mobs.map((mob) => mob.name);
     const mobsString = mobs.length > 0 ? `Mobs: ${mobs.join(", ")}` : "";
 
-    return [mobsString, itemsString].filter(Boolean).join("\n");
+    //return [mobsString, itemsString].filter(Boolean).join("\n");
+    return `You inspect the room and found:\n\n${[mobsString, itemsString]
+      .filter(Boolean)
+      .join("\n")}`;
   }
 
   look(player: Player, input: string, command: string, args: string[]): string {

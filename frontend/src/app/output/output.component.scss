@@ -1,7 +1,9 @@
 .output-style {
+  margin: 10px;
   // border: 1px solid blue;
   overflow-y: scroll;
-  height: calc(100vh - 100px);
+
+  height: calc(100vh - 115px);
   width: calc(100vw - 15px);
   //padding-left: 5px;
 }
@@ -9,26 +11,26 @@
 .command-text {
   font-style: italic;
   //color: #aaa;
-  background-color: #999;
-  border-bottom: 1px dashed #aaa;
+  //background-color: #999;
+  //border-bottom: 1px dashed #aaa;
 }
 
 .exits-text {
   color: rgb(197, 53, 53);
-  background-color: #ccc;
+  //background-color: #ccc;
 }
 
 .response-text {
   font-weight: bold;
-  background-color: #eee;
+  //background-color: #eee;
 }
 
 .npcs-text {
   color: rgb(40, 136, 40);
-  background-color: #bbb;
+  //background-color: #bbb;
 }
 
 .inventory-text {
   color: rgba(25, 101, 168, 0.81);
-  background-color: #eee;
+  //background-color: #eee;
 }

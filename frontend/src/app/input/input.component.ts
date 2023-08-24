@@ -41,17 +41,22 @@ export class InputComponent {
       }
       this.playerInput = '';
     } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
       this.currentIndex = (this.currentIndex - 1 + this.history.length) % this.history.length;
       this.playerInput = this.history[this.currentIndex];
-      this.playerTextInput.nativeElement.selectionStart =
-        this.playerTextInput.nativeElement.selectionEnd = this.playerTextInput.nativeElement.value.length;
-      console.log("INPUT LENGTH", this.playerTextInput.nativeElement.value.length);
+
+      this.playerTextInput.nativeElement.setSelectionRange(this.playerInput.length, this.playerInput.length);
     } else if (event.key === 'ArrowDown') {
       this.currentIndex = (this.currentIndex + 1) % this.history.length;
       this.playerInput = this.history[this.currentIndex];
-      this.playerTextInput.nativeElement.selectionStart =
-        this.playerTextInput.nativeElement.selectionEnd = this.playerTextInput.nativeElement.value.length;
-      console.log("INPUT LENGTH", this.playerTextInput.nativeElement.value.length);
+
+      this.playerTextInput.nativeElement.setSelectionRange(this.playerInput.length, this.playerInput.length);
     }
+
+
+    // this.playerTextInput.nativeElement.selectionStart =
+    //   this.playerTextInput.nativeElement.selectionEnd =
+    //   this.playerInput.length;
+    // console.log(this.playerInput.length)
   }
 }
