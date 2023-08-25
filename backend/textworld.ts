@@ -1,6 +1,11 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 23 August 2023
+// 24 August 2023
+
+// TODO: Infrastructure has been put in place to support more than one
+// description. Currently only the "default" description is used. The
+// idea is that flags can be set on the player and different descriptions
+// can be shown based on the flag.
 
 export const input_character_limit = 256;
 export const active_quest_limit = 5;
@@ -15,10 +20,15 @@ type CommandParserAction = (
   args: string[]
 ) => string;
 
+export interface Description {
+  flag: string;
+  description: string;
+}
+
 export interface Entity {
   id: string;
   name: string;
-  description: string;
+  descriptions: Description[];
 }
 
 export interface Stats {
@@ -300,7 +310,7 @@ export class TextWorld {
     const player: Player = {
       id: crypto.randomUUID(),
       name,
-      description,
+      descriptions: [{ flag: "default", description }],
       score: 0,
       stats: {
         health: {
@@ -377,7 +387,7 @@ export class TextWorld {
     const inventory = player.inventory
       .map((item) => `${item.name} (${item.quantity})`)
       .join(", ");
-    const result = `${player.description}${
+    const result = `${this.get_description(player, player, "default")}${
       player.inventory.length > 0 ? `\n\nInventory: ${inventory}` : ""
     }`;
 
@@ -392,7 +402,7 @@ export class TextWorld {
     this.world.quests.push({
       id: crypto.randomUUID(),
       name,
-      description,
+      descriptions: [{ flag: "default", description }],
       complete: false,
       steps: null,
       start: null,
@@ -427,7 +437,7 @@ export class TextWorld {
       quest.steps.push({
         id: crypto.randomUUID(),
         name,
-        description,
+        descriptions: [{ flag: "default", description }],
         complete: false,
         action,
       });
@@ -530,7 +540,11 @@ export class TextWorld {
     const quest = this.get_quest(quest_name);
     if (quest) {
       if (player && player.quests.includes(quest.name)) {
-        let result = `Quest: ${quest.name}\n\n${quest.description}\n\n`;
+        let result = `Quest: ${quest.name}\n\n${this.get_description(
+          player,
+          quest,
+          "default"
+        )}\n\n`;
         if (quest.steps) {
           quest.steps.forEach((step) => {
             if (step.action && !step.complete) {
@@ -555,7 +569,11 @@ export class TextWorld {
       const quest = this.world.quests.find(
         (quest) => quest.name === player_quest
       );
-      return `${quest!.name} - ${quest!.description}`;
+      return `${quest!.name} - ${this.get_description(
+        player,
+        quest!,
+        "default"
+      )}`;
     });
 
     return quests_description.join("\n\n");
@@ -651,7 +669,7 @@ export class TextWorld {
     this.world.npcs.push({
       id: crypto.randomUUID(),
       name,
-      description,
+      descriptions: [{ flag: "default", description }],
       inventory: [],
       stats: this.create_resources(10, 10, 10, 10, 10, 10),
       killable: false,
@@ -668,7 +686,7 @@ export class TextWorld {
     this.world.npcs.push({
       id: crypto.randomUUID(),
       name,
-      description,
+      descriptions: [{ flag: "default", description }],
       stats: this.create_resources(10, 10, 10, 10, 10, 10),
       inventory: [],
       killable: false,
@@ -805,7 +823,7 @@ export class TextWorld {
     this.world.items.push({
       id: crypto.randomUUID(),
       name: name,
-      description: description,
+      descriptions: [{ flag: "default", description }],
       usable,
       action,
     });
@@ -1018,7 +1036,7 @@ export class TextWorld {
             (item) => item.name === player_item.name
           );
           if (item) {
-            return item.description;
+            return this.get_description(player, item, "default")!;
           }
         }
       }
@@ -1037,7 +1055,11 @@ export class TextWorld {
           (item_definition) => item_definition.name === item.name
         );
         return item_definition
-          ? `${item_definition.name} - ${item_definition.description}`
+          ? `${item_definition.name} - ${this.get_description(
+              player,
+              item_definition,
+              "default"
+            )}`
           : null;
       })
       .filter(Boolean);
@@ -1059,7 +1081,7 @@ export class TextWorld {
     const mob: Mob = {
       id: crypto.randomUUID(),
       name,
-      description,
+      descriptions: [{ flag: "default", description }],
       stats,
       damage_and_defense,
       inventory,
@@ -1203,6 +1225,20 @@ export class TextWorld {
   // ROOM //
   //////////
 
+  add_room_description(
+    zone_name: string,
+    room_name: string,
+    flag: string,
+    description: string
+  ) {
+    const room = this.get_room(zone_name, room_name);
+    if (room) {
+      room.descriptions.push({ flag, description });
+    } else {
+      throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
+    }
+  }
+
   remove_room(zone_name: string, room_name: string) {
     const zone = this.get_zone(zone_name);
     zone.rooms = zone.rooms.filter((room) => room.name !== room_name);
@@ -1221,7 +1257,7 @@ export class TextWorld {
       room.command_actions.push({
         id: crypto.randomUUID(),
         name,
-        description,
+        descriptions: [{ flag: "default", description }],
         synonyms,
         action,
       });
@@ -1361,7 +1397,11 @@ export class TextWorld {
           });
         }
 
-        let result = `Location: ${current_room.name}\n\n${current_room.description}`;
+        let result = `Location: ${current_room.name}\n\n${this.get_description(
+          player,
+          current_room,
+          "default"
+        )}`;
 
         if (npcs_in_room.length > 0) {
           result += `\n\NPCs: ${npcs_in_room}`;
@@ -1511,7 +1551,7 @@ export class TextWorld {
     zone.rooms.push({
       id: crypto.randomUUID(),
       name: name,
-      description: description,
+      descriptions: [{ flag: "default", description }],
       zone_start: false,
       items: [],
       npcs: [],
@@ -1605,9 +1645,11 @@ export class TextWorld {
         .filter((exit) => !exit.hidden)
         .map((exit) => exit.name)
         .join(", ");
-      const description = `${current_room.description}${
-        exits.length > 0 ? `\n\nExits: ${exits}` : ""
-      }`;
+      const description = `${this.get_description(
+        player,
+        current_room,
+        "default"
+      )}${exits.length > 0 ? `\n\nExits: ${exits}` : ""}`;
       return description;
     }
 
@@ -1631,7 +1673,7 @@ export class TextWorld {
     room.objects.push({
       id: crypto.randomUUID(),
       name,
-      description,
+      descriptions: [{ flag: "default", description }],
       inventory: [],
       dialog,
     });
@@ -1674,7 +1716,7 @@ export class TextWorld {
 
       if (obj && current_room && current_room.objects.includes(obj)) {
         if (input.startsWith("look at")) {
-          return obj.description;
+          return this.get_description(player, obj, "default")!;
         } else if (input.startsWith("examine") && obj.dialog) {
           const dialog = obj.dialog.find((dialog) =>
             dialog.trigger.some((trigger) =>
@@ -1706,7 +1748,7 @@ export class TextWorld {
     this.world.recipes.push({
       id: crypto.randomUUID(),
       name,
-      description,
+      descriptions: [{ flag: "default", description }],
       ingredients,
       crafted_item,
     });
@@ -1769,6 +1811,21 @@ export class TextWorld {
   // MISC //
   //////////
 
+  get_description(player: Player, entity: Entity, flag: string): string | null {
+    if (flag === "default" && player.flags.length > 0) {
+      for (const player_flag of player.flags) {
+        const matching_desc = entity.descriptions.find(
+          (desc) => desc.flag === player_flag
+        );
+        if (matching_desc) {
+          flag = matching_desc.flag;
+        }
+      }
+    }
+    const description = entity.descriptions.find((desc) => desc.flag === flag);
+    return description ? description.description : null;
+  }
+
   create_command_action(
     name: string,
     description: string,
@@ -1778,7 +1835,7 @@ export class TextWorld {
     return {
       id: crypto.randomUUID(),
       name,
-      description,
+      descriptions: [{ flag: "default", description }],
       synonyms,
       action,
     };
@@ -1844,7 +1901,14 @@ export class TextWorld {
         ? this.player_dead_command_actions
         : this.main_command_actions;
     const result = command_actions
-      .map((action) => `${action.synonyms.join(", ")} - ${action.description}`)
+      .map(
+        (action) =>
+          `${action.synonyms.join(", ")} - ${this.get_description(
+            player,
+            action,
+            "default"
+          )}`
+      )
       .join("\n");
     return `Commands:\n\n${result}`;
   }

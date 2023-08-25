@@ -59,6 +59,68 @@ Deno.test("can_create_room", () => {
   textworld.reset_world();
 });
 
+Deno.test("can_create_alternate_room_description", () => {
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.add_room_description(
+    "Zone1",
+    "Room1",
+    "room1-alt",
+    "This is room 1, again!"
+  );
+  const room = textworld.get_room("Zone1", "Room1");
+  assertEquals(room?.descriptions.length, 2);
+  textworld.reset_world();
+});
+
+Deno.test("can_show_alternate_room_description", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.add_room_description(
+    "Zone1",
+    "Room1",
+    "room1-alt",
+    "This is an alternate room1 description!"
+  );
+  let result = textworld.get_room_description(player);
+  assertEquals(result, "Location: Room1\n\nThis is room 1");
+  textworld.set_flag(player, "room1-alt");
+  result = textworld.get_room_description(player);
+  assertEquals(
+    result,
+    "Location: Room1\n\nThis is an alternate room1 description!"
+  );
+  player.flags.length = 0;
+  textworld.reset_world();
+});
+
+Deno.test("can_show_alternate_room_description_and_switch_to_default", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.add_room_description(
+    "Zone1",
+    "Room1",
+    "room1-alt",
+    "This is an alternate room1 description!"
+  );
+  let result = textworld.get_room_description(player);
+  assertEquals(result, "Location: Room1\n\nThis is room 1");
+  textworld.set_flag(player, "room1-alt");
+  result = textworld.get_room_description(player);
+  assertEquals(
+    result,
+    "Location: Room1\n\nThis is an alternate room1 description!"
+  );
+  player.flags.length = 0;
+  result = textworld.get_room_description(player);
+  assertEquals(result, "Location: Room1\n\nThis is room 1");
+  textworld.reset_world();
+});
+
 Deno.test("can_create_room_command_action", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
@@ -337,7 +399,7 @@ Deno.test("can_create_room_object", () => {
   const object = textworld.get_room_object("Zone1", "Room1", "Fireplace");
   assertEquals(object?.name, "Fireplace");
   assertEquals(
-    object?.description,
+    object?.descriptions[0].description,
     "A warm fire burns in the fireplace and you can feel the heat radiating from it."
   );
   textworld.reset_world();
