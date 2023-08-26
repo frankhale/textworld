@@ -1016,9 +1016,9 @@ Deno.test("player_can_kill_mob_and_drop_loot", () => {
   assertStringIncludes(result, "Player attacks Goblin");
   assertStringIncludes(result, "Goblin has been defeated!");
   const room = textworld.get_room("Zone1", "Room1");
-  assertEquals(room?.items.length, 2);
-  assertEquals(room?.items[0].name, "Sword");
-  assertEquals(room?.items[1].name, "Shield");
+  assertEquals(room?.inventory.length, 2);
+  assertEquals(room?.inventory[0].name, "Sword");
+  assertEquals(room?.inventory[1].name, "Shield");
   textworld.reset_world();
 });
 
@@ -1045,7 +1045,7 @@ Deno.test("player_can_kill_mob_and_pickup_look", () => {
   assertStringIncludes(result, "Goblin has been defeated!");
   textworld.take_all_items(player);
   const room = textworld.get_room("Zone1", "Room1");
-  assertEquals(room?.items.length, 0);
+  assertEquals(room?.inventory.length, 0);
   assertEquals(player.inventory.length, 2);
   assertEquals(player.inventory[0].name, "Sword");
   assertEquals(player.inventory[1].name, "Shield");

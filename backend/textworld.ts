@@ -36,14 +36,17 @@ export interface Stats {
   damage_and_defense: DamageAndDefense;
 }
 
-export interface Player extends Entity, Stats {
+export interface Inventory {
+  inventory: ItemDrop[];
+}
+
+export interface Player extends Entity, Stats, Inventory {
   score: number;
   gold: number;
   progress: Level;
   zone: string;
   room: string;
   flags: string[];
-  inventory: ItemDrop[];
   quests: string[];
   quests_completed: string[];
   known_recipes: string[];
@@ -78,17 +81,14 @@ export interface Level {
   xp: number;
 }
 
-export interface NPC extends Entity {
-  stats: Resources;
+export interface NPC extends Entity, Stats {
   inventory: string[];
   dialog: Dialog[] | null;
   killable: boolean;
   vendor_items: VendorItem[] | null;
 }
 
-export interface Mob extends Entity, Stats {
-  inventory: ItemDrop[];
-}
+export interface Mob extends Entity, Stats, Inventory {}
 
 export interface VendorItem {
   name: string;
@@ -138,9 +138,8 @@ export interface Zone {
   rooms: Room[];
 }
 
-export interface Room extends Entity {
+export interface Room extends Entity, Inventory {
   zone_start: boolean;
-  items: ItemDrop[];
   npcs: NPC[];
   exits: Exit[];
   mobs: Mob[];
@@ -393,6 +392,12 @@ export class TextWorld {
 
     return result;
   }
+
+  // check_for_quest_completion(player: Player) {
+  //   player.quests.every((quest) => {
+  //     return this.is_quest_complete(player, quest);
+  //   });
+  // }
 
   ///////////
   // QUEST //
@@ -672,6 +677,7 @@ export class TextWorld {
       descriptions: [{ flag: "default", description }],
       inventory: [],
       stats: this.create_resources(10, 10, 10, 10, 10, 10),
+      damage_and_defense: this.create_damage_and_defense(10, 10, 10, 10, 10),
       killable: false,
       dialog,
       vendor_items: null,
@@ -690,6 +696,7 @@ export class TextWorld {
       stats: this.create_resources(10, 10, 10, 10, 10, 10),
       inventory: [],
       killable: false,
+      damage_and_defense: this.create_damage_and_defense(10, 10, 10, 10, 10),
       dialog: [
         {
           trigger: ["items"],
@@ -765,13 +772,13 @@ export class TextWorld {
     const current_room = this.get_players_room(player);
     if (current_room) {
       item_drops.forEach((item) => {
-        const room_item = current_room.items.find(
+        const room_item = current_room.inventory.find(
           (room_item) => room_item.name === item.name
         );
         if (room_item) {
           room_item.quantity += item.quantity;
         } else {
-          current_room.items.push(item);
+          current_room.inventory.push(item);
         }
       });
     }
@@ -786,7 +793,7 @@ export class TextWorld {
     const room = zone.rooms.find((room) => room.name === room_name);
     if (room) {
       return (
-        room.items.find(
+        room.inventory.find(
           (item) => item.name.toLowerCase() === item_name.toLowerCase()
         ) ?? null
       );
@@ -803,7 +810,7 @@ export class TextWorld {
     const zone = this.get_zone(zone_name);
     const in_room = zone.rooms.find((room) => room.name === in_room_name);
     if (in_room) {
-      in_room.items.push({
+      in_room.inventory.push({
         name: item_name,
         quantity,
       });
@@ -863,7 +870,7 @@ export class TextWorld {
         if (possible_items.includes("all")) {
           return this.take_all_items(player);
         } else {
-          const room_item = current_room.items.find((item) =>
+          const room_item = current_room.inventory.find((item) =>
             possible_items.find(
               (possible_item) =>
                 item.name.toLowerCase() === possible_item.toLowerCase()
@@ -875,7 +882,7 @@ export class TextWorld {
               name: room_item.name,
               quantity: room_item.quantity,
             });
-            current_room.items = current_room.items.filter(
+            current_room.inventory = current_room.inventory.filter(
               (item) => item.name !== room_item.name
             );
             return `You took the ${room_item.name}.`;
@@ -895,11 +902,11 @@ export class TextWorld {
       return "That item does not exist.";
     }
 
-    current_room.items.forEach((item) => {
+    current_room.inventory.forEach((item) => {
       player.inventory.push({ ...item });
     });
 
-    current_room.items = [];
+    current_room.inventory = [];
 
     return "You took all items.";
   }
@@ -985,7 +992,7 @@ export class TextWorld {
             (room) => room.name === player.room
           );
           if (current_room) {
-            current_room.items.push({
+            current_room.inventory.push({
               name: player_item.name,
               quantity: player_item.quantity,
             });
@@ -1009,7 +1016,7 @@ export class TextWorld {
       return "You have no items to drop.";
     }
 
-    current_room.items.push(...player.inventory);
+    current_room.inventory.push(...player.inventory);
     player.inventory = [];
 
     return "You dropped all your items.";
@@ -1553,7 +1560,7 @@ export class TextWorld {
       name: name,
       descriptions: [{ flag: "default", description }],
       zone_start: false,
-      items: [],
+      inventory: [],
       npcs: [],
       mobs: [],
       objects: [],
@@ -1608,7 +1615,7 @@ export class TextWorld {
       return "There is nothing else of interest here.";
     }
 
-    const items = current_room.items.map(
+    const items = current_room.inventory.map(
       (item) => `${item.name} (${item.quantity})`
     );
     const itemsString =
@@ -2079,13 +2086,6 @@ export class TextWorld {
         return "Player's room does not exist.";
       }
     }
-
-    // TODO: We need a way to complete quest steps that is not
-    // obtrustive to the player and just happens in the background.
-    //
-    // player.quests.every((quest) => {
-    //   return this.is_quest_complete(player, quest);
-    // });
 
     return "I don't understand that command.";
   }
