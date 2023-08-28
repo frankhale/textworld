@@ -1,5 +1,6 @@
-import { Component, ElementRef, Input, Renderer2, SimpleChanges, ViewChild } from '@angular/core';
+import { Component, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { GameMessage, GameService } from '../game.service';
 
 @Component({
   selector: 'app-output',
@@ -9,24 +10,33 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./output.component.scss']
 })
 export class OutputComponent {
-  @Input() serverOutput: string = "";
-  history: string[] = [];
+  history: GameMessage[] = [];
 
   @ViewChild('scrollContainer', { static: false }) scrollContainer!: ElementRef;
 
-  constructor(private renderer: Renderer2) { }
+  constructor(
+    private game: GameService) {
+    this.game.messages$.subscribe((message: GameMessage) => {
+      console.log(message);
+      message.response = message.response.trim();
+      this.history.push(message);
+      this.scrollToBottom();
+    });
+  }
 
   ngOnChanges() {
-    if (this.serverOutput.includes("/clear")) {
-      this.history = [];
-    } else {
-      // this.serverOutput = this.serverOutput.filter(message =>
-      //   message.trim() !== '' &&
-      //   !message.startsWith("Location:"));
-      console.log("HISTORY", this.serverOutput);
-      this.history.push(this.serverOutput);
-      this.scrollToBottom();
-    }
+    //if (this.serverOutput.includes("/clear")) {
+    //  this.history = [];
+    //} else {
+    // this.serverOutput = this.serverOutput.filter(message =>
+    //   message.trim() !== '' &&
+    //   !message.startsWith("Location:"));
+    //console.log("HISTORY", this.serverOutput);
+    // if (this.serverOutput != null) {
+    //   this.history.push(this.serverOutput);
+    //   this.scrollToBottom();
+    // }
+    //}
   }
 
   getCssClass(message: string): string {

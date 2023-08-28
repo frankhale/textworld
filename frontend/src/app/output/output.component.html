@@ -1,5 +1,13 @@
 <div #scrollContainer class="output-style">
-  <div *ngFor="let message of history" [ngClass]="getCssClass(message)">
-    {{ message }}
+  <div *ngFor="let message of history">
+
+    <pre *ngIf="message.input && message.input.startsWith('map')">{{message.response}}</pre>
+
+    <div *ngIf="!message.input || !message.input.startsWith('map')" class="response-container">
+      <div *ngFor="let line of message.response.split('\n')" [ngClass]="getCssClass(line)">
+        {{ line }}
+      </div>
+    </div>
+
   </div>
 </div>

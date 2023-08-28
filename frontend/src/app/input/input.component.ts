@@ -15,17 +15,14 @@ export class InputComponent {
   playerInput: string = "";
   history: string[] = [];
   currentIndex: number = 0;
-  response: string = "";
+  //response: GameMessage | null = null;
 
   @ViewChild('playerTextInput', { static: false }) playerTextInput!: ElementRef;
 
   constructor(private game: GameService) {
-    this.game.messages$.subscribe((message: GameMessage) => {
-      //this.response.length = 0;
-      this.response = message.response; //.split("\n");
-      //this.response = this.response.filter(message => message.trim() !== '');
-      //console.table(this.response);
-    });
+    // this.game.messages$.subscribe((message: GameMessage) => {
+    //   this.response = message;
+    // });
   }
 
   onKeyDown(event: KeyboardEvent): void {

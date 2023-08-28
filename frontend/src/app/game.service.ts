@@ -56,6 +56,7 @@ export interface DamageAndDefense {
 
 export interface GameMessage {
   player: Player;
+  input: string;
   response: string;
 }
 
@@ -75,22 +76,21 @@ export class GameService {
   public connect(): void {
     if (!this.socket || this.socket.readyState !== this.socket.OPEN) {
       this.socket.onmessage = (event) => {
-        console.log('WebSocket message received:', event);
+        //console.log('WebSocket message received:', event);
         const message: GameMessage = JSON.parse(event.data);
-        // message.response = message.response.replace(/\\n/g, '');
         this.messagesSubject.next(message);
       };
 
       this.socket.onopen = (event) => {
-        console.log('WebSocket opened:', event);
+        //console.log('WebSocket opened:', event);
       };
 
       this.socket.onerror = (error) => {
-        console.error('WebSocket Error:', error);
+        //console.error('WebSocket Error:', error);
       };
 
       this.socket.onclose = (event) => {
-        console.log('WebSocket closed:', event);
+        //console.log('WebSocket closed:', event);
       };
     }
   }
