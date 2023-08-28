@@ -1,11 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 24 August 2023
-
-// TODO: Infrastructure has been put in place to support more than one
-// description. Currently only the "default" description is used. The
-// idea is that flags can be set on the player and different descriptions
-// can be shown based on the flag.
+// 27 August 2023
 
 export const input_character_limit = 256;
 export const active_quest_limit = 5;
@@ -391,6 +386,24 @@ export class TextWorld {
     }`;
 
     return result;
+  }
+
+  set_players_room_to_zone_start(player: Player, zone_name: string) {
+    const room = this.get_zone_starter_room(zone_name);
+    if (room) {
+      player.zone = zone_name;
+      player.room = room.name;
+    } else {
+      throw new Error(`Zone ${zone_name} does not have a starter room.`);
+    }
+  }
+
+  set_players_room(player: Player, zone_name: string, room_name: string) {
+    const room = this.get_room(zone_name, room_name);
+    if (room) {
+      player.zone = zone_name;
+      player.room = room_name;
+    }
   }
 
   // check_for_quest_completion(player: Player) {
@@ -1732,7 +1745,7 @@ export class TextWorld {
           );
 
           if (dialog?.action) {
-            dialog.action?.(player, input, command, args);
+            return dialog.action?.(player, input, command, args);
           } else if (dialog?.response) {
             return dialog.response;
           }
@@ -2078,7 +2091,11 @@ export class TextWorld {
         );
 
         if (room_command_action) {
-          return room_command_action.action(player, input, command, args);
+          return `${this.get_description(
+            player,
+            room_command_action,
+            "default"
+          )}\n\n${room_command_action.action(player, input, command, args)}`;
         } else {
           return "I don't understand that command.";
         }

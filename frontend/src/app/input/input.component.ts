@@ -15,27 +15,27 @@ export class InputComponent {
   playerInput: string = "";
   history: string[] = [];
   currentIndex: number = 0;
-  response: string[] = [];
+  response: string = "";
 
   @ViewChild('playerTextInput', { static: false }) playerTextInput!: ElementRef;
 
   constructor(private game: GameService) {
     this.game.messages$.subscribe((message: GameMessage) => {
-      this.response.length = 0;
-      this.response = message.response.split("\n");
-      this.response = this.response.filter(message => message.trim() !== '');
-      console.table("MESSAGE RECEIVED FROM GAME SERVER", this.response);
+      //this.response.length = 0;
+      this.response = message.response; //.split("\n");
+      //this.response = this.response.filter(message => message.trim() !== '');
+      //console.table(this.response);
     });
   }
 
   onKeyDown(event: KeyboardEvent): void {
     if (event.key === 'Enter') {
-      this.response.length = 0;
-      if (this.playerInput.startsWith("/clear")) {
-        this.response = [this.playerInput];
-      } else {
-        this.game.send(this.playerInput);
-      }
+      //this.response.length = 0;
+      //if (this.playerInput.startsWith("/clear")) {
+      //  this.response = [this.playerInput];
+      //} else {
+      this.game.send(this.playerInput);
+      //}
       if (!this.history.includes(this.playerInput)) {
         this.history.push(this.playerInput);
       }
@@ -52,11 +52,5 @@ export class InputComponent {
 
       this.playerTextInput.nativeElement.setSelectionRange(this.playerInput.length, this.playerInput.length);
     }
-
-
-    // this.playerTextInput.nativeElement.selectionStart =
-    //   this.playerTextInput.nativeElement.selectionEnd =
-    //   this.playerInput.length;
-    // console.log(this.playerInput.length)
   }
 }

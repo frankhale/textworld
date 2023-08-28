@@ -9,7 +9,7 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./output.component.scss']
 })
 export class OutputComponent {
-  @Input() serverOutput: string[] = [];
+  @Input() serverOutput: string = "";
   history: string[] = [];
 
   @ViewChild('scrollContainer', { static: false }) scrollContainer!: ElementRef;
@@ -20,11 +20,11 @@ export class OutputComponent {
     if (this.serverOutput.includes("/clear")) {
       this.history = [];
     } else {
-      this.serverOutput = this.serverOutput.filter(message =>
-        message.trim() !== '' &&
-        !message.startsWith("Location:"));
-
-      this.history.push(...this.serverOutput);
+      // this.serverOutput = this.serverOutput.filter(message =>
+      //   message.trim() !== '' &&
+      //   !message.startsWith("Location:"));
+      console.log("HISTORY", this.serverOutput);
+      this.history.push(this.serverOutput);
       this.scrollToBottom();
     }
   }

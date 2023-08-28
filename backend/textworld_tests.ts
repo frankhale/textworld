@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 23 August 2023
+// 27 August 2023
 
 import { assertEquals } from "https://deno.land/std@0.199.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.199.0/assert/assert_not_equals.ts";
@@ -128,7 +128,7 @@ Deno.test("can_create_room_command_action", () => {
     "Zone1",
     "Room1",
     "xyzzy action",
-    "A magical word that does amazing things!",
+    "You recited the magical word XYZZY!!!",
     ["xyzzy"],
     (_player: tw.Player, _input: string, _command: string, _args: string[]) =>
       "How dare you utter the magical word XYZZY!"
@@ -309,7 +309,7 @@ Deno.test("can_add_room_command_action", () => {
     "Zone1",
     "Room1",
     "xyzzy action",
-    "A magical word that does amazing things!",
+    "You recited the magical word XYZZY!!!",
     ["xyzzy"],
     (_player: tw.Player, _input: string, _command: string, _args: string[]) =>
       "How dare you utter the magical word XYZZY!"
@@ -346,7 +346,7 @@ Deno.test("can_remove_room_command_action", () => {
     "Zone1",
     "Room1",
     "xyzzy action",
-    "A magical word that does amazing things!",
+    "You recited the magical word XYZZY!!!",
     ["xyzzy"],
     (_player: tw.Player, _input: string, _command: string, _args: string[]) =>
       "How dare you utter the magical word XYZZY!"
@@ -449,6 +449,27 @@ Deno.test("can_process_examine_room_object", () => {
     "examine",
     ["examine", "fireplace", "fan", "flame"]
   );
+  assertEquals(result, "The flames become stronger as you fan them.");
+  textworld.reset_world();
+});
+
+Deno.test("can_parse_command_examine_room_object", () => {
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_and_place_room_object(
+    "Zone1",
+    "Room1",
+    "Fireplace",
+    "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
+    [
+      {
+        trigger: ["fan flame"],
+        response: "The flames become stronger as you fan them.",
+        action: null,
+      },
+    ]
+  );
+  const result = textworld.parse_command(player, "examine fireplace fan flame");
   assertEquals(result, "The flames become stronger as you fan them.");
   textworld.reset_world();
 });
@@ -648,13 +669,16 @@ Deno.test("can_parse_command_examine_object", () => {
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
       {
-        trigger: ["fan flame"],
+        trigger: ["fan flames"],
         response: "The flames become stronger as you fan them.",
         action: null,
       },
     ]
   );
-  const result = textworld.parse_command(player, "examine fireplace fan flame");
+  const result = textworld.parse_command(
+    player,
+    "examine fireplace fan flames"
+  );
   assertEquals(result, "The flames become stronger as you fan them.");
   textworld.reset_world();
 });
@@ -883,13 +907,16 @@ Deno.test("can_parse_room_command_action", () => {
     "Zone1",
     "Room1",
     "xyzzy action",
-    "A magical word that does amazing things!",
+    "You recited the magical word XYZZY!!!",
     ["xyzzy"],
     (_player: tw.Player, _input: string, _command: string, _args: string[]) =>
       "How dare you utter the magical word XYZZY!"
   );
   const result = textworld.parse_command(player, "xyzzy");
-  assertEquals(result, "How dare you utter the magical word XYZZY!");
+  assertEquals(
+    result,
+    "You recited the magical word XYZZY!!!\n\nHow dare you utter the magical word XYZZY!"
+  );
   textworld.reset_world();
 });
 
@@ -1805,15 +1832,46 @@ Deno.test("player_can_navigate_to_new_zone_using_custom_room_action", () => {
     "Zone1",
     "Room1",
     "warp action",
-    "Warps the player to another zone",
+    "Blue waves of light start spinning all around you. They get faster and faster until you can't see anything. When the light fades, you find yourself in a new place.",
     ["warp"],
     (player, _input, _command, _args) => {
       return textworld.goto(player, ["zone", "Zone2"]);
     }
   );
   const result = textworld.parse_command(player, "warp");
-  assertEquals(result, "Location: Room1\n\nThis is room 1 in zone 2");
+  assertEquals(
+    result,
+    "Blue waves of light start spinning all around you. They get faster and faster until you can't see anything. When the light fades, you find yourself in a new place.\n\nLocation: Room1\n\nThis is room 1 in zone 2"
+  );
   assertEquals(player.zone, "Zone2");
   assertEquals(player.room, "Room1");
+  textworld.reset_world();
+});
+
+Deno.test("can_set_players_room_to_zone_start", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_zone("Zone2");
+  textworld.create_room("Zone1", "Room1", "This is room 1 in zone 1");
+  textworld.create_room("Zone2", "Room1", "This is room 1 in zone 2");
+  textworld.set_room_as_zone_starter("Zone1", "Room1");
+  textworld.set_room_as_zone_starter("Zone2", "Room1");
+  textworld.set_players_room_to_zone_start(player, "Zone2");
+  assertEquals(player.zone, "Zone2");
+  assertEquals(player.room, "Room1");
+  textworld.reset_world();
+});
+
+Deno.test("can_set_players_room_to_another_room", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_room("Zone1", "Room2", "This is room 2");
+  textworld.set_room_as_zone_starter("Zone1", "Room1");
+  textworld.set_players_room(player, "Zone1", "Room2");
+  assertEquals(player.zone, "Zone1");
+  assertEquals(player.room, "Room2");
   textworld.reset_world();
 });
