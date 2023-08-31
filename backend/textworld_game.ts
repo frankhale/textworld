@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 23 August 2023
+// 30 August 2023
 
 import * as tw from "./textworld.ts";
 
@@ -134,14 +134,13 @@ class TextworldGame {
   }
 
   create_npcs() {
-    this.textworld.create_npc("Charlotte", "A very sweet lady spider", [
-      {
-        trigger: ["hello", "hi"],
-        response:
-          "Have you seen Wilbur? I've been looking around everywhere for him...",
-        action: null,
-      },
-    ]);
+    this.textworld.create_npc("Charlotte", "A very sweet lady spider");
+    this.textworld.create_dialog(
+      "Charlotte",
+      ["hello", "hi"],
+      "Have you seen Wilbur? I've been looking around everywhere for him...",
+      null
+    );
   }
 
   place_npcs() {
