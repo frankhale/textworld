@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhale@gmail.com
-// 27 August 2023
+// 30 August 2023
 
 import { assertEquals } from "https://deno.land/std@0.199.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.199.0/assert/assert_not_equals.ts";
@@ -17,7 +17,7 @@ const player = textworld.create_player(
 );
 
 Deno.test("can_get_player", () => {
-  const p1 = textworld.get_player(player.id);
+  const p1 = textworld.get_player(player.id!);
   assertEquals(p1?.name, "Player");
   textworld.reset_world();
 });
@@ -46,7 +46,8 @@ Deno.test("can_add_quest_step_to_quest_with_action", () => {
   });
   const quest = textworld.get_quest("Quest1");
   assertEquals(quest?.steps!.length, 1);
-  assertNotEquals(quest?.steps![0].action, null);
+  const quest_step_action = textworld.get_quest_step_action("Quest1", "Step1");
+  assertNotEquals(quest_step_action, null);
   player.quests.length = 0;
   textworld.reset_world();
 });
@@ -133,8 +134,12 @@ Deno.test("can_create_room_command_action", () => {
     (_player: tw.Player, _input: string, _command: string, _args: string[]) =>
       "How dare you utter the magical word XYZZY!"
   );
-  const room = textworld.get_room("Zone1", "Room1");
-  assertEquals(room?.command_actions.length, 1);
+  textworld.get_room("Zone1", "Room1");
+  const room_command_actions = textworld.get_room_command_action(
+    "Zone1",
+    "Room1"
+  );
+  assertNotEquals(room_command_actions, null);
   textworld.reset_world();
 });
 
@@ -214,7 +219,11 @@ Deno.test("can_create_item_with_action", () => {
   });
   const item = textworld.get_item("Potion");
   assertEquals(item?.name, "Potion");
-  assertNotEquals(item?.action, null);
+  const item_action = textworld.get_item_action("Potion");
+  assertEquals(
+    item_action?.action(player),
+    "You drank the potion but nothing happened."
+  );
   textworld.reset_world();
 });
 
@@ -263,20 +272,20 @@ Deno.test("can_place_mob_in_room", () => {
 });
 
 Deno.test("can_create_npc", () => {
-  textworld.create_npc("Guard", "A strong guard", []);
+  textworld.create_npc("Guard", "A strong guard");
   const npc = textworld.get_npc("Guard");
   assertEquals(npc?.name, "Guard");
   textworld.reset_world();
 });
 
 Deno.test("can_create_npc_with_dialog", () => {
-  textworld.create_npc("Guard", "A strong guard", [
-    {
-      trigger: ["Hello"],
-      response: "Hello citizen, make sure you mind the law!",
-      action: null,
-    },
-  ]);
+  textworld.create_npc("Guard", "A strong guard");
+  textworld.create_dialog(
+    "Guard",
+    ["Hello"],
+    "Hello citizen, make sure you mind the law!",
+    null
+  );
   const npc = textworld.get_npc("Guard");
   assertEquals(npc?.name, "Guard");
   assertEquals(npc?.dialog?.length, 1);
@@ -295,7 +304,7 @@ Deno.test("can_create_vendor", () => {
 });
 
 Deno.test("can_remove_npc", () => {
-  textworld.create_npc("Guard", "A strong guard", []);
+  textworld.create_npc("Guard", "A strong guard");
   textworld.remove_npc("Guard");
   const npc = textworld.get_npc("Guard");
   assertEquals(npc, null);
@@ -371,7 +380,7 @@ Deno.test("can_generate_command_combinations", () => {
 Deno.test("can_place_npc_in_room", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_npc("Guard", "A strong guard", []);
+  textworld.create_npc("Guard", "A strong guard");
   textworld.place_npc("Zone1", "Room1", "Guard");
   const npc = textworld.get_room_npc("Zone1", "Room1", "Guard");
   assertEquals(npc?.name, "Guard");
@@ -437,9 +446,9 @@ Deno.test("can_process_examine_room_object", () => {
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
       {
+        id: crypto.randomUUID(),
         trigger: ["fan flame"],
         response: "The flames become stronger as you fan them.",
-        action: null,
       },
     ]
   );
@@ -463,9 +472,9 @@ Deno.test("can_parse_command_examine_room_object", () => {
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
       {
+        id: crypto.randomUUID(),
         trigger: ["fan flame"],
         response: "The flames become stronger as you fan them.",
-        action: null,
       },
     ]
   );
@@ -669,9 +678,9 @@ Deno.test("can_parse_command_examine_object", () => {
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
       {
+        id: crypto.randomUUID(),
         trigger: ["fan flames"],
         response: "The flames become stronger as you fan them.",
-        action: null,
       },
     ]
   );
@@ -763,13 +772,13 @@ Deno.test("can_parse_command_talk_to_npc", () => {
   player.room = "Room1";
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_npc("Guard", "A strong guard", [
-    {
-      trigger: ["hello"],
-      response: "Hello citizen, make sure you mind the law!",
-      action: null,
-    },
-  ]);
+  textworld.create_npc("Guard", "A strong guard");
+  textworld.create_dialog(
+    "Guard",
+    ["hello"],
+    "Hello citizen, make sure you mind the law!",
+    null
+  );
   textworld.place_npc("Zone1", "Room1", "Guard");
   const result = textworld.parse_command(player, "talk to Guard say hello");
   assertEquals(result, "Hello citizen, make sure you mind the law!");
@@ -781,50 +790,51 @@ Deno.test("can_parse_command_talk_to_npc_and_get_item", () => {
   player.room = "Room1";
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_npc("Old_woman", "An ordinary old woman", [
-    {
-      trigger: ["hello", "hi"],
-      response: null,
-      action: (player) => {
-        if (textworld.has_flag(player, "took_gem")) {
-          return "Hi, how are you?";
-        } else {
-          return "Hi, I have a gem you may want!";
-        }
-      },
-    },
-    {
-      trigger: ["take"],
-      response: null,
-      action: (player, _input, _command, args) => {
-        if (args.length !== 0) {
-          if (!textworld.has_flag(player, "took_gem")) {
-            const possible_items = textworld.generate_combinations(args);
-            const item = possible_items.find((item) => {
-              return item === "gem";
+  textworld.create_npc("Old_woman", "An ordinary old woman");
+  textworld.create_dialog(
+    "Old_woman",
+    ["hello", "hi"],
+    null,
+    (player, _input, _command, _args) => {
+      if (textworld.has_flag(player, "took_gem")) {
+        return "Hi, how are you?";
+      } else {
+        return "Hi, I have a gem you may want!";
+      }
+    }
+  );
+  textworld.create_dialog(
+    "Old_woman",
+    ["take"],
+    null,
+    (player, _input, _command, args) => {
+      if (args.length !== 0) {
+        if (!textworld.has_flag(player, "took_gem")) {
+          const possible_items = textworld.generate_combinations(args);
+          const item = possible_items.find((item) => {
+            return item === "gem";
+          });
+
+          if (item) {
+            textworld.set_flag(player, "took_gem");
+            textworld.create_item("Gem", "A shiny gem", false);
+            player.inventory.push({
+              name: "Gem",
+              quantity: 1,
             });
 
-            if (item) {
-              textworld.set_flag(player, "took_gem");
-              textworld.create_item("Gem", "A shiny gem", false);
-              player.inventory.push({
-                name: "Gem",
-                quantity: 1,
-              });
-
-              return "You took the Gem.";
-            } else {
-              return "I don't have that item.";
-            }
+            return "You took the Gem.";
           } else {
             return "I don't have that item.";
           }
         } else {
-          return "Take what?";
+          return "I don't have that item.";
         }
-      },
-    },
-  ]);
+      } else {
+        return "Take what?";
+      }
+    }
+  );
   textworld.place_npc("Zone1", "Room1", "Old_woman");
   let result = textworld.parse_command(player, "talk to Old_woman say hello");
   assertEquals(result, "Hi, I have a gem you may want!");
@@ -1470,51 +1480,46 @@ Deno.test("player_can_complete_quest_with_multiple_steps", () => {
     return null;
   });
   textworld.create_exit("Zone1", "Room1", "north", "Room2");
-  textworld.create_npc("Old Woman", "An ordinary old woman", [
-    {
-      trigger: ["hello", "hi"],
-      response: null,
-      action: (player) => {
-        if (textworld.has_flag(player, "took_gem")) {
-          return "Hi, how are you?";
-        } else {
-          return "Hi, I have a gem you may want!";
-        }
-      },
-    },
-    {
-      trigger: ["take"],
-      response: null,
-      action: (player, _input, _command, args) => {
-        if (args.length !== 0) {
-          if (!textworld.has_flag(player, "took_gem")) {
-            const possible_items = textworld.generate_combinations(args);
 
-            const item = possible_items.find((item) => {
-              return item === "gem";
+  textworld.create_npc("Old Woman", "An ordinary old woman");
+
+  textworld.create_dialog("Old Woman", ["hello", "hi"], null, (player) => {
+    if (textworld.has_flag(player, "took_gem")) {
+      return "Hi, how are you?";
+    } else {
+      return "Hi, I have a gem you may want!";
+    }
+  });
+
+  textworld.create_dialog(
+    "Old Woman",
+    ["take"],
+    null,
+    (player, _input, _command, args) => {
+      if (args.length !== 0) {
+        if (!textworld.has_flag(player, "took_gem")) {
+          const possible_items = textworld.generate_combinations(args);
+          const item = possible_items.find((item) => {
+            return item === "gem";
+          });
+          if (item) {
+            textworld.set_flag(player, "took_gem");
+            textworld.create_item("Gem", "A shiny gem", false);
+            player.inventory.push({
+              name: "Gem",
+              quantity: 1,
             });
-
-            if (item) {
-              textworld.set_flag(player, "took_gem");
-              textworld.create_item("Gem", "A shiny gem", false);
-              player.inventory.push({
-                name: "Gem",
-                quantity: 1,
-              });
-
-              return "You took the Gem.";
-            } else {
-              return "I don't have that item.";
-            }
+            return "You took the Gem.";
           } else {
             return "I don't have that item.";
           }
+        } else {
+          return "I don't have that item.";
         }
-
-        return "Take what?";
-      },
-    },
-  ]);
+      }
+      return "Take what?";
+    }
+  );
 
   textworld.place_npc("Zone1", "Room1", "Old Woman");
   textworld.create_quest("Quest1", "A quest");
@@ -1697,13 +1702,13 @@ Deno.test("player_can_talk_to_npc", () => {
   player.room = "Room1";
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_npc("Big Guard", "A strong guard", [
-    {
-      trigger: ["Hello"],
-      response: "Hello citizen, make sure you mind the law!",
-      action: null,
-    },
-  ]);
+  textworld.create_npc("Big Guard", "A strong guard");
+  textworld.create_dialog(
+    "Big Guard",
+    ["Hello"],
+    "Hello citizen, make sure you mind the law!",
+    null
+  );
   textworld.place_npc("Zone1", "Room1", "Big Guard");
   let result = textworld.talk_to_npc(
     player,
@@ -1796,7 +1801,7 @@ Deno.test("player_can_talk_to_npc_without_dialog", () => {
   player.room = "Room1";
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_npc("Big Guard", "A strong guard", null);
+  textworld.create_npc("Big Guard", "A strong guard");
   textworld.place_npc("Zone1", "Room1", "Big Guard");
   const result = textworld.talk_to_npc(
     player,
