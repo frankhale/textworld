@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
-// Frank Hale <frankhale@gmail.com
-// 30 August 2023
+// Frank Hale <frankhale@gmail.com>
+// 31 August 2023
 
 import { assertEquals } from "https://deno.land/std@0.199.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.199.0/assert/assert_not_equals.ts";
@@ -1658,6 +1658,38 @@ Deno.test("player_can_learn_recipe", () => {
   textworld.take_item(player, ["Iron Sword recipe"]);
   const result = textworld.use_item(player, ["Iron Sword recipe"]);
   assertEquals(result, "You learned the recipe for Iron Sword.");
+  assertEquals(player.known_recipes.length, 1);
+  player.known_recipes.length = 0;
+  textworld.reset_world();
+});
+
+Deno.test("player_cant_learn_recipe_player_already_knows", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  player.known_recipes.push("Iron Sword");
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_recipe(
+    "Iron Sword",
+    "A quality sword for the everyday fighter",
+    [
+      { name: "Iron", quantity: 2 },
+      { name: "Wood", quantity: 1 },
+    ],
+    { name: "Iron Sword", quantity: 1 }
+  );
+  textworld.create_item(
+    "Iron Sword recipe",
+    "A recipe for an iron sword",
+    true,
+    (player) => {
+      return textworld.learn_recipe(player, "Iron Sword");
+    }
+  );
+  textworld.place_item("Zone1", "Room1", "Iron Sword recipe");
+  textworld.take_item(player, ["Iron Sword recipe"]);
+  const result = textworld.use_item(player, ["Iron Sword recipe"]);
+  assertEquals(result, "You already know that recipe.");
   assertEquals(player.known_recipes.length, 1);
   player.known_recipes.length = 0;
   textworld.reset_world();

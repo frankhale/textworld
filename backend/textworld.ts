@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
-// Frank Hale <frankhale@gmail.com
-// 30 August 2023
+// Frank Hale <frankhale@gmail.com>
+// 31 August 2023
 
 export const input_character_limit = 256;
 export const active_quest_limit = 5;
@@ -134,7 +134,7 @@ export interface World {
   recipes: Recipe[];
   npcs: NPC[];
   mobs: Mob[];
-  player: Player[];
+  players: Player[];
   quests: Quest[];
   level_data: Level[];
   // --- OBJECTS CONTAINING FUNCTIONS BELOW ---
@@ -369,7 +369,7 @@ export class TextWorld {
       quests_completed: [],
       known_recipes: [],
     };
-    this.world.player.push(player);
+    this.world.players.push(player);
     return player;
   }
 
@@ -382,11 +382,13 @@ export class TextWorld {
   }
 
   get_player(id: string) {
-    return this.world.player.find((player) => player.id === id);
+    return this.world.players.find((player) => player.id === id);
   }
 
   remove_player(player: Player) {
-    this.world.player = this.world.player.filter((p) => p.name !== player.name);
+    this.world.players = this.world.players.filter(
+      (p) => p.name !== player.name
+    );
   }
 
   get_players_zone(player: Player): Zone | null {
@@ -1047,6 +1049,9 @@ export class TextWorld {
             result = "You used the item but nothing happened.";
           }
 
+          // TODO: In the case of a recipe that we try to consume but already
+          // know we'd like to be able to bypass this and not consume the
+          // recipe.
           player_item.quantity--;
           if (player_item.quantity === 0) {
             player.inventory = player.inventory.filter(
@@ -1922,8 +1927,12 @@ export class TextWorld {
   learn_recipe(player: Player, recipe_name: string): string {
     const recipe = this.get_recipe(recipe_name);
     if (recipe) {
-      player.known_recipes.push(recipe.name);
-      return `You learned the recipe for ${recipe.name}.`;
+      if (player.known_recipes.includes(recipe.name)) {
+        return "You already know that recipe.";
+      } else {
+        player.known_recipes.push(recipe.name);
+        return `You learned the recipe for ${recipe.name}.`;
+      }
     }
     return "That recipe does not exist.";
   }
@@ -2044,7 +2053,7 @@ export class TextWorld {
       recipes: [],
       npcs: [],
       mobs: [],
-      player: [],
+      players: [],
       quests: [],
       level_data: this.calculate_level_experience(1, 1.2, 50),
       // ---
