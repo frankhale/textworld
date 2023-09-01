@@ -1691,6 +1691,9 @@ Deno.test("player_cant_learn_recipe_player_already_knows", () => {
   const result = textworld.use_item(player, ["Iron Sword recipe"]);
   assertEquals(result, "You already know that recipe.");
   assertEquals(player.known_recipes.length, 1);
+  // recipe should still be in players inventory since it could not be consumed.
+  assertEquals(player.inventory.length, 1);
+  player.inventory.length = 0;
   player.known_recipes.length = 0;
   textworld.reset_world();
 });

@@ -1049,16 +1049,16 @@ export class TextWorld {
             result = "You used the item but nothing happened.";
           }
 
-          // TODO: In the case of a recipe that we try to consume but already
-          // know we'd like to be able to bypass this and not consume the
-          // recipe.
-          player_item.quantity--;
-          if (player_item.quantity === 0) {
-            player.inventory = player.inventory.filter(
-              (item) => item.name !== player_item.name
-            );
+          if (this.has_flag(player, "prevent_item_consumption")) {
+            this.remove_flag(player, "prevent_item_consumption");
+          } else {
+            player_item.quantity--;
+            if (player_item.quantity === 0) {
+              player.inventory = player.inventory.filter(
+                (item) => item.name !== player_item.name
+              );
+            }
           }
-
           return result;
         }
       }
@@ -1928,6 +1928,7 @@ export class TextWorld {
     const recipe = this.get_recipe(recipe_name);
     if (recipe) {
       if (player.known_recipes.includes(recipe.name)) {
+        this.set_flag(player, "prevent_item_consumption");
         return "You already know that recipe.";
       } else {
         player.known_recipes.push(recipe.name);
