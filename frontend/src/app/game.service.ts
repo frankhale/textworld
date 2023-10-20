@@ -80,18 +80,6 @@ export class GameService {
         const message: GameMessage = JSON.parse(event.data);
         this.messagesSubject.next(message);
       };
-
-      this.socket.onopen = (event) => {
-        //console.log('WebSocket opened:', event);
-      };
-
-      this.socket.onerror = (error) => {
-        //console.error('WebSocket Error:', error);
-      };
-
-      this.socket.onclose = (event) => {
-        //console.log('WebSocket closed:', event);
-      };
     }
   }
 

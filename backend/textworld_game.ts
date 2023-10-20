@@ -197,6 +197,7 @@ class TextworldGame {
         socket.onmessage = (e) => {
           console.log(`player: ${e.data}`);
           const result = {
+            input: e.data,
             player: this.player,
             response: this.textworld.parse_command(this.player, e.data),
           };
@@ -215,5 +216,5 @@ class TextworldGame {
 }
 
 const game = new TextworldGame();
-game.run_cli_game_loop();
-//await game.run_web_game_loop(8080);
+//game.run_cli_game_loop();
+await game.run_web_game_loop(8080);
