@@ -437,12 +437,6 @@ export class TextWorld {
     }
   }
 
-  // check_for_quest_completion(player: Player) {
-  //   player.quests.every((quest) => {
-  //     return this.is_quest_complete(player, quest);
-  //   });
-  // }
-
   ///////////
   // QUEST //
   ///////////
@@ -647,6 +641,12 @@ export class TextWorld {
     }
     return `The quest ${quest_name} does not exist.`;
   }
+
+  // check_for_quest_completion(player: Player) {
+  //   player.quests.every((quest) => {
+  //     return this.is_quest_complete(player, quest);
+  //   });
+  // }
 
   show_quests(player: Player): string {
     if (!player || player.quests.length === 0) {

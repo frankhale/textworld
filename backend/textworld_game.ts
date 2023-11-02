@@ -216,5 +216,5 @@ class TextworldGame {
 }
 
 const game = new TextworldGame();
-//game.run_cli_game_loop();
-await game.run_web_game_loop(8080);
+game.run_cli_game_loop();
+//await game.run_web_game_loop(8080);
