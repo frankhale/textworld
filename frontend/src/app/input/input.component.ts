@@ -1,7 +1,7 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { GameService, GameMessage } from '../game.service';
+import { GameService } from '../game.service';
 import { OutputComponent } from '../output/output.component';
 
 @Component({
@@ -15,15 +15,10 @@ export class InputComponent {
   playerInput: string = "";
   history: string[] = [];
   currentIndex: number = 0;
-  //response: GameMessage | null = null;
 
   @ViewChild('playerTextInput', { static: false }) playerTextInput!: ElementRef;
 
-  constructor(private game: GameService) {
-    // this.game.messages$.subscribe((message: GameMessage) => {
-    //   this.response = message;
-    // });
-  }
+  constructor(private game: GameService) {}
 
   onKeyDown(event: KeyboardEvent): void {
     if (event.key === 'Enter') {

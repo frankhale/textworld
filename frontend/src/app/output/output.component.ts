@@ -1,6 +1,7 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { GameMessage, GameService } from '../game.service';
+import { GameService } from '../game.service';
+import { GameMessage } from '../models/game-message';
 
 @Component({
   selector: 'app-output',
@@ -19,19 +20,18 @@ export class OutputComponent {
   }
 
   ngOnChanges() {
-    //if (this.serverOutput.includes("/clear")) {
-    //  this.history = [];
-    //} else {
-    // this.serverOutput = this.serverOutput.filter(message =>
-    //   message.trim() !== '' &&
-    //   !message.startsWith("Location:"));
-    //console.log("HISTORY", this.serverOutput);
-    // if (this.serverOutput != null) {
-    //   this.history.push(this.serverOutput);
-    //   this.scrollToBottom();
-    // }
-    //}
     this.scrollToBottom();
+  }
+
+  ngAfterViewChecked() {
+    this.scrollToBottom();
+  }
+
+  private scrollToBottom(): void {
+    if (this.scrollContainer) {
+      const container = this.scrollContainer.nativeElement;
+      container.scrollTop = container.scrollHeight;
+    }
   }
 
   getCssClass(message: string): string {
@@ -46,16 +46,5 @@ export class OutputComponent {
     }
 
     return "response-text";
-  }
-
-  ngAfterViewChecked() {
-    this.scrollToBottom();
-  }
-
-  private scrollToBottom(): void {
-    if (this.scrollContainer) {
-      const container = this.scrollContainer.nativeElement;
-      container.scrollTop = container.scrollHeight;
-    }
   }
 }
