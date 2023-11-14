@@ -188,22 +188,29 @@ class TextworldGame {
       if (e) {
         const { socket, response } = Deno.upgradeWebSocket(e.request);
         socket.onopen = () => {
+          const response = this.textworld.get_room_description(this.player);
           const result = {
+            id: crypto.randomUUID(),
+            input: "",
             player: this.player,
             response: this.textworld.get_room_description(this.player),
+            responseLines: response.split("\n"),
           };
           socket.send(JSON.stringify(result));
         };
         socket.onmessage = (e) => {
-          console.log(`player: ${e.data}`);
+          const response = this.textworld.parse_command(this.player, e.data);
           const result = {
+            id: crypto.randomUUID(),
             input: e.data,
             player: this.player,
-            response: this.textworld.parse_command(this.player, e.data),
+            response,
+            responseLines: response.split("\n"),
           };
-          console.log(`game: ${result.response}`);
+          console.log(`player: ${e.data}`);
+          console.log(`response: ${response}`);
           socket.send(JSON.stringify(result));
-          if (result.response === "You quit the game.") {
+          if (response === "You quit the game.") {
             socket.close();
           }
         };
@@ -216,5 +223,5 @@ class TextworldGame {
 }
 
 const game = new TextworldGame();
-game.run_cli_game_loop();
-//await game.run_web_game_loop(8080);
+//game.run_cli_game_loop();
+await game.run_web_game_loop(8080);

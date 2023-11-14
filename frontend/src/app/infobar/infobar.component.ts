@@ -10,19 +10,5 @@ import { GameService, GameMessage } from '../game.service';
   styleUrls: ['./infobar.component.scss']
 })
 export class InfobarComponent {
-  gameMessage: GameMessage | null = null;
-  zone: string = '';
-  room: string = '';
-  health: string = '';
-  gold: string = '';
-
-  constructor(private gameService: GameService) {
-    this.gameService.messages$.subscribe((message: GameMessage) => {
-      this.gameMessage = message;
-      this.zone = message.player.zone;
-      this.room = message.player.room;
-      this.health = `${message.player.stats.health.current}/${message.player.stats.health.max}`;
-      this.gold = `${message.player.gold}`;
-    });
-  }
+  constructor(public game: GameService) { }
 }

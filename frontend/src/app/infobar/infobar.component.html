@@ -1,6 +1,12 @@
 <div class="infobar">
-  <span *ngIf="gameMessage" class="infobar">
-    <span class="infobar">{{ zone }}</span> | <span class="infobar">{{ room }}</span>
-    <span class="player_info">{{ health}} | {{ gold }}</span>
+  @if(this.game.message$()) {
+  <span class="infobar">
+    <span class="infobar">{{ this.game.message$().player.zone }}</span> | <span class="infobar">{{
+      this.game.message$().player.room }}</span>
+    <span class="player_info">{{ this.game.message$().player.stats.health.current }} /
+      {{ this.game.message$().player.stats.health.max }} | {{
+      this.game.message$().player.gold
+      }}</span>
   </span>
+  }
 </div>

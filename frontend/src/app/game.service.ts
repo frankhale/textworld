@@ -1,4 +1,4 @@
-import { Injectable } from "@angular/core";
+import { Injectable, signal } from "@angular/core";
 import { Subject, Observable } from 'rxjs';
 
 export interface Entity {
@@ -55,9 +55,11 @@ export interface DamageAndDefense {
 }
 
 export interface GameMessage {
-  player: Player;
+  id: string;
   input: string;
+  player: Player;
   response: string;
+  responseLines: string[];
 }
 
 @Injectable({
@@ -65,9 +67,8 @@ export interface GameMessage {
 })
 export class GameService {
   private socket: WebSocket = new WebSocket('ws://localhost:8080');
-  private messagesSubject = new Subject<GameMessage>();
-
-  public messages$: Observable<GameMessage> = this.messagesSubject.asObservable();
+  public messageHistory$ = signal<GameMessage[]>([]);
+  public message$ = signal({} as GameMessage);
 
   constructor() {
     this.connect();
@@ -76,9 +77,10 @@ export class GameService {
   public connect(): void {
     if (!this.socket || this.socket.readyState !== this.socket.OPEN) {
       this.socket.onmessage = (event) => {
-        //console.log('WebSocket message received:', event);
+        console.log('WebSocket message received:', event);
         const message: GameMessage = JSON.parse(event.data);
-        this.messagesSubject.next(message);
+        this.messageHistory$.set([...this.messageHistory$(), message]);
+        this.message$.set(message);
       };
     }
   }

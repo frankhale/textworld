@@ -15,13 +15,7 @@ export class OutputComponent {
   @ViewChild('scrollContainer', { static: false }) scrollContainer!: ElementRef;
 
   constructor(
-    private game: GameService) {
-    this.game.messages$.subscribe((message: GameMessage) => {
-      console.log(message);
-      message.response = message.response.trim();
-      this.history.push(message);
-      this.scrollToBottom();
-    });
+    public game: GameService) {
   }
 
   ngOnChanges() {
@@ -37,6 +31,7 @@ export class OutputComponent {
     //   this.scrollToBottom();
     // }
     //}
+    this.scrollToBottom();
   }
 
   getCssClass(message: string): string {
