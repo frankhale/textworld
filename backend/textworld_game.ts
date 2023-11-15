@@ -182,40 +182,42 @@ class TextworldGame {
 
   async run_web_game_loop(port: number) {
     const server = Deno.listen({ port });
+
+    const get_response = (input = "") => {
+      let response;
+
+      if (input.length <= 0) {
+        response = this.textworld.get_room_description(this.player);
+      } else {
+        response = this.textworld.parse_command(this.player, input);
+      }
+
+      return {
+        id: crypto.randomUUID(),
+        input,
+        player: this.player,
+        response,
+        responseLines: response.split("\n"),
+        map: this.textworld.plot_room_map(this.player, 5),
+      };
+    };
+
     for await (const conn of server) {
       const httpConn = Deno.serveHttp(conn);
       const e = await httpConn.nextRequest();
       if (e) {
         const { socket, response } = Deno.upgradeWebSocket(e.request);
         socket.onopen = () => {
-          const response = this.textworld.get_room_description(this.player);
-          const result = {
-            id: crypto.randomUUID(),
-            input: "",
-            player: this.player,
-            response: this.textworld.get_room_description(this.player),
-            responseLines: response.split("\n"),
-          };
-          socket.send(JSON.stringify(result));
+          socket.send(JSON.stringify(get_response()));
         };
         socket.onmessage = (e) => {
-          const response = this.textworld.parse_command(this.player, e.data);
-          const result = {
-            id: crypto.randomUUID(),
-            input: e.data,
-            player: this.player,
-            response,
-            responseLines: response.split("\n"),
-          };
-          console.log(`player: ${e.data}`);
-          console.log(`response: ${response}`);
-          socket.send(JSON.stringify(result));
-          if (response === "You quit the game.") {
+          socket.send(JSON.stringify(get_response(e.data)));
+          if (e.data === "quit") {
+            console.log("Shutting down server...");
             socket.close();
+            server.close();
           }
         };
-        //socket.onclose = () => console.log("WebSocket has been closed.");
-        //socket.onerror = (e) => console.error("WebSocket error:", e);
         e.respondWith(response);
       }
     }

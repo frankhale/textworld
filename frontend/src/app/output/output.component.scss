@@ -1,9 +1,12 @@
 .output-style {
+  display: block;
   margin: 10px;
-  overflow-y: scroll;
+  overflow-y: auto;
 
   height: calc(100vh - 100px);
   width: calc(100vw - 15px);
+
+  // border: 1px solid red;
 }
 
 .command-text {
@@ -15,11 +18,8 @@
 }
 
 .response-text {
+  // margin-top: 15px;
   font-weight: medium;
-}
-
-.response-container {
-  margin-top: 15px;
 }
 
 .npcs-text {
@@ -28,4 +28,21 @@
 
 .inventory-text {
   color: rgba(25, 101, 168, 0.81);
+}
+
+.output-container {
+  display: flex;
+}
+
+.right-content {
+  padding-left: 10px;
+  margin-top: 15px;
+  margin-left: 10px;
+  width: 500px;
+  border-left: dashed 1px black;
+}
+
+.map {
+  margin: 0 auto;
+  width: 200px;
 }

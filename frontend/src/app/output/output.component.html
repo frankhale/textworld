@@ -1,16 +1,35 @@
-<div #scrollContainer class="output-style">
-  @for(message of game.messageHistory$(); track $index) {
-  @if(message.input && message.input.startsWith('map')) {
-  <div>Map:</div>
-    <pre class="response-text">{{message.response.replace("Map:", "").trim()}}</pre>
-  } @else {
-  <div class="response-container">
-    @for (line of message.responseLines; track $index) {
-    <div [ngClass]="getCssClass(line)">
-      {{ line }}
+<div class="output-container">
+  <div #scrollContainer class="output-style">
+    @for(message of game.messageHistory$(); track $index) {
+    @if(message.input && message.input.startsWith('map')) {
+    <div>Map:
+      <pre class="response-text">{{message.response.replace("Map:\n\n", "")}}</pre>
+    </div>
+    } @else {
+    <div>
+      @for (line of message.responseLines; track $index) {
+      <div [ngClass]="getCssClass(line)">
+        {{ line }}
+      </div>
+      }
     </div>
     }
+    }
   </div>
-  }
-  }
+
+  <div class="right-content">
+    Zone: {{game.message$().player.zone}}
+    <br />
+    Room: {{game.message$().player.room}}
+    <br />
+    Health: {{ game.message$().player.stats.health.current }}/{{ game.message$().player.stats.health.max }}
+    <br />
+    Gold: {{ game.message$().player.gold }}
+    <br />
+    Map:
+    <div class="map">
+      <pre>{{ game.message$().map.replace("Map:\n\n", "") }}</pre>
+    </div>
+  </div>
+
 </div>

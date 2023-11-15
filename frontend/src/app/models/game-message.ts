@@ -6,4 +6,5 @@ export interface GameMessage {
     player: Player;
     response: string;
     responseLines: string[];
+    map: string;
 }
