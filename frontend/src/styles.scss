@@ -1,11 +1,10 @@
 @font-face {
-  font-family: "Roboto";
+  font-family: "RobotoMono";
   src: url(./assets/fonts/RobotoMono-Medium.ttf) format("truetype");
-  font-weight: medium;
 }
 
 * {
-  font: 22px "Roboto", monospace;
+  font: 24px "RobotoMono", monospace;
   margin: 0px;
   padding: 0px;
   background-color: #fff;

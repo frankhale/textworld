@@ -1,4 +1,5 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { GameService } from '../game.service';
 import { GameMessage } from '../models/game-message';
@@ -12,11 +13,17 @@ import { GameMessage } from '../models/game-message';
 })
 export class OutputComponent {
   history: GameMessage[] = [];
+  currentMessage: GameMessage | null = null;
 
   @ViewChild('scrollContainer', { static: false }) scrollContainer!: ElementRef;
 
-  constructor(
-    public game: GameService) {
+  constructor(private game: GameService) {
+    toObservable(this.game.messageHistory$).subscribe((history: GameMessage[]) => {
+      this.history = history;
+    });
+    toObservable(this.game.message$).subscribe((message: GameMessage) => {
+      this.currentMessage = message;
+    });
   }
 
   ngOnChanges() {

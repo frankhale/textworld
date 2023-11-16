@@ -1,12 +1,17 @@
 <div class="output-container">
   <div #scrollContainer class="output-style">
-    @for(message of game.messageHistory$(); track $index) {
+    @for(message of history; track $index) {
     @if(message.input && message.input.startsWith('map')) {
     <div>Map:
-      <pre class="response-text">{{message.response.replace("Map:\n\n", "")}}</pre>
+      <pre>{{message.response.replace("Map:\n\n", "")}}</pre>
     </div>
     } @else {
     <div>
+      @if(message.input) {
+      <div class="command-text">
+        Command: {{ message.input }}
+      </div>
+      }
       @for (line of message.responseLines; track $index) {
       <div [ngClass]="getCssClass(line)">
         {{ line }}
@@ -17,19 +22,23 @@
     }
   </div>
 
+  @if(currentMessage) {
   <div class="right-content">
-    Zone: {{game.message$().player.zone}}
+    Zone: {{currentMessage.player.zone}}
     <br />
-    Room: {{game.message$().player.room}}
+    Room: {{currentMessage.player.room}}
     <br />
-    Health: {{ game.message$().player.stats.health.current }}/{{ game.message$().player.stats.health.max }}
+    Level: {{currentMessage.player.progress.level }} ({{currentMessage.player.progress.xp}})
     <br />
-    Gold: {{ game.message$().player.gold }}
+    Health: {{currentMessage.player.stats.health.current }}/{{ currentMessage.player.stats.health.max }}
+    <br />
+    Gold: {{ currentMessage.player.gold }}
     <br />
     Map:
     <div class="map">
-      <pre>{{ game.message$().map.replace("Map:\n\n", "") }}</pre>
+      <pre>{{ currentMessage.map.replace("Map:\n\n", "") }}</pre>
     </div>
   </div>
+  }
 
 </div>

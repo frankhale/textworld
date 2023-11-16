@@ -3,27 +3,21 @@
   margin: 10px;
   overflow-y: auto;
 
-  height: calc(100vh - 100px);
+  height: calc(100vh - 55px);
   width: calc(100vw - 15px);
-
-  // border: 1px solid red;
 }
 
 .command-text {
   font-style: italic;
+  color: rgb(117, 118, 120);
 }
 
 .exits-text {
-  color: rgb(197, 53, 53);
-}
-
-.response-text {
-  // margin-top: 15px;
-  font-weight: medium;
+  color: rgb(6, 111, 16);
 }
 
 .npcs-text {
-  color: rgb(40, 136, 40);
+  color: rgb(210, 119, 34);
 }
 
 .inventory-text {

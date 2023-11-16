@@ -50,6 +50,11 @@ class TextworldGame {
     );
     this.textworld.create_room(
       "The Forest",
+      "Test Room",
+      "This is a test room."
+    );
+    this.textworld.create_room(
+      "The Forest",
       "Stream",
       "A shallow rocky stream is swifty flowing from your west to east. The water looks approximately one foot deep from where you are standing."
     );
@@ -77,6 +82,7 @@ class TextworldGame {
     this.textworld.set_room_as_zone_starter("The Forest", "Open Field");
 
     this.textworld.create_exit("The Forest", "Open Field", "north", "Stream");
+    this.textworld.create_exit("The Forest", "Open Field", "east", "Test Room");
     this.textworld.create_exit(
       "The Forest",
       "Open Field",
@@ -124,6 +130,13 @@ class TextworldGame {
         return `You got 10 gold coins!`;
       }
     );
+    this.textworld.create_item("Spam", "A can of spam", true, (player) => {
+      player.stats.health.current += 50;
+      if (player.stats.health.max >= player.stats.health.current) {
+        player.stats.health.current = player.stats.health.max;
+      }
+      return `You ate the spam and gained 50 health!`;
+    });
   }
 
   place_items() {
