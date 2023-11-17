@@ -1,6 +1,8 @@
 # TextWorld
 
-A text based role playing game engine written in TypeScript on Deno. This is still a work in progress but there is a lot here. There is a strong focus on test driven design to ensure the code works as expected.
+A text based role playing game engine written in TypeScript on Deno. This is
+still a work in progress but there is a lot here. There is a strong focus on
+test driven design to ensure the code works as expected.
 
 ## Screenshot(s)
 
@@ -31,9 +33,21 @@ A text based role playing game engine written in TypeScript on Deno. This is sti
 
 ## Run
 
+NOTE: Because we are using Deno.Kv we need to pass the --unstable flag
+
+Backend:
+
 > deno run --unstable --allow-read --allow-write --allow-net .\textworld_game.ts
 
+Frontend:
+
+NOTE: Requires Node.js and Angular CLI
+
+> ng serve
+
 ## Test
+
+NOTE: Because we are using Deno.Kv we need to pass the --unstable flag
 
 > deno test --unstable --allow-read --allow-write .\textworld_tests.ts
 

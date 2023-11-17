@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhale AT gmail.com&gt;
-// 16 November 2023
+// 17 November 2023
 
 import * as tw from "./textworld.ts";
 

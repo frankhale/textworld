@@ -2020,7 +2020,11 @@ export class TextWorld {
   // MISC //
   //////////
 
-  async save_player(player: Player, database_name: string, slot_name: string) {
+  async save_player(
+    player: Player,
+    database_name: string,
+    slot_name: string
+  ): Promise<string> {
     const kv = await Deno.openKv(database_name);
     await kv.set([slot_name], structuredClone(player));
     const result = await kv.get([slot_name]);
@@ -2028,6 +2032,7 @@ export class TextWorld {
     if (result) {
       return `Progress has been saved to slot: ${slot_name}`;
     }
+    return "Unable to save progress.";
   }
 
   async load_player(
