@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
-// Frank Hale <frankhale@gmail.com>
-// 31 August 2023
+// Frank Hale &lt;frankhale AT gmail.com&gt;
+// 16 November 2023
 
 export const input_character_limit = 256;
 export const active_quest_limit = 5;
@@ -128,6 +128,17 @@ export interface ItemDrop {
   quantity: number;
 }
 
+export interface SpawnLocation {
+  name: string;
+  zone: string;
+  room: string;
+  interval: number;
+  active: boolean;
+  timer_id: number;
+  timer: () => void;
+  action: (spawn_location: SpawnLocation) => void;
+}
+
 export interface World {
   zones: Zone[];
   items: Item[];
@@ -137,6 +148,7 @@ export interface World {
   players: Player[];
   quests: Quest[];
   level_data: Level[];
+  spawn_locations: SpawnLocation[];
   // --- OBJECTS CONTAINING FUNCTIONS BELOW ---
   dialog_actions: DialogAction[];
   item_actions: ItemAction[];
@@ -295,6 +307,12 @@ export class TextWorld {
       "Attack a mob.",
       ["attack"],
       (player, _input, _command, args) => this.attack_mob(player, args, true)
+    ),
+    this.create_command_action(
+      "craft action",
+      "Craft an item.",
+      ["craft"],
+      (player, _input, _command, args) => this.craft_recipe(player, args)
     ),
   ];
   private player_dead_command_actions: CommandAction[] = [
@@ -985,10 +1003,19 @@ export class TextWorld {
           );
 
           if (room_item) {
-            player.inventory.push({
-              name: room_item.name,
-              quantity: room_item.quantity,
-            });
+            const player_item = player.inventory.find(
+              (item) => item.name === room_item.name
+            );
+
+            if (player_item) {
+              player_item.quantity += room_item.quantity;
+            } else {
+              player.inventory.push({
+                name: room_item.name,
+                quantity: room_item.quantity,
+              });
+            }
+
             current_room.inventory = current_room.inventory.filter(
               (item) => item.name !== room_item.name
             );
@@ -1009,8 +1036,19 @@ export class TextWorld {
       return "That item does not exist.";
     }
 
-    current_room.inventory.forEach((item) => {
-      player.inventory.push({ ...item });
+    current_room.inventory.forEach((room_item) => {
+      const player_item = player.inventory.find(
+        (pitem) => pitem.name === room_item.name
+      );
+
+      if (player_item) {
+        player_item.quantity += room_item.quantity;
+      } else {
+        player.inventory.push({
+          name: room_item.name,
+          quantity: room_item.quantity,
+        });
+      }
     });
 
     current_room.inventory = [];
@@ -1938,9 +1976,14 @@ export class TextWorld {
     return "That recipe does not exist.";
   }
 
-  craft_recipe(player: Player, recipe_name: string): string {
-    const knows_recipe = player.known_recipes.includes(recipe_name);
-    if (knows_recipe) {
+  craft_recipe(player: Player, args: string[]): string {
+    const recipe_names = this.generate_combinations(args);
+    const recipe_name = recipe_names.find((name) =>
+      this.world.recipes.some(
+        (recipe) => recipe.name.toLowerCase() === name.toLowerCase()
+      )
+    );
+    if (recipe_name) {
       const recipe = this.get_recipe(recipe_name);
       if (recipe) {
         let has_ingredients = true;
@@ -1977,6 +2020,74 @@ export class TextWorld {
   //////////
   // MISC //
   //////////
+
+  get_random_number(upper = 100) {
+    const nums = new Uint32Array(1);
+    window.crypto.getRandomValues(nums);
+    return nums[0] % (upper + 1);
+  }
+
+  create_spawn_location(
+    name: string,
+    zone: string,
+    room: string,
+    interval: number,
+    active: boolean,
+    action: (spawn_location: SpawnLocation) => void
+  ) {
+    const spawn_location: SpawnLocation = {
+      name,
+      zone,
+      room,
+      interval,
+      active,
+      action,
+      timer_id: 0,
+      timer: () => {},
+    };
+
+    spawn_location.timer = () => {
+      spawn_location.timer_id = setInterval(() => {
+        if (spawn_location.active) {
+          spawn_location.action(spawn_location);
+        }
+      }, spawn_location.interval);
+    };
+
+    this.world.spawn_locations.push(spawn_location);
+  }
+
+  set_spawn_location_active(name: string, active: boolean) {
+    const spawn_location = this.world.spawn_locations.find(
+      (location) => location.name === name
+    );
+    if (spawn_location) {
+      spawn_location.active = active;
+    }
+  }
+
+  spawn_location_start(name: string) {
+    const spawn_location = this.world.spawn_locations.find(
+      (location) => location.name === name
+    );
+    if (spawn_location) {
+      spawn_location.timer();
+    }
+  }
+
+  remove_spawn_location(name: string) {
+    const spawn_location = this.world.spawn_locations.find(
+      (location) => location.name === name
+    );
+
+    if (spawn_location) {
+      clearInterval(spawn_location.timer_id);
+    }
+
+    this.world.spawn_locations = this.world.spawn_locations.filter(
+      (location) => location.name !== name
+    );
+  }
 
   create_dialog(
     npc_name: string,
@@ -2057,6 +2168,7 @@ export class TextWorld {
       players: [],
       quests: [],
       level_data: this.calculate_level_experience(1, 1.2, 50),
+      spawn_locations: [],
       // ---
       dialog_actions: [],
       item_actions: [],

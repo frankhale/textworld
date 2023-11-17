@@ -25,15 +25,12 @@ A text based role playing game engine written in TypeScript on Deno. This is sti
 - [x] Exposed through WebSocket server
 - [x] Exposed through command line interface
 - [x] Web UI
+- [x] Spawn Locations
 
-Player Progress:
+Player Progression:
 
 - [ ] Leveling
-
-Future:
-
 - [ ] Save/Load (Deno KV)
-- [ ] Multiplayer?
 
 ## Author(s)
 

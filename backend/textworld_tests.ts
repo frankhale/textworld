@@ -1,12 +1,15 @@
 // A Text Adventure Library & Game for Deno
-// Frank Hale <frankhale@gmail.com>
-// 31 August 2023
+// Frank Hale &lt;frankhale AT gmail.com&gt;
+// 16 November 2023
 
 import { assertEquals } from "https://deno.land/std@0.199.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.199.0/assert/assert_not_equals.ts";
 import { assertStringIncludes } from "https://deno.land/std@0.199.0/assert/assert_string_includes.ts";
 
 import * as tw from "./textworld.ts";
+
+// REF: https://stackoverflow.com/questions/14226803/wait-5-seconds-before-executing-next-line
+const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 const textworld = new tw.TextWorld();
 const player = textworld.create_player(
@@ -953,6 +956,70 @@ Deno.test("can_parse_malformed_command", () => {
   assertEquals(result, "You can't go that way.");
 });
 
+Deno.test("can_parse_craft_command", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item("Iron", "A piece of iron", false);
+  textworld.create_item("Wood", "A piece of wood", false);
+  textworld.place_item("Zone1", "Room1", "Iron", 4);
+  textworld.place_item("Zone1", "Room1", "Wood", 4);
+  textworld.take_all_items(player);
+  textworld.create_recipe(
+    "Iron Sword",
+    "A quality sword for the everyday fighter",
+    [
+      { name: "Iron", quantity: 2 },
+      { name: "Wood", quantity: 1 },
+    ],
+    { name: "Iron Sword", quantity: 1 }
+  );
+  textworld.learn_recipe(player, "Iron Sword");
+  assertEquals(player.known_recipes.length, 1);
+  const result = textworld.parse_command(player, "craft iron sword");
+  assertEquals(result, "Iron Sword has been crafted.");
+  assertEquals(player.inventory.length, 3);
+  player.inventory.length = 0;
+  player.known_recipes.length = 0;
+  textworld.reset_world();
+});
+
+Deno.test("can_spawn_item_in_room_using_spawn_location", async () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item("Iron", "A piece of iron", false);
+  textworld.create_spawn_location(
+    "Test Spawner",
+    "Zone1",
+    "Room1",
+    1000,
+    true,
+    (spawn_location: tw.SpawnLocation) => {
+      const item = textworld.get_room_item(
+        spawn_location.zone,
+        spawn_location.room,
+        "Iron"
+      );
+      if (!item) {
+        textworld.place_item(
+          spawn_location.zone,
+          spawn_location.room,
+          "Iron",
+          1
+        );
+      }
+    }
+  );
+  textworld.spawn_location_start("Test Spawner");
+  await delay(1000);
+  textworld.remove_spawn_location("Test Spawner");
+  const room = textworld.get_room("Zone1", "Room1");
+  assertEquals(room?.inventory.length, 1);
+});
+
 Deno.test("mob_can_attack_player", () => {
   player.zone = "Zone1";
   player.room = "Room1";
@@ -1718,7 +1785,7 @@ Deno.test("player_can_craft_recipe", () => {
     { name: "Iron Sword", quantity: 1 }
   );
   textworld.learn_recipe(player, "Iron Sword");
-  const result = textworld.craft_recipe(player, "Iron Sword");
+  const result = textworld.craft_recipe(player, ["Iron Sword"]);
   assertEquals(result, "Iron Sword has been crafted.");
   assertEquals(player.inventory.length, 3);
   player.inventory.length = 0;
@@ -1727,7 +1794,7 @@ Deno.test("player_can_craft_recipe", () => {
 });
 
 Deno.test("player_cant_craft_unknown_recipe", () => {
-  const result = textworld.craft_recipe(player, "Iron Sword");
+  const result = textworld.craft_recipe(player, ["Iron Sword"]);
   assertEquals(result, "You don't know how to craft that.");
   textworld.reset_world();
 });

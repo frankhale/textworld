@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
-// Frank Hale <frankhale@gmail.com>
-// 31 August 2023
+// Frank Hale &lt;frankhale AT gmail.com&gt;
+// 16 November 2023
 
 import * as tw from "./textworld.ts";
 
@@ -21,6 +21,7 @@ class TextworldGame {
     this.place_npcs();
     this.create_mobs();
     this.place_mobs();
+    this.create_spawn_locations();
   }
 
   create_the_forest_zone() {
@@ -172,6 +173,32 @@ class TextworldGame {
 
   place_mobs() {
     this.textworld.place_mob("The Forest", "Open Field", "Goblin");
+  }
+
+  create_spawn_locations() {
+    this.textworld.create_spawn_location(
+      "Gold purse spawner",
+      "The Forest",
+      "Test Room",
+      5000,
+      true,
+      (spawn_location: tw.SpawnLocation) => {
+        const item = this.textworld.get_room_item(
+          spawn_location.zone,
+          spawn_location.room,
+          "Gold coin purse"
+        );
+        if (!item && this.textworld.get_random_number() > 80) {
+          this.textworld.place_item(
+            spawn_location.zone,
+            spawn_location.room,
+            "Gold coin purse",
+            1
+          );
+        }
+      }
+    );
+    this.textworld.spawn_location_start("Gold purse spawner");
   }
 
   run_cli_game_loop() {
