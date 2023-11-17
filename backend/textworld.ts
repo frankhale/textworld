@@ -1,7 +1,8 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhale AT gmail.com&gt;
-// 16 November 2023
+// 17 November 2023
 
+export const player_save_db_name = "game_saves.db";
 export const input_character_limit = 256;
 export const active_quest_limit = 5;
 
@@ -110,7 +111,6 @@ export interface RoomObject extends Entity {
 
 export interface Item extends Entity {
   usable: boolean;
-  //action: Action | null;
 }
 
 export interface ItemAction extends Id {
@@ -178,8 +178,6 @@ export interface RoomCommandActions extends Id {
 export interface Quest extends Entity {
   complete: boolean;
   steps: QuestStep[] | null;
-  // start: ActionNoOutput | null;
-  // end: ActionNoOutput | null;
 }
 
 export interface QuestAction extends Id {
@@ -189,7 +187,6 @@ export interface QuestAction extends Id {
 
 export interface QuestStep extends Entity {
   complete: boolean;
-  // action: ActionDecision | null;
 }
 
 export interface QuestStepAction extends Id {
@@ -283,7 +280,9 @@ export class TextWorld {
       "quit action",
       "Quit the game.",
       ["quit"],
-      (_player, _input, _command, _args) => "You quit the game."
+      (_player, _input, _command, _args) => {
+        return "You quit the game.";
+      }
     ),
     this.create_command_action(
       "goto action",
@@ -2020,6 +2019,29 @@ export class TextWorld {
   //////////
   // MISC //
   //////////
+
+  async save_player(player: Player, database_name: string, slot_name: string) {
+    const kv = await Deno.openKv(database_name);
+    await kv.set([slot_name], structuredClone(player));
+    const result = await kv.get([slot_name]);
+    kv.close();
+    if (result) {
+      return `Progress has been saved to slot: ${slot_name}`;
+    }
+  }
+
+  async load_player(
+    database_name: string,
+    slot_name: string
+  ): Promise<Player | null> {
+    const kv = await Deno.openKv(database_name);
+    const result = await kv.get([slot_name]);
+    kv.close();
+    if (result.value) {
+      return result.value as Player;
+    }
+    return null;
+  }
 
   get_random_number(upper = 100) {
     const nums = new Uint32Array(1);

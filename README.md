@@ -26,11 +26,16 @@ A text based role playing game engine written in TypeScript on Deno. This is sti
 - [x] Exposed through command line interface
 - [x] Web UI
 - [x] Spawn Locations
-
-Player Progression:
-
+- [x] Save/Load (uses Deno KV)
 - [ ] Leveling
-- [ ] Save/Load (Deno KV)
+
+## Run
+
+> deno run --unstable --allow-read --allow-write --allow-net .\textworld_game.ts
+
+## Test
+
+> deno test --unstable --allow-read --allow-write .\textworld_tests.ts
 
 ## Author(s)
 
@@ -38,4 +43,4 @@ Frank Hale &lt;frankhale AT gmail.com&gt;
 
 ## Date
 
-16 November 2023
+17 November 2023

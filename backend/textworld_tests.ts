@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhale AT gmail.com&gt;
-// 16 November 2023
+// 17 November 2023
 
 import { assertEquals } from "https://deno.land/std@0.199.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.199.0/assert/assert_not_equals.ts";
@@ -465,6 +465,19 @@ Deno.test("can_process_examine_room_object", () => {
   textworld.reset_world();
 });
 
+Deno.test("can_process_get_room_description_with_no_rooms", () => {
+  const result = textworld.get_room_description(player);
+  assertEquals(result, "You can't see anything.");
+});
+
+Deno.test("can_process_get_exit_with_no_rooms", () => {
+  try {
+    textworld.get_exit("Zone1", "Room1", "north");
+  } catch (e) {
+    assertEquals(e.message, "The room or zone does not exist.");
+  }
+});
+
 Deno.test("can_parse_command_examine_room_object", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
@@ -484,19 +497,6 @@ Deno.test("can_parse_command_examine_room_object", () => {
   const result = textworld.parse_command(player, "examine fireplace fan flame");
   assertEquals(result, "The flames become stronger as you fan them.");
   textworld.reset_world();
-});
-
-Deno.test("can_process_get_room_description_with_no_rooms", () => {
-  const result = textworld.get_room_description(player);
-  assertEquals(result, "You can't see anything.");
-});
-
-Deno.test("can_process_get_exit_with_no_rooms", () => {
-  try {
-    textworld.get_exit("Zone1", "Room1", "north");
-  } catch (e) {
-    assertEquals(e.message, "The room or zone does not exist.");
-  }
 });
 
 Deno.test("can_parse_command_attack_mob", () => {
@@ -956,7 +956,7 @@ Deno.test("can_parse_malformed_command", () => {
   assertEquals(result, "You can't go that way.");
 });
 
-Deno.test("can_parse_craft_command", () => {
+Deno.test("can_parse_command_craft", () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
@@ -995,7 +995,7 @@ Deno.test("can_spawn_item_in_room_using_spawn_location", async () => {
     "Test Spawner",
     "Zone1",
     "Room1",
-    1000,
+    500,
     true,
     (spawn_location: tw.SpawnLocation) => {
       const item = textworld.get_room_item(
@@ -1014,7 +1014,7 @@ Deno.test("can_spawn_item_in_room_using_spawn_location", async () => {
     }
   );
   textworld.spawn_location_start("Test Spawner");
-  await delay(1000);
+  await delay(500);
   textworld.remove_spawn_location("Test Spawner");
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.inventory.length, 1);
@@ -1248,6 +1248,22 @@ Deno.test("player_can_take_all_items", () => {
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_all_items(player);
   assertEquals(player.inventory.length, 2);
+  player.inventory.length = 0;
+  textworld.reset_world();
+});
+
+Deno.test("player_can_take_item_and_it_stacks_in_inventory", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item("Potion", "An ordinary potion", false);
+  textworld.place_item("Zone1", "Room1", "Potion");
+  textworld.take_item(player, ["Potion"]);
+  textworld.place_item("Zone1", "Room1", "Potion");
+  textworld.take_item(player, ["Potion"]);
+  const result = textworld.has_item_in_quantity(player, "Potion", 2);
+  assertEquals(result, true);
   player.inventory.length = 0;
   textworld.reset_world();
 });
@@ -1952,6 +1968,28 @@ Deno.test("player_can_navigate_to_new_zone_using_custom_room_action", () => {
   );
   assertEquals(player.zone, "Zone2");
   assertEquals(player.room, "Room1");
+  textworld.reset_world();
+});
+
+Deno.test("player_can_save", async () => {
+  const result = await textworld.save_player(
+    player,
+    "game_saves.db",
+    "test_slot"
+  );
+  assertEquals(result, "Progress has been saved to slot: test_slot");
+  await Deno.remove("game_saves.db");
+  textworld.reset_world();
+});
+
+Deno.test("player_can_load", async () => {
+  player.gold = 1000;
+  await textworld.save_player(player, "game_saves.db", "test_slot");
+  const result = await textworld.load_player("game_saves.db", "test_slot");
+  assertNotEquals(result, null);
+  assertEquals(result!.gold, 1000);
+  await Deno.remove("game_saves.db");
+  player.gold = 0;
   textworld.reset_world();
 });
 
