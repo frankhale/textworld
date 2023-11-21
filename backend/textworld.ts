@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhale AT gmail.com&gt;
-// 17 November 2023
+// 21 November 2023
 
 export const player_save_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -14,7 +14,7 @@ type CommandParserAction = (
   input: string,
   command: string,
   args: string[]
-) => string;
+) => string | Promise<string>;
 
 export interface Description {
   flag: string;
@@ -148,8 +148,10 @@ export interface World {
   players: Player[];
   quests: Quest[];
   level_data: Level[];
+}
+
+export interface WorldActions {
   spawn_locations: SpawnLocation[];
-  // --- OBJECTS CONTAINING FUNCTIONS BELOW ---
   dialog_actions: DialogAction[];
   item_actions: ItemAction[];
   room_command_actions: RoomCommandActions[];
@@ -202,6 +204,7 @@ export interface CommandAction extends Entity {
 
 export class TextWorld {
   private world: World = this.reset_world();
+  private world_actions: WorldActions = this.reset_world_actions();
   private main_command_actions: CommandAction[] = [
     this.create_command_action(
       "movement action",
@@ -312,6 +315,54 @@ export class TextWorld {
       "Craft an item.",
       ["craft"],
       (player, _input, _command, args) => this.craft_recipe(player, args)
+    ),
+  ];
+  private main_async_command_actions: CommandAction[] = [
+    this.create_command_action(
+      "save action",
+      "Save player progress.",
+      ["save"],
+      async (player, _input, _command, args) => {
+        let result = "You must specify a slot name";
+        if (args.length >= 0) {
+          await this.save_player(player, player_save_db_name, args[0]);
+          result = `Progress has been saved to slot: ${args[0]}`;
+        }
+        return result;
+      }
+    ),
+    this.create_command_action(
+      "load action",
+      "Load player progress.",
+      ["load"],
+      async (player, _input, _command, args) => {
+        let result = "You must specify a slot name";
+        if (args.length >= 0) {
+          const player_result = await this.load_player(
+            player_save_db_name,
+            args[0]
+          );
+
+          if (player_result) {
+            result = `Progress has been loaded from slot: ${args[0]}`;
+            player.score = player_result.score;
+            player.stats = player_result.stats;
+            player.damage_and_defense = player_result.damage_and_defense;
+            player.progress = player_result.progress;
+            player.gold = player_result.gold;
+            player.zone = player_result.zone;
+            player.room = player_result.room;
+            player.flags = player_result.flags;
+            player.inventory = player_result.inventory;
+            player.quests = player_result.quests;
+            player.quests_completed = player_result.quests_completed;
+            player.known_recipes = player_result.known_recipes;
+          } else {
+            result = `Unable to load progress from slot: ${args[0]}`;
+          }
+        }
+        return result;
+      }
     ),
   ];
   private player_dead_command_actions: CommandAction[] = [
@@ -471,7 +522,7 @@ export class TextWorld {
     const quest = this.get_quest(quest_name);
     if (!quest) return null;
     return (
-      this.world.quest_actions.find(
+      this.world_actions.quest_actions.find(
         (quest_action) => quest_action.id === quest.id
       ) ?? null
     );
@@ -481,7 +532,7 @@ export class TextWorld {
     const quest_step = this.get_quest_step(quest_name, name);
     if (!quest_step) return null;
     return (
-      this.world.quest_step_actions.find(
+      this.world_actions.quest_step_actions.find(
         (quest_step_action) => quest_step_action.id === quest_step.id
       ) ?? null
     );
@@ -504,7 +555,7 @@ export class TextWorld {
       } else {
         quest_action.end = action;
       }
-      this.world.quest_actions.push(quest_action);
+      this.world_actions.quest_actions.push(quest_action);
     }
   }
 
@@ -525,7 +576,7 @@ export class TextWorld {
         complete: false,
       });
       if (action) {
-        this.world.quest_step_actions.push({
+        this.world_actions.quest_step_actions.push({
           id,
           action,
         });
@@ -766,12 +817,17 @@ export class TextWorld {
           dialog.trigger.some((trigger) => possible_triggers.includes(trigger))
         );
         if (dialog) {
-          const dialog_action = this.world.dialog_actions.find(
+          const dialog_action = this.world_actions.dialog_actions.find(
             (action) => action.trigger === dialog.trigger
           );
 
           if (dialog_action) {
-            result = dialog_action.action(player, input, command, args);
+            result = dialog_action.action(
+              player,
+              input,
+              command,
+              args
+            ) as string;
           } else {
             result = dialog.response || "hmm...";
           }
@@ -950,7 +1006,7 @@ export class TextWorld {
       usable,
     });
     if (action) {
-      this.world.item_actions.push({
+      this.world_actions.item_actions.push({
         id,
         action,
       });
@@ -969,7 +1025,7 @@ export class TextWorld {
     const item = this.get_item(name);
     if (!item) return null;
     return (
-      this.world.item_actions.find(
+      this.world_actions.item_actions.find(
         (item_action) => item_action.id === item.id
       ) ?? null
     );
@@ -1082,7 +1138,7 @@ export class TextWorld {
         if (item_definition) {
           if (!item_definition.usable) return "You can't use that item.";
 
-          const item_action = this.world.item_actions.find(
+          const item_action = this.world_actions.item_actions.find(
             (action) => action.id === item_definition.id
           );
 
@@ -1415,7 +1471,7 @@ export class TextWorld {
   get_room_command_action(zone_name: string, room_name: string) {
     const room = this.get_room(zone_name, room_name);
     if (room) {
-      return this.world.room_command_actions.find(
+      return this.world_actions.room_command_actions.find(
         (action) => action.id === room.id
       );
     }
@@ -1446,7 +1502,7 @@ export class TextWorld {
       if (room_command_actions) {
         room_command_actions.command_actions.push(command_action);
       } else {
-        this.world.room_command_actions.push({
+        this.world_actions.room_command_actions.push({
           id: room.id,
           command_actions: [command_action],
         });
@@ -1928,12 +1984,17 @@ export class TextWorld {
             )
           );
           if (dialog) {
-            const dialog_action = this.world.dialog_actions.find(
+            const dialog_action = this.world_actions.dialog_actions.find(
               (action) => action.id === dialog.id
             );
 
             if (dialog_action) {
-              result = dialog_action.action(player, input, command, args);
+              result = dialog_action.action(
+                player,
+                input,
+                command,
+                args
+              ) as string;
             } else if (dialog?.response) {
               result = dialog.response;
             }
@@ -2095,11 +2156,11 @@ export class TextWorld {
       }, spawn_location.interval);
     };
 
-    this.world.spawn_locations.push(spawn_location);
+    this.world_actions.spawn_locations.push(spawn_location);
   }
 
   set_spawn_location_active(name: string, active: boolean) {
-    const spawn_location = this.world.spawn_locations.find(
+    const spawn_location = this.world_actions.spawn_locations.find(
       (location) => location.name === name
     );
     if (spawn_location) {
@@ -2108,7 +2169,7 @@ export class TextWorld {
   }
 
   spawn_location_start(name: string) {
-    const spawn_location = this.world.spawn_locations.find(
+    const spawn_location = this.world_actions.spawn_locations.find(
       (location) => location.name === name
     );
     if (spawn_location) {
@@ -2117,7 +2178,7 @@ export class TextWorld {
   }
 
   remove_spawn_location(name: string) {
-    const spawn_location = this.world.spawn_locations.find(
+    const spawn_location = this.world_actions.spawn_locations.find(
       (location) => location.name === name
     );
 
@@ -2125,9 +2186,10 @@ export class TextWorld {
       clearInterval(spawn_location.timer_id);
     }
 
-    this.world.spawn_locations = this.world.spawn_locations.filter(
-      (location) => location.name !== name
-    );
+    this.world_actions.spawn_locations =
+      this.world_actions.spawn_locations.filter(
+        (location) => location.name !== name
+      );
   }
 
   create_dialog(
@@ -2148,7 +2210,7 @@ export class TextWorld {
         response,
       });
       if (action) {
-        this.world.dialog_actions.push({
+        this.world_actions.dialog_actions.push({
           id,
           trigger,
           action,
@@ -2162,7 +2224,7 @@ export class TextWorld {
     trigger: string[],
     action: CommandParserAction
   ) {
-    this.world.dialog_actions.push({
+    this.world_actions.dialog_actions.push({
       id,
       trigger,
       action,
@@ -2209,16 +2271,29 @@ export class TextWorld {
       players: [],
       quests: [],
       level_data: this.calculate_level_experience(1, 1.2, 50),
+      //spawn_locations: [],
+      // // ---
+      // dialog_actions: [],
+      // item_actions: [],
+      // room_command_actions: [],
+      // quest_actions: [],
+      // quest_step_actions: [],
+    };
+    this.world = world;
+    return world;
+  }
+
+  reset_world_actions(): WorldActions {
+    const world_actions: WorldActions = {
       spawn_locations: [],
-      // ---
       dialog_actions: [],
       item_actions: [],
       room_command_actions: [],
       quest_actions: [],
       quest_step_actions: [],
     };
-    this.world = world;
-    return world;
+    this.world_actions = world_actions;
+    return world_actions;
   }
 
   to_title_case(str: string): string {
@@ -2399,7 +2474,7 @@ export class TextWorld {
     return result;
   }
 
-  parse_command(player: Player, input: string): string {
+  async parse_command(player: Player, input: string): Promise<string> {
     let result = "I don't understand that command.";
     const inputLimit = Math.min(input_character_limit, input.length);
     input = input.substring(0, inputLimit);
@@ -2424,41 +2499,55 @@ export class TextWorld {
     );
 
     if (command_action) {
-      result = command_action.action(player, input, command, args);
+      result = command_action.action(player, input, command, args) as string;
     } else {
-      if (this.world.zones.length > 0) {
-        const players_room = this.get_players_room(player);
-        if (players_room) {
-          const players_room_command_actions = this.get_room_command_action(
-            player.zone,
-            players_room.name
-          );
+      const async_command_action = this.main_async_command_actions.find(
+        (action) =>
+          action.synonyms.some((synonym) => filtered_actions.includes(synonym))
+      );
 
-          if (players_room_command_actions) {
-            const room_command_action =
-              players_room_command_actions.command_actions.find((action) =>
-                action.synonyms.some((synonym) =>
-                  filtered_actions.includes(synonym)
-                )
-              );
+      if (async_command_action) {
+        result = await async_command_action.action(
+          player,
+          input,
+          command,
+          args
+        );
+      } else {
+        if (this.world.zones.length > 0) {
+          const players_room = this.get_players_room(player);
+          if (players_room) {
+            const players_room_command_actions = this.get_room_command_action(
+              player.zone,
+              players_room.name
+            );
 
-            if (room_command_action) {
-              result = `${this.get_description(
-                player,
-                room_command_action,
-                "default"
-              )}\n\n${room_command_action.action(
-                player,
-                input,
-                command,
-                args
-              )}`;
-            } else {
-              result = "I don't understand that command.";
+            if (players_room_command_actions) {
+              const room_command_action =
+                players_room_command_actions.command_actions.find((action) =>
+                  action.synonyms.some((synonym) =>
+                    filtered_actions.includes(synonym)
+                  )
+                );
+
+              if (room_command_action) {
+                result = `${this.get_description(
+                  player,
+                  room_command_action,
+                  "default"
+                )}\n\n${room_command_action.action(
+                  player,
+                  input,
+                  command,
+                  args
+                )}`;
+              } else {
+                result = "I don't understand that command.";
+              }
             }
+          } else {
+            result = "Player's room does not exist.";
           }
-        } else {
-          result = "Player's room does not exist.";
         }
       }
     }

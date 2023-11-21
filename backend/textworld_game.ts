@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhale AT gmail.com&gt;
-// 17 November 2023
+// 21 November 2023
 
 import * as tw from "./textworld.ts";
 
@@ -209,34 +209,8 @@ class TextworldGame {
 
       if (input.length <= 0) {
         response = this.textworld.get_room_description(this.player);
-      } else if (input.startsWith("save") || input.startsWith("load")) {
-        const input_parts = input.split(" ");
-        if (input_parts.length <= 1) {
-          response = "You must specify a slot name";
-        }
-        if (input_parts[0] === "save") {
-          const result = await this.textworld.save_player(
-            this.player,
-            tw.player_save_db_name,
-            input_parts[1]
-          );
-          if (result) {
-            response = result;
-          }
-        } else if (input_parts[0] === "load") {
-          const player_result = await this.textworld.load_player(
-            tw.player_save_db_name,
-            input_parts[1]
-          );
-          if (player_result) {
-            response = `Progress has been loaded from slot: ${input_parts[1]}`;
-            this.player = player_result;
-          } else {
-            response = `Unable to load progress from slot: ${input_parts[1]}`;
-          }
-        }
       } else {
-        response = this.textworld.parse_command(this.player, input);
+        response = await this.textworld.parse_command(this.player, input);
       }
 
       return {

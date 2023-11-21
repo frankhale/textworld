@@ -22,7 +22,7 @@
     }
   </div>
 
-  @if(currentMessage) {
+  @if(currentMessage && currentMessage.player) {
   <div class="right-content">
     Zone: {{currentMessage.player.zone}}
     <br />

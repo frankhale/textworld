@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhale AT gmail.com&gt;
-// 17 November 2023
+// 21 November 2023
 
 import { assertEquals } from "https://deno.land/std@0.199.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.199.0/assert/assert_not_equals.ts";
@@ -478,7 +478,7 @@ Deno.test("can_process_get_exit_with_no_rooms", () => {
   }
 });
 
-Deno.test("can_parse_command_examine_room_object", () => {
+Deno.test("can_parse_command_examine_room_object", async () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_and_place_room_object(
@@ -494,12 +494,15 @@ Deno.test("can_parse_command_examine_room_object", () => {
       },
     ]
   );
-  const result = textworld.parse_command(player, "examine fireplace fan flame");
+  const result = await textworld.parse_command(
+    player,
+    "examine fireplace fan flame"
+  );
   assertEquals(result, "The flames become stronger as you fan them.");
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_attack_mob", () => {
+Deno.test("can_parse_command_attack_mob", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   player.stats.health.current = 100;
@@ -513,38 +516,38 @@ Deno.test("can_parse_command_attack_mob", () => {
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
-  const result = textworld.parse_command(player, "attack goblin");
+  const result = await textworld.parse_command(player, "attack goblin");
   assertStringIncludes(result, "Player attacks Goblin");
   player.stats.health.current = 100;
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_direction", () => {
+Deno.test("can_parse_command_direction", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_room("Zone1", "Room2", "This is room 2");
   textworld.create_exit("Zone1", "Room1", "north", "Room2");
-  const result = textworld.parse_command(player, "north");
+  const result = await textworld.parse_command(player, "north");
   assertEquals(result, "Location: Room2\n\nThis is room 2\n\nExits: south");
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_goto_room", () => {
+Deno.test("can_parse_command_goto_room", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.set_godmode(player);
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "The Room1", "This is room 1");
   textworld.create_room("Zone1", "The Room2", "This is room 2");
-  const result = textworld.parse_command(player, "goto room The Room2");
+  const result = await textworld.parse_command(player, "goto room The Room2");
   assertEquals(result, "Location: The Room2\n\nThis is room 2");
   textworld.remove_godmode(player);
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_goto_zone", () => {
+Deno.test("can_parse_command_goto_zone", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.set_godmode(player);
@@ -553,27 +556,27 @@ Deno.test("can_parse_command_goto_zone", () => {
   textworld.create_room("Zone1", "The Room1", "This is room 1");
   textworld.create_room("Zone2", "The Forest", "This is the forest");
   textworld.set_room_as_zone_starter("Zone2", "The Forest");
-  const result = textworld.parse_command(player, "goto zone Zone2");
+  const result = await textworld.parse_command(player, "goto zone Zone2");
   assertEquals(result, "Location: The Forest\n\nThis is the forest");
   textworld.remove_godmode(player);
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_take", () => {
+Deno.test("can_parse_command_take", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_item("Sword", "A sharp sword", false);
   textworld.place_item("Zone1", "Room1", "Sword");
-  const result = textworld.parse_command(player, "take sword");
+  const result = await textworld.parse_command(player, "take sword");
   assertEquals(result, "You took the Sword.");
   assertEquals(player.inventory.length, 1);
   player.inventory.length = 0;
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_take_all", () => {
+Deno.test("can_parse_command_take_all", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
@@ -582,14 +585,14 @@ Deno.test("can_parse_command_take_all", () => {
   textworld.create_item("Potion", "An ordinary potion", true);
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
-  const result = textworld.parse_command(player, "take all");
+  const result = await textworld.parse_command(player, "take all");
   assertEquals(result, "You took all items.");
   assertEquals(player.inventory.length, 2);
   player.inventory.length = 0;
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_use", () => {
+Deno.test("can_parse_command_use", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
@@ -599,14 +602,14 @@ Deno.test("can_parse_command_use", () => {
   });
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_item(player, ["Potion"]);
-  const result = textworld.parse_command(player, "use potion");
+  const result = await textworld.parse_command(player, "use potion");
   assertEquals(result, "You drank the potion but nothing happened.");
   assertEquals(player.inventory.length, 0);
   player.inventory.length = 0;
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_drop", () => {
+Deno.test("can_parse_command_drop", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
@@ -614,14 +617,14 @@ Deno.test("can_parse_command_drop", () => {
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_item(player, ["Potion"]);
-  const result = textworld.parse_command(player, "drop potion");
+  const result = await textworld.parse_command(player, "drop potion");
   assertEquals(result, "You dropped the Potion.");
   assertEquals(player.inventory.length, 0);
   player.inventory.length = 0;
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_drop_all", () => {
+Deno.test("can_parse_command_drop_all", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
@@ -631,29 +634,29 @@ Deno.test("can_parse_command_drop_all", () => {
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   textworld.take_all_items(player);
-  const result = textworld.parse_command(player, "drop all");
+  const result = await textworld.parse_command(player, "drop all");
   assertEquals(result, "You dropped all your items.");
   assertEquals(player.inventory.length, 0);
   player.inventory.length = 0;
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_look", () => {
+Deno.test("can_parse_command_look", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  const result = textworld.parse_command(player, "look");
+  const result = await textworld.parse_command(player, "look");
   assertEquals(result, "This is room 1");
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_look_at_self", () => {
-  const result = textworld.parse_command(player, "look self");
+Deno.test("can_parse_command_look_at_self", async () => {
+  const result = await textworld.parse_command(player, "look self");
   assertEquals(result, "You are a strong adventurer");
 });
 
-Deno.test("can_parse_command_look_at_object", () => {
+Deno.test("can_parse_command_look_at_object", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
@@ -664,12 +667,12 @@ Deno.test("can_parse_command_look_at_object", () => {
     "Sword",
     "A sharp sword"
   );
-  const result = textworld.parse_command(player, "look at sword");
+  const result = await textworld.parse_command(player, "look at sword");
   assertEquals(result, "A sharp sword");
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_examine_object", () => {
+Deno.test("can_parse_command_examine_object", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
@@ -687,7 +690,7 @@ Deno.test("can_parse_command_examine_object", () => {
       },
     ]
   );
-  const result = textworld.parse_command(
+  const result = await textworld.parse_command(
     player,
     "examine fireplace fan flames"
   );
@@ -695,12 +698,12 @@ Deno.test("can_parse_command_examine_object", () => {
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_inspect_room_with_no_items", () => {
+Deno.test("can_parse_command_inspect_room_with_no_items", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  const result = textworld.parse_command(player, "inspect");
+  const result = await textworld.parse_command(player, "inspect");
   assertEquals(
     result,
     "You inspect the room and found:\n\nThere is nothing else of interest here."
@@ -708,7 +711,7 @@ Deno.test("can_parse_command_inspect_room_with_no_items", () => {
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_inspect_room_with_items", () => {
+Deno.test("can_parse_command_inspect_room_with_items", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
@@ -717,7 +720,7 @@ Deno.test("can_parse_command_inspect_room_with_items", () => {
   textworld.create_item("Potion", "An ordinary potion", true);
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
-  const result = textworld.parse_command(player, "inspect");
+  const result = await textworld.parse_command(player, "inspect");
   assertEquals(
     result,
     "You inspect the room and found:\n\nItems: Sword (1), Potion (2)"
@@ -725,7 +728,7 @@ Deno.test("can_parse_command_inspect_room_with_items", () => {
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_show_item", () => {
+Deno.test("can_parse_command_show_item", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
@@ -733,13 +736,13 @@ Deno.test("can_parse_command_show_item", () => {
   textworld.create_item("Potion", "An ordinary potion", true);
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   textworld.take_item(player, ["Potion"]);
-  const result = textworld.parse_command(player, "show potion");
+  const result = await textworld.parse_command(player, "show potion");
   assertEquals(result, "An ordinary potion");
   player.inventory.length = 0;
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_show_all_items", () => {
+Deno.test("can_parse_command_show_all_items", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
@@ -749,28 +752,31 @@ Deno.test("can_parse_command_show_all_items", () => {
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   textworld.take_all_items(player);
-  const result = textworld.parse_command(player, "show all");
+  const result = await textworld.parse_command(player, "show all");
   assertEquals(result, "Sword - A sharp sword\n\nPotion - An ordinary potion");
   player.inventory.length = 0;
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_show_quests", () => {
+Deno.test("can_parse_command_show_quests", async () => {
   textworld.create_quest("Kill the dragon", "Kill the dragon");
   textworld.pickup_quest(player, "Kill the dragon");
-  const result = textworld.parse_command(player, "show quests");
+  const result = await textworld.parse_command(player, "show quests");
   assertEquals(result, "Kill the dragon - Kill the dragon");
   player.quests.length = 0;
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_show_quests_with_empty_quest_journal", () => {
-  const result = textworld.parse_command(player, "show quests");
-  assertEquals(result, "You have no quests.");
-  textworld.reset_world();
-});
+Deno.test(
+  "can_parse_command_show_quests_with_empty_quest_journal",
+  async () => {
+    const result = await textworld.parse_command(player, "show quests");
+    assertEquals(result, "You have no quests.");
+    textworld.reset_world();
+  }
+);
 
-Deno.test("can_parse_command_talk_to_npc", () => {
+Deno.test("can_parse_command_talk_to_npc", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
@@ -783,12 +789,15 @@ Deno.test("can_parse_command_talk_to_npc", () => {
     null
   );
   textworld.place_npc("Zone1", "Room1", "Guard");
-  const result = textworld.parse_command(player, "talk to Guard say hello");
+  const result = await textworld.parse_command(
+    player,
+    "talk to Guard say hello"
+  );
   assertEquals(result, "Hello citizen, make sure you mind the law!");
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_talk_to_npc_and_get_item", () => {
+Deno.test("can_parse_command_talk_to_npc_and_get_item", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
@@ -839,19 +848,28 @@ Deno.test("can_parse_command_talk_to_npc_and_get_item", () => {
     }
   );
   textworld.place_npc("Zone1", "Room1", "Old_woman");
-  let result = textworld.parse_command(player, "talk to Old_woman say hello");
+  let result = await textworld.parse_command(
+    player,
+    "talk to Old_woman say hello"
+  );
   assertEquals(result, "Hi, I have a gem you may want!");
-  result = textworld.parse_command(player, "talk to Old_woman say take gem");
+  result = await textworld.parse_command(
+    player,
+    "talk to Old_woman say take gem"
+  );
   assertEquals(result, "You took the Gem.");
   assertEquals(player.inventory.length, 1);
-  result = textworld.parse_command(player, "talk to Old_woman say take gem");
+  result = await textworld.parse_command(
+    player,
+    "talk to Old_woman say take gem"
+  );
   assertEquals(result, "I don't have that item.");
   textworld.remove_flag(player, "took_gem");
   player.inventory.length = 0;
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_talk_to_vendor_and_list_items", () => {
+Deno.test("can_parse_command_talk_to_vendor_and_list_items", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
@@ -860,7 +878,10 @@ Deno.test("can_parse_command_talk_to_vendor_and_list_items", () => {
     { name: "Fried Chicken & Roasted Vegetables", price: 2 },
   ]);
   textworld.place_npc("Zone1", "Room1", "Vendor1");
-  const result = textworld.parse_command(player, "talk to Vendor1 say items");
+  const result = await textworld.parse_command(
+    player,
+    "talk to Vendor1 say items"
+  );
   assertEquals(
     result,
     "Items for sale: Fried Chicken & Roasted Vegetables (2 gold)"
@@ -869,7 +890,7 @@ Deno.test("can_parse_command_talk_to_vendor_and_list_items", () => {
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_talk_to_vendor_and_purchase_item", () => {
+Deno.test("can_parse_command_talk_to_vendor_and_purchase_item", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   player.gold = 10;
@@ -884,7 +905,7 @@ Deno.test("can_parse_command_talk_to_vendor_and_purchase_item", () => {
     { name: "Fried Chicken & Roasted Vegetables", price: 2 },
   ]);
   textworld.place_npc("Zone1", "Room1", "Vendor1");
-  const result = textworld.parse_command(
+  const result = await textworld.parse_command(
     player,
     "talk to Vendor1 say buy Fried Chicken & Roasted Vegetables"
   );
@@ -896,24 +917,24 @@ Deno.test("can_parse_command_talk_to_vendor_and_purchase_item", () => {
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_quit", () => {
-  const result = textworld.parse_command(player, "quit");
+Deno.test("can_parse_command_quit", async () => {
+  const result = await textworld.parse_command(player, "quit");
   assertEquals(result, "You quit the game.");
 });
 
-Deno.test("can_parse_command_map", () => {
+Deno.test("can_parse_command_map", async () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_room("Zone1", "Room2", "This is room 2");
   textworld.create_room("Zone1", "Room3", "This is room 3");
   textworld.create_exit("Zone1", "Room1", "north", "Room2");
   textworld.create_exit("Zone1", "Room2", "east", "Room3");
-  const result = textworld.parse_command(player, "map");
+  const result = await textworld.parse_command(player, "map");
   assertEquals(result, `Map:\n\n#-#\n|  \n@  \n`);
   textworld.reset_world();
 });
 
-Deno.test("can_parse_room_command_action", () => {
+Deno.test("can_parse_room_command_action", async () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.add_room_command_action(
@@ -925,7 +946,7 @@ Deno.test("can_parse_room_command_action", () => {
     (_player: tw.Player, _input: string, _command: string, _args: string[]) =>
       "How dare you utter the magical word XYZZY!"
   );
-  const result = textworld.parse_command(player, "xyzzy");
+  const result = await textworld.parse_command(player, "xyzzy");
   assertEquals(
     result,
     "You recited the magical word XYZZY!!!\n\nHow dare you utter the magical word XYZZY!"
@@ -933,30 +954,30 @@ Deno.test("can_parse_room_command_action", () => {
   textworld.reset_world();
 });
 
-Deno.test("can_parse_malformed_command", () => {
-  let result = textworld.parse_command(player, "talk to");
+Deno.test("can_parse_malformed_command", async () => {
+  let result = await textworld.parse_command(player, "talk to");
   assertEquals(result, "That NPC does not exist.");
-  result = textworld.parse_command(player, "show");
+  result = await textworld.parse_command(player, "show");
   assertEquals(result, "That item does not exist.");
-  result = textworld.parse_command(player, "take");
+  result = await textworld.parse_command(player, "take");
   assertEquals(result, "That item does not exist.");
-  result = textworld.parse_command(player, "use");
+  result = await textworld.parse_command(player, "use");
   assertEquals(result, "That item does not exist.");
-  result = textworld.parse_command(player, "drop");
+  result = await textworld.parse_command(player, "drop");
   assertEquals(result, "That item does not exist.");
   textworld.set_godmode(player);
-  result = textworld.parse_command(player, "goto");
+  result = await textworld.parse_command(player, "goto");
   assertEquals(result, "That room or zone does not exist.");
   textworld.remove_godmode(player);
-  result = textworld.parse_command(player, "look");
+  result = await textworld.parse_command(player, "look");
   assertEquals(result, "You can't see anything.");
-  result = textworld.parse_command(player, "inspect");
+  result = await textworld.parse_command(player, "inspect");
   assertEquals(result, "There is nothing else of interest here.");
-  result = textworld.parse_command(player, "north");
+  result = await textworld.parse_command(player, "north");
   assertEquals(result, "You can't go that way.");
 });
 
-Deno.test("can_parse_command_craft", () => {
+Deno.test("can_parse_command_craft", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_zone("Zone1");
@@ -977,7 +998,7 @@ Deno.test("can_parse_command_craft", () => {
   );
   textworld.learn_recipe(player, "Iron Sword");
   assertEquals(player.known_recipes.length, 1);
-  const result = textworld.parse_command(player, "craft iron sword");
+  const result = await textworld.parse_command(player, "craft iron sword");
   assertEquals(result, "Iron Sword has been crafted.");
   assertEquals(player.inventory.length, 3);
   player.inventory.length = 0;
@@ -1200,7 +1221,7 @@ Deno.test("player_can_die_from_mob_attack", () => {
   textworld.reset_world();
 });
 
-Deno.test("player_can_die_from_mob_attack_and_ressurect", () => {
+Deno.test("player_can_die_from_mob_attack_and_ressurect", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
   player.stats.health.current = 1;
@@ -1218,7 +1239,7 @@ Deno.test("player_can_die_from_mob_attack_and_ressurect", () => {
   assertStringIncludes(result, "Player attacks Goblin");
   assertStringIncludes(result, "Goblin attacks Player");
   assertStringIncludes(result, "Player has been defeated!");
-  result = textworld.parse_command(player, "resurrect");
+  result = await textworld.parse_command(player, "resurrect");
   assertEquals(result, "You have been resurrected.");
   player.stats.health.current = 100;
   textworld.reset_world();
@@ -1942,34 +1963,37 @@ Deno.test("player_can_goto_any_room_in_zone", () => {
   textworld.reset_world();
 });
 
-Deno.test("player_can_navigate_to_new_zone_using_custom_room_action", () => {
-  player.zone = "Zone1";
-  player.room = "Room1";
-  textworld.create_zone("Zone1");
-  textworld.create_room("Zone1", "Room1", "This is room 1 in zone 1");
-  textworld.create_zone("Zone2");
-  textworld.create_room("Zone2", "Room1", "This is room 1 in zone 2");
-  textworld.set_room_as_zone_starter("Zone1", "Room1");
-  textworld.set_room_as_zone_starter("Zone2", "Room1");
-  textworld.add_room_command_action(
-    "Zone1",
-    "Room1",
-    "warp action",
-    "Blue waves of light start spinning all around you. They get faster and faster until you can't see anything. When the light fades, you find yourself in a new place.",
-    ["warp"],
-    (player, _input, _command, _args) => {
-      return textworld.goto(player, ["zone", "Zone2"]);
-    }
-  );
-  const result = textworld.parse_command(player, "warp");
-  assertEquals(
-    result,
-    "Blue waves of light start spinning all around you. They get faster and faster until you can't see anything. When the light fades, you find yourself in a new place.\n\nLocation: Room1\n\nThis is room 1 in zone 2"
-  );
-  assertEquals(player.zone, "Zone2");
-  assertEquals(player.room, "Room1");
-  textworld.reset_world();
-});
+Deno.test(
+  "player_can_navigate_to_new_zone_using_custom_room_action",
+  async () => {
+    player.zone = "Zone1";
+    player.room = "Room1";
+    textworld.create_zone("Zone1");
+    textworld.create_room("Zone1", "Room1", "This is room 1 in zone 1");
+    textworld.create_zone("Zone2");
+    textworld.create_room("Zone2", "Room1", "This is room 1 in zone 2");
+    textworld.set_room_as_zone_starter("Zone1", "Room1");
+    textworld.set_room_as_zone_starter("Zone2", "Room1");
+    textworld.add_room_command_action(
+      "Zone1",
+      "Room1",
+      "warp action",
+      "Blue waves of light start spinning all around you. They get faster and faster until you can't see anything. When the light fades, you find yourself in a new place.",
+      ["warp"],
+      (player, _input, _command, _args) => {
+        return textworld.goto(player, ["zone", "Zone2"]);
+      }
+    );
+    const result = await textworld.parse_command(player, "warp");
+    assertEquals(
+      result,
+      "Blue waves of light start spinning all around you. They get faster and faster until you can't see anything. When the light fades, you find yourself in a new place.\n\nLocation: Room1\n\nThis is room 1 in zone 2"
+    );
+    assertEquals(player.zone, "Zone2");
+    assertEquals(player.room, "Room1");
+    textworld.reset_world();
+  }
+);
 
 Deno.test("player_can_save", async () => {
   const result = await textworld.save_player(
