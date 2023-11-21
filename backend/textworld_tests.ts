@@ -2053,6 +2053,28 @@ Deno.test("room_actions_work_after_loading_player_progress", async () => {
   textworld.reset_world();
 });
 
+Deno.test("item_actions_work_after_loading_player_progress", async () => {
+  textworld.create_item("Potion", "A potion", true, (_player) => {
+    return "You drank the potion but nothing happened.";
+  });
+  const item = textworld.get_item("Potion");
+  assertEquals(item?.name, "Potion");
+  await textworld.save_player_progress(
+    player,
+    "test_game_saves.db",
+    "test_slot"
+  );
+  await textworld.load_player_progress("test_game_saves.db", "test_slot");
+  const item_action = textworld.get_item_action("Potion");
+  assertEquals(
+    item_action?.action(player),
+    "You drank the potion but nothing happened."
+  );
+  await Deno.remove("test_game_saves.db");
+  textworld.reset_world();
+  player.inventory.length = 0;
+});
+
 Deno.test("can_set_players_room_to_zone_start", () => {
   player.zone = "Zone1";
   player.room = "Room1";
