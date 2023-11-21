@@ -14,7 +14,7 @@ type CommandParserAction = (
   input: string,
   command: string,
   args: string[]
-) => string | Promise<string>;
+) => string;
 
 export interface Description {
   flag: string;
@@ -312,32 +312,6 @@ export class TextWorld {
       "Craft an item.",
       ["craft"],
       (player, _input, _command, args) => this.craft_recipe(player, args)
-    ),
-    this.create_command_action(
-      "save action",
-      "Save player.",
-      ["save"],
-      async (player, _input, _command, args) => {
-        if (args.length <= 0) {
-          return "You must specify a slot name.";
-        }
-        return await this.save_player(player, player_save_db_name, args[0]);
-      }
-    ),
-    this.create_command_action(
-      "load action",
-      "Load player.",
-      ["load"],
-      async (_player, _input, _command, args) => {
-        if (args.length <= 0) {
-          return "You must specify a slot name.";
-        }
-        const result = await this.load_player(player_save_db_name, args[0]);
-        if (result) {
-          _player = result;
-        }
-        return `Player progress has been loaded from slot: ${args[0]}`;
-      }
     ),
   ];
   private player_dead_command_actions: CommandAction[] = [
@@ -797,12 +771,7 @@ export class TextWorld {
           );
 
           if (dialog_action) {
-            result = dialog_action.action(
-              player,
-              input,
-              command,
-              args
-            ) as string;
+            result = dialog_action.action(player, input, command, args);
           } else {
             result = dialog.response || "hmm...";
           }
@@ -1964,12 +1933,7 @@ export class TextWorld {
             );
 
             if (dialog_action) {
-              result = dialog_action.action(
-                player,
-                input,
-                command,
-                args
-              ) as string;
+              result = dialog_action.action(player, input, command, args);
             } else if (dialog?.response) {
               result = dialog.response;
             }
@@ -2460,7 +2424,7 @@ export class TextWorld {
     );
 
     if (command_action) {
-      result = command_action.action(player, input, command, args) as string;
+      result = command_action.action(player, input, command, args);
     } else {
       if (this.world.zones.length > 0) {
         const players_room = this.get_players_room(player);
