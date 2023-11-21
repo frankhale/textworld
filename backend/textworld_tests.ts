@@ -449,7 +449,7 @@ Deno.test("can_process_examine_room_object", () => {
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
       {
-        id: crypto.randomUUID(),
+        id: "Fireplace", //crypto.randomUUID(),
         trigger: ["fan flame"],
         response: "The flames become stronger as you fan them.",
       },
@@ -488,7 +488,7 @@ Deno.test("can_parse_command_examine_room_object", async () => {
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
       {
-        id: crypto.randomUUID(),
+        id: "Fireplace", //crypto.randomUUID(),
         trigger: ["fan flame"],
         response: "The flames become stronger as you fan them.",
       },
@@ -684,7 +684,7 @@ Deno.test("can_parse_command_examine_object", async () => {
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
       {
-        id: crypto.randomUUID(),
+        id: "Fireplace", //crypto.randomUUID(),
         trigger: ["fan flames"],
         response: "The flames become stronger as you fan them.",
       },
@@ -1995,7 +1995,7 @@ Deno.test(
   }
 );
 
-Deno.test("player_can_save", async () => {
+Deno.test("player_can_save_progress", async () => {
   const result = await textworld.save_player_progress(
     player,
     "test_game_saves.db",
@@ -2006,7 +2006,7 @@ Deno.test("player_can_save", async () => {
   textworld.reset_world();
 });
 
-Deno.test("player_can_load", async () => {
+Deno.test("player_can_load_progress", async () => {
   player.gold = 1000;
   await textworld.save_player_progress(
     player,
@@ -2023,6 +2023,33 @@ Deno.test("player_can_load", async () => {
   assertEquals(result!.player.gold, 1000);
   await Deno.remove("test_game_saves.db");
   player.gold = 0;
+  textworld.reset_world();
+});
+
+Deno.test("room_actions_work_after_loading_player_progress", async () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room(
+    "Zone1",
+    "Room1",
+    "This is room 1 in zone 1",
+    (_player) => {
+      return "This message is from a room action";
+    }
+  );
+  await textworld.save_player_progress(
+    player,
+    "test_game_saves.db",
+    "test_slot"
+  );
+  await textworld.load_player_progress("test_game_saves.db", "test_slot");
+  const result = textworld.switch_room(player);
+  assertEquals(
+    result,
+    "Location: Room1\n\nThis is room 1 in zone 1\n\nThis message is from a room action"
+  );
+  await Deno.remove("test_game_saves.db");
   textworld.reset_world();
 });
 

@@ -208,7 +208,7 @@ class TextworldGame {
       let response = "";
 
       if (input.length <= 0) {
-        response = this.textworld.get_room_description(this.player);
+        response = this.textworld.switch_room(this.player);
       } else {
         response = await this.textworld.parse_command(this.player, input);
       }
