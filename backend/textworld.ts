@@ -2,7 +2,7 @@
 // Frank Hale &lt;frankhale AT gmail.com&gt;
 // 21 November 2023
 
-export const player_save_db_name = "game_saves.db";
+export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
 export const active_quest_limit = 5;
 
@@ -154,6 +154,7 @@ export interface WorldActions {
   spawn_locations: SpawnLocation[];
   dialog_actions: DialogAction[];
   item_actions: ItemAction[];
+  room_actions: RoomAction[];
   room_command_actions: RoomCommandActions[];
   quest_actions: QuestAction[];
   quest_step_actions: QuestStepAction[];
@@ -170,7 +171,10 @@ export interface Room extends Entity, Inventory {
   exits: Exit[];
   mobs: Mob[];
   objects: RoomObject[];
-  action: Action[] | null;
+}
+
+export interface RoomAction extends Id {
+  actions: Action[] | null;
 }
 
 export interface RoomCommandActions extends Id {
@@ -200,6 +204,11 @@ type QuestActionType = "Start" | "End";
 export interface CommandAction extends Entity {
   synonyms: string[];
   action: CommandParserAction;
+}
+
+export interface PlayerProgress {
+  player: Player;
+  world: World;
 }
 
 export class TextWorld {
@@ -325,7 +334,11 @@ export class TextWorld {
       async (player, _input, _command, args) => {
         let result = "You must specify a slot name";
         if (args.length >= 0) {
-          await this.save_player(player, player_save_db_name, args[0]);
+          await this.save_player_progress(
+            player,
+            player_progress_db_name,
+            args[0]
+          );
           result = `Progress has been saved to slot: ${args[0]}`;
         }
         return result;
@@ -338,25 +351,34 @@ export class TextWorld {
       async (player, _input, _command, args) => {
         let result = "You must specify a slot name";
         if (args.length >= 0) {
-          const player_result = await this.load_player(
-            player_save_db_name,
+          const player_result = await this.load_player_progress(
+            player_progress_db_name,
             args[0]
           );
 
           if (player_result) {
             result = `Progress has been loaded from slot: ${args[0]}`;
-            player.score = player_result.score;
-            player.stats = player_result.stats;
-            player.damage_and_defense = player_result.damage_and_defense;
-            player.progress = player_result.progress;
-            player.gold = player_result.gold;
-            player.zone = player_result.zone;
-            player.room = player_result.room;
-            player.flags = player_result.flags;
-            player.inventory = player_result.inventory;
-            player.quests = player_result.quests;
-            player.quests_completed = player_result.quests_completed;
-            player.known_recipes = player_result.known_recipes;
+            player.score = player_result.player.score;
+            player.stats = player_result.player.stats;
+            player.damage_and_defense = player_result.player.damage_and_defense;
+            player.progress = player_result.player.progress;
+            player.gold = player_result.player.gold;
+            player.zone = player_result.player.zone;
+            player.room = player_result.player.room;
+            player.flags = player_result.player.flags;
+            player.inventory = player_result.player.inventory;
+            player.quests = player_result.player.quests;
+            player.quests_completed = player_result.player.quests_completed;
+            player.known_recipes = player_result.player.known_recipes;
+
+            this.world.zones = player_result.world.zones;
+            this.world.items = player_result.world.items;
+            this.world.recipes = player_result.world.recipes;
+            this.world.npcs = player_result.world.npcs;
+            this.world.mobs = player_result.world.mobs;
+            this.world.players = player_result.world.players;
+            this.world.quests = player_result.world.quests;
+            this.world.level_data = player_result.world.level_data;
           } else {
             result = `Unable to load progress from slot: ${args[0]}`;
           }
@@ -840,9 +862,8 @@ export class TextWorld {
   }
 
   create_npc(name: string, description: string) {
-    const id = crypto.randomUUID();
     this.world.npcs.push({
-      id,
+      id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
       inventory: [],
@@ -1170,15 +1191,15 @@ export class TextWorld {
   }
 
   remove_player_item(player: Player, item_name: string) {
-    const itemIndex = player?.inventory.findIndex(
+    const item_index = player?.inventory.findIndex(
       (item) => item.name.toLowerCase() === item_name.toLowerCase()
     );
 
-    if (itemIndex !== undefined && itemIndex !== -1) {
-      player.inventory[itemIndex].quantity--;
+    if (item_index !== undefined && item_index !== -1) {
+      player.inventory[item_index].quantity--;
 
-      if (player.inventory[itemIndex].quantity === 0) {
-        player.inventory.splice(itemIndex, 1);
+      if (player.inventory[item_index].quantity === 0) {
+        player.inventory.splice(item_index, 1);
       }
     }
   }
@@ -1353,22 +1374,22 @@ export class TextWorld {
   }
 
   attack(attacker: Player | Mob, defender: Player | Mob): string {
-    const attackerDamage =
+    const attacker_damage =
       Math.random() < attacker.damage_and_defense.critical_chance
         ? attacker.damage_and_defense.physical_damage * 2
         : attacker.damage_and_defense.physical_damage;
 
-    const damageDealt = Math.max(
+    const damage_dealt = Math.max(
       0,
-      attackerDamage - defender.damage_and_defense.physical_defense
+      attacker_damage - defender.damage_and_defense.physical_defense
     );
 
-    defender.stats.health.current -= damageDealt;
+    defender.stats.health.current -= damage_dealt;
 
     defender.stats.health.current = Math.max(0, defender.stats.health.current);
     attacker.stats.health.current = Math.max(0, attacker.stats.health.current);
 
-    let result = `${attacker.name} attacks ${defender.name} for ${damageDealt} damage.\n${defender.name} health: ${defender.stats.health.current}`;
+    let result = `${attacker.name} attacks ${defender.name} for ${damage_dealt} damage.\n${defender.name} health: ${defender.stats.health.current}`;
 
     if (
       defender.stats.health.current <= 0 ||
@@ -1690,17 +1711,24 @@ export class TextWorld {
 
           let new_room_description = this.get_room_description(player);
           const new_room = zone.rooms.find((room) => room.name === player.room);
-          if (new_room && new_room.action) {
-            let action_result = "";
-            new_room.action.every((action) => {
-              const result = action(player);
-              if (result) {
-                action_result += result;
-              }
-            });
 
-            if (action_result) {
-              new_room_description = `${new_room_description}\n\n${action_result}`;
+          if (new_room) {
+            const new_room_actions = this.world_actions.room_actions.find(
+              (action) => action.id === new_room?.id
+            );
+
+            if (new_room_actions && new_room_actions.actions) {
+              let action_result = "";
+              new_room_actions.actions.every((action) => {
+                const result = action(player);
+                if (result) {
+                  action_result += result;
+                }
+              });
+
+              if (action_result) {
+                new_room_description = `${new_room_description}\n\n${action_result}`;
+              }
             }
           }
 
@@ -1806,13 +1834,10 @@ export class TextWorld {
     const zone = this.get_zone(zone_name);
     if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
 
-    let actions: Action[] | null = null;
-    if (action) {
-      actions = [action];
-    }
+    const id = crypto.randomUUID();
 
     zone.rooms.push({
-      id: crypto.randomUUID(),
+      id,
       name: name,
       descriptions: [{ flag: "default", description }],
       zone_start: false,
@@ -1821,8 +1846,17 @@ export class TextWorld {
       mobs: [],
       objects: [],
       exits: [],
-      action: actions,
     });
+
+    let actions: Action[] | null = null;
+    if (action) {
+      actions = [action];
+
+      this.world_actions.room_actions.push({
+        id,
+        actions,
+      });
+    }
   }
 
   set_room_as_zone_starter(zone_name: string, room_name: string) {
@@ -1839,10 +1873,10 @@ export class TextWorld {
   add_room_action(zone_name: string, room_name: string, action: Action) {
     const room = this.get_room(zone_name, room_name);
     if (room) {
-      if (!room.action) {
-        room.action = [];
-      }
-      room.action.push(action);
+      this.world_actions.room_actions.push({
+        id: room.id,
+        actions: [action],
+      });
     }
   }
 
@@ -1871,16 +1905,16 @@ export class TextWorld {
       const items = current_room.inventory.map(
         (item) => `${item.name} (${item.quantity})`
       );
-      const itemsString =
+      const items_string =
         items.length > 0
           ? `Items: ${items.join(", ")}`
           : "There is nothing else of interest here.";
 
       const mobs = current_room.mobs.map((mob) => mob.name);
-      const mobsString = mobs.length > 0 ? `Mobs: ${mobs.join(", ")}` : "";
+      const mobs_string = mobs.length > 0 ? `Mobs: ${mobs.join(", ")}` : "";
 
-      //result = [mobsString, itemsString].filter(Boolean).join("\n");
-      result = `You inspect the room and found:\n\n${[mobsString, itemsString]
+      //result = [mobs_string, items_string].filter(Boolean).join("\n");
+      result = `You inspect the room and found:\n\n${[mobs_string, items_string]
         .filter(Boolean)
         .join("\n")}`;
     }
@@ -2094,14 +2128,18 @@ export class TextWorld {
   // MISC //
   //////////
 
-  async save_player(
+  async save_player_progress(
     player: Player,
     database_name: string,
     slot_name: string
   ): Promise<string> {
     let result = "Unable to save progress.";
+    const player_progress: PlayerProgress = {
+      player,
+      world: this.world,
+    };
     const kv = await Deno.openKv(database_name);
-    await kv.set([slot_name], structuredClone(player));
+    await kv.set([slot_name], structuredClone(player_progress));
     const save_result = await kv.get([slot_name]);
     kv.close();
     if (save_result) {
@@ -2110,15 +2148,15 @@ export class TextWorld {
     return result;
   }
 
-  async load_player(
+  async load_player_progress(
     database_name: string,
     slot_name: string
-  ): Promise<Player | null> {
+  ): Promise<PlayerProgress | null> {
     const kv = await Deno.openKv(database_name);
     const result = await kv.get([slot_name]);
     kv.close();
     if (result.value) {
-      return result.value as Player;
+      return result.value as PlayerProgress;
     }
     return null;
   }
@@ -2271,13 +2309,6 @@ export class TextWorld {
       players: [],
       quests: [],
       level_data: this.calculate_level_experience(1, 1.2, 50),
-      //spawn_locations: [],
-      // // ---
-      // dialog_actions: [],
-      // item_actions: [],
-      // room_command_actions: [],
-      // quest_actions: [],
-      // quest_step_actions: [],
     };
     this.world = world;
     return world;
@@ -2288,6 +2319,7 @@ export class TextWorld {
       spawn_locations: [],
       dialog_actions: [],
       item_actions: [],
+      room_actions: [],
       room_command_actions: [],
       quest_actions: [],
       quest_step_actions: [],
@@ -2321,10 +2353,10 @@ export class TextWorld {
   generate_combinations(input_array: string[]): string[] {
     const result: string[] = [];
 
-    function generate_helper(combination: string, startIdx: number) {
+    function generate_helper(combination: string, start_idx: number) {
       result.push(combination.trim());
 
-      for (let i = startIdx; i < input_array.length; i++) {
+      for (let i = start_idx; i < input_array.length; i++) {
         const new_combination =
           combination + (combination.length > 0 ? " " : "") + input_array[i];
         generate_helper(new_combination, i + 1);
@@ -2419,56 +2451,59 @@ export class TextWorld {
 
   goto(player: Player, args: string[]): string {
     let result = "That room or zone does not exist.";
-    let newZoneName: string | null = null;
-    let newRoomName: string | null = null;
-    const possibleRoomsOrZones = this.generate_combinations(args);
+    let new_zone_name: string | null = null;
+    let new_room_name: string | null = null;
+    const possible_rooms_or_zones = this.generate_combinations(args);
 
-    for (const possibleRoomOrZone of possibleRoomsOrZones) {
-      const room_or_zone = possibleRoomOrZone.toLowerCase();
+    for (const possible_room_or_zone of possible_rooms_or_zones) {
+      const room_or_zone = possible_room_or_zone.toLowerCase();
 
       if (room_or_zone.startsWith("room")) {
-        const roomName = possibleRoomOrZone.replace(/room/, "").trim();
-        const newRoom = this.get_room(player.zone, roomName);
+        const room_name = possible_room_or_zone.replace(/room/, "").trim();
+        const new_room = this.get_room(player.zone, room_name);
 
-        if (newRoom) {
-          newRoomName = newRoom.name;
+        if (new_room) {
+          new_room_name = new_room.name;
           break;
         }
       } else if (room_or_zone.startsWith("zone")) {
-        const zoneName = possibleRoomOrZone.replace(/zone/, "").trim();
-        const newZone = this.get_zone(zoneName);
+        const zone_name = possible_room_or_zone.replace(/zone/, "").trim();
+        const new_zone = this.get_zone(zone_name);
 
-        if (newZone) {
-          newZoneName = newZone.name;
+        if (new_zone) {
+          new_zone_name = new_zone.name;
           break;
         }
       }
     }
 
-    if (newZoneName) {
-      player.zone = newZoneName;
-      const starterRoom = this.get_zone_starter_room(player.zone);
+    if (new_zone_name) {
+      player.zone = new_zone_name;
+      const starter_room = this.get_zone_starter_room(player.zone);
 
-      if (starterRoom) {
-        newRoomName = starterRoom.name;
+      if (starter_room) {
+        new_room_name = starter_room.name;
       }
     }
 
-    if (newRoomName) {
-      player.room = newRoomName;
-      let newRoomDescription = this.get_room_description(player);
+    if (new_room_name) {
+      player.room = new_room_name;
+      let new_room_description = this.get_room_description(player);
 
-      const newRoom = this.get_players_room(player);
-      if (newRoom?.action) {
-        const actionResult = newRoom.action
+      const new_room = this.get_players_room(player);
+      const new_room_actions = this.world_actions.room_actions.find(
+        (action) => action.id === new_room?.id
+      );
+      if (new_room && new_room_actions && new_room_actions.actions) {
+        const actionResult = new_room_actions.actions
           .map((action) => action(player))
           .filter((result) => result)
           .join("");
 
-        newRoomDescription = `${newRoomDescription}\n\n${actionResult}`;
+        new_room_description = `${new_room_description}\n\n${actionResult}`;
       }
 
-      result = newRoomDescription;
+      result = new_room_description;
     }
 
     return result;
@@ -2476,8 +2511,8 @@ export class TextWorld {
 
   async parse_command(player: Player, input: string): Promise<string> {
     let result = "I don't understand that command.";
-    const inputLimit = Math.min(input_character_limit, input.length);
-    input = input.substring(0, inputLimit);
+    const input_limit = Math.min(input_character_limit, input.length);
+    input = input.substring(0, input_limit);
 
     const [command, ...args] = input.toLowerCase().split(" ");
     const possible_actions = this.generate_combinations(input.split(" "));

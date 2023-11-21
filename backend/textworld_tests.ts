@@ -1996,23 +1996,32 @@ Deno.test(
 );
 
 Deno.test("player_can_save", async () => {
-  const result = await textworld.save_player(
+  const result = await textworld.save_player_progress(
     player,
-    "game_saves.db",
+    "test_game_saves.db",
     "test_slot"
   );
   assertEquals(result, "Progress has been saved to slot: test_slot");
-  await Deno.remove("game_saves.db");
+  await Deno.remove("test_game_saves.db");
   textworld.reset_world();
 });
 
 Deno.test("player_can_load", async () => {
   player.gold = 1000;
-  await textworld.save_player(player, "game_saves.db", "test_slot");
-  const result = await textworld.load_player("game_saves.db", "test_slot");
+  await textworld.save_player_progress(
+    player,
+    "test_game_saves.db",
+    "test_slot"
+  );
+  const result = await textworld.load_player_progress(
+    "test_game_saves.db",
+    "test_slot"
+  );
   assertNotEquals(result, null);
-  assertEquals(result!.gold, 1000);
-  await Deno.remove("game_saves.db");
+  assertNotEquals(result!.player, null);
+  assertNotEquals(result!.world, null);
+  assertEquals(result!.player.gold, 1000);
+  await Deno.remove("test_game_saves.db");
   player.gold = 0;
   textworld.reset_world();
 });
