@@ -571,8 +571,8 @@ Deno.test("can_parse_command_take", async () => {
   textworld.place_item("Zone1", "Room1", "Sword");
   const result = await textworld.parse_command(player, "take sword");
   assertEquals(result, "You took the Sword.");
-  assertEquals(player.inventory.length, 1);
-  player.inventory.length = 0;
+  assertEquals(player.items.length, 1);
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -587,8 +587,8 @@ Deno.test("can_parse_command_take_all", async () => {
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   const result = await textworld.parse_command(player, "take all");
   assertEquals(result, "You took all items.");
-  assertEquals(player.inventory.length, 2);
-  player.inventory.length = 0;
+  assertEquals(player.items.length, 2);
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -604,8 +604,8 @@ Deno.test("can_parse_command_use", async () => {
   textworld.take_item(player, ["Potion"]);
   const result = await textworld.parse_command(player, "use potion");
   assertEquals(result, "You drank the potion but nothing happened.");
-  assertEquals(player.inventory.length, 0);
-  player.inventory.length = 0;
+  assertEquals(player.items.length, 0);
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -619,8 +619,8 @@ Deno.test("can_parse_command_drop", async () => {
   textworld.take_item(player, ["Potion"]);
   const result = await textworld.parse_command(player, "drop potion");
   assertEquals(result, "You dropped the Potion.");
-  assertEquals(player.inventory.length, 0);
-  player.inventory.length = 0;
+  assertEquals(player.items.length, 0);
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -636,8 +636,8 @@ Deno.test("can_parse_command_drop_all", async () => {
   textworld.take_all_items(player);
   const result = await textworld.parse_command(player, "drop all");
   assertEquals(result, "You dropped all your items.");
-  assertEquals(player.inventory.length, 0);
-  player.inventory.length = 0;
+  assertEquals(player.items.length, 0);
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -738,7 +738,7 @@ Deno.test("can_parse_command_show_item", async () => {
   textworld.take_item(player, ["Potion"]);
   const result = await textworld.parse_command(player, "show potion");
   assertEquals(result, "An ordinary potion");
-  player.inventory.length = 0;
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -754,7 +754,7 @@ Deno.test("can_parse_command_show_all_items", async () => {
   textworld.take_all_items(player);
   const result = await textworld.parse_command(player, "show all");
   assertEquals(result, "Sword - A sharp sword\n\nPotion - An ordinary potion");
-  player.inventory.length = 0;
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -830,7 +830,7 @@ Deno.test("can_parse_command_talk_to_npc_and_get_item", async () => {
           if (item) {
             textworld.set_flag(player, "took_gem");
             textworld.create_item("Gem", "A shiny gem", false);
-            player.inventory.push({
+            player.items.push({
               name: "Gem",
               quantity: 1,
             });
@@ -858,14 +858,14 @@ Deno.test("can_parse_command_talk_to_npc_and_get_item", async () => {
     "talk to Old_woman say take gem"
   );
   assertEquals(result, "You took the Gem.");
-  assertEquals(player.inventory.length, 1);
+  assertEquals(player.items.length, 1);
   result = await textworld.parse_command(
     player,
     "talk to Old_woman say take gem"
   );
   assertEquals(result, "I don't have that item.");
   textworld.remove_flag(player, "took_gem");
-  player.inventory.length = 0;
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -886,7 +886,7 @@ Deno.test("can_parse_command_talk_to_vendor_and_list_items", async () => {
     result,
     "Items for sale: Fried Chicken & Roasted Vegetables (2 gold)"
   );
-  player.inventory.length = 0;
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -913,7 +913,7 @@ Deno.test("can_parse_command_talk_to_vendor_and_purchase_item", async () => {
     result,
     "You purchased Fried Chicken & Roasted Vegetables for 2 gold."
   );
-  player.inventory.length = 0;
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -1000,8 +1000,8 @@ Deno.test("can_parse_command_craft", async () => {
   assertEquals(player.known_recipes.length, 1);
   const result = await textworld.parse_command(player, "craft iron sword");
   assertEquals(result, "Iron Sword has been crafted.");
-  assertEquals(player.inventory.length, 3);
-  player.inventory.length = 0;
+  assertEquals(player.items.length, 3);
+  player.items.length = 0;
   player.known_recipes.length = 0;
   textworld.reset_world();
 });
@@ -1038,7 +1038,7 @@ Deno.test("can_spawn_item_in_room_using_spawn_location", async () => {
   await delay(500);
   textworld.remove_spawn_location("Test Spawner");
   const room = textworld.get_room("Zone1", "Room1");
-  assertEquals(room?.inventory.length, 1);
+  assertEquals(room?.items.length, 1);
 });
 
 Deno.test("mob_can_attack_player", () => {
@@ -1141,9 +1141,9 @@ Deno.test("player_can_kill_mob_and_drop_loot", () => {
   assertStringIncludes(result, "Player attacks Goblin");
   assertStringIncludes(result, "Goblin has been defeated!");
   const room = textworld.get_room("Zone1", "Room1");
-  assertEquals(room?.inventory.length, 2);
-  assertEquals(room?.inventory[0].name, "Sword");
-  assertEquals(room?.inventory[1].name, "Shield");
+  assertEquals(room?.items.length, 2);
+  assertEquals(room?.items[0].name, "Sword");
+  assertEquals(room?.items[1].name, "Shield");
   textworld.reset_world();
 });
 
@@ -1170,11 +1170,11 @@ Deno.test("player_can_kill_mob_and_pickup_look", () => {
   assertStringIncludes(result, "Goblin has been defeated!");
   textworld.take_all_items(player);
   const room = textworld.get_room("Zone1", "Room1");
-  assertEquals(room?.inventory.length, 0);
-  assertEquals(player.inventory.length, 2);
-  assertEquals(player.inventory[0].name, "Sword");
-  assertEquals(player.inventory[1].name, "Shield");
-  player.inventory.length = 0;
+  assertEquals(room?.items.length, 0);
+  assertEquals(player.items.length, 2);
+  assertEquals(player.items[0].name, "Sword");
+  assertEquals(player.items[1].name, "Shield");
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -1253,8 +1253,8 @@ Deno.test("player_can_take_item", () => {
   textworld.create_item("Sword", "A sharp sword", false);
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.take_item(player, ["Sword"]);
-  assertEquals(player.inventory.length, 1);
-  player.inventory.length = 0;
+  assertEquals(player.items.length, 1);
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -1268,8 +1268,8 @@ Deno.test("player_can_take_all_items", () => {
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_all_items(player);
-  assertEquals(player.inventory.length, 2);
-  player.inventory.length = 0;
+  assertEquals(player.items.length, 2);
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -1285,7 +1285,7 @@ Deno.test("player_can_take_item_and_it_stacks_in_inventory", () => {
   textworld.take_item(player, ["Potion"]);
   const result = textworld.has_item_in_quantity(player, "Potion", 2);
   assertEquals(result, true);
-  player.inventory.length = 0;
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -1298,8 +1298,8 @@ Deno.test("player_can_drop_item", () => {
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_item(player, ["Potion"]);
   textworld.drop_item(player, ["Potion"]);
-  assertEquals(player.inventory.length, 0);
-  player.inventory.length = 0;
+  assertEquals(player.items.length, 0);
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -1314,8 +1314,8 @@ Deno.test("player_can_drop_all_items", () => {
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_all_items(player);
   textworld.drop_all_items(player);
-  assertEquals(player.inventory.length, 0);
-  player.inventory.length = 0;
+  assertEquals(player.items.length, 0);
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -1331,7 +1331,7 @@ Deno.test("player_can_use_item", () => {
   textworld.take_item(player, ["Potion"]);
   const result = textworld.use_item(player, ["Potion"]);
   assertEquals(result, "You drank the potion but nothing happened.");
-  assertEquals(player.inventory.length, 0);
+  assertEquals(player.items.length, 0);
   textworld.reset_world();
 });
 
@@ -1345,8 +1345,8 @@ Deno.test("player_cant_use_item_thats_not_usable", () => {
   textworld.take_item(player, ["Sword"]);
   const result = textworld.use_item(player, ["Sword"]);
   assertEquals(result, "You can't use that item.");
-  assertEquals(player.inventory.length, 1);
-  player.inventory.length = 0;
+  assertEquals(player.items.length, 1);
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -1375,7 +1375,7 @@ Deno.test("player_can_look_at_self_with_inventory", () => {
   textworld.take_item(player, ["Sword"]);
   const result = textworld.look_self(player);
   assertEquals(result, `You are a strong adventurer\n\nInventory: Sword (1)`);
-  player.inventory.length = 0;
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -1417,7 +1417,7 @@ Deno.test("player_can_show_item", () => {
   textworld.take_item(player, ["Potion"]);
   const result = textworld.show_item(player, ["Potion"]);
   assertEquals(result, "An ordinary potion");
-  player.inventory.length = 0;
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -1431,7 +1431,7 @@ Deno.test("player_can_show_all_items", () => {
   textworld.take_all_items(player);
   const result = textworld.show_all_items(player);
   assertEquals(result, "Sword - A sharp sword\n\nPotion - An ordinary potion");
-  player.inventory.length = 0;
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -1456,8 +1456,8 @@ Deno.test("player_can_purchase_from_vendor", () => {
     "You purchased Fried Chicken & Roasted Vegetables for 2 gold."
   );
   assertEquals(player.gold, 8);
-  assertEquals(player.inventory.length, 1);
-  player.inventory.length = 0;
+  assertEquals(player.items.length, 1);
+  player.items.length = 0;
   player.gold = 0;
   textworld.reset_world();
 });
@@ -1478,7 +1478,7 @@ Deno.test("player_cant_purchase_nonexistant_item_from_vendor", () => {
     "Fried Chicken & Roasted Vegetables"
   );
   assertEquals(result, "That item does not exist.");
-  player.inventory.length = 0;
+  player.items.length = 0;
   player.gold = 0;
   textworld.reset_world();
 });
@@ -1540,7 +1540,7 @@ Deno.test("player_can_complete_quest", () => {
     "Step1",
     "Collect the magic ring",
     (player) => {
-      if (player.inventory.some((item) => item.name === "Magic Ring")) {
+      if (player.items.some((item) => item.name === "Magic Ring")) {
         const quest_step = textworld.get_quest_step("Quest1", "Step1");
         if (quest_step) {
           return true;
@@ -1555,7 +1555,7 @@ Deno.test("player_can_complete_quest", () => {
   assertEquals(result, true);
   assertEquals(player.quests.length, 0);
   player.quests_completed.length = 0;
-  player.inventory.length = 0;
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -1609,7 +1609,7 @@ Deno.test("player_can_complete_quest_with_multiple_steps", () => {
           if (item) {
             textworld.set_flag(player, "took_gem");
             textworld.create_item("Gem", "A shiny gem", false);
-            player.inventory.push({
+            player.items.push({
               name: "Gem",
               quantity: 1,
             });
@@ -1659,7 +1659,7 @@ Deno.test("player_can_complete_quest_with_multiple_steps", () => {
   assertEquals(quest_result, true);
   assertEquals(player.quests.length, 0);
   assertEquals(player.flags.length, 0);
-  player.inventory.length = 0;
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -1796,8 +1796,8 @@ Deno.test("player_cant_learn_recipe_player_already_knows", () => {
   assertEquals(result, "You already know that recipe.");
   assertEquals(player.known_recipes.length, 1);
   // recipe should still be in players inventory since it could not be consumed.
-  assertEquals(player.inventory.length, 1);
-  player.inventory.length = 0;
+  assertEquals(player.items.length, 1);
+  player.items.length = 0;
   player.known_recipes.length = 0;
   textworld.reset_world();
 });
@@ -1824,8 +1824,8 @@ Deno.test("player_can_craft_recipe", () => {
   textworld.learn_recipe(player, "Iron Sword");
   const result = textworld.craft_recipe(player, ["Iron Sword"]);
   assertEquals(result, "Iron Sword has been crafted.");
-  assertEquals(player.inventory.length, 3);
-  player.inventory.length = 0;
+  assertEquals(player.items.length, 3);
+  player.items.length = 0;
   player.known_recipes.length = 0;
   textworld.reset_world();
 });
@@ -1902,7 +1902,7 @@ Deno.test("player_can_talk_to_vendor_and_list_items", () => {
     result,
     "Items for sale: Fried Chicken & Roasted Vegetables (2 gold)"
   );
-  player.inventory.length = 0;
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -1931,7 +1931,7 @@ Deno.test("player_can_talk_to_vendor_and_purchase_item", () => {
     result,
     "You purchased Fried Chicken & Roasted Vegetables for 2 gold."
   );
-  player.inventory.length = 0;
+  player.items.length = 0;
   textworld.reset_world();
 });
 
@@ -2072,7 +2072,7 @@ Deno.test("item_actions_work_after_loading_player_progress", async () => {
   );
   await Deno.remove("test_game_saves.db");
   textworld.reset_world();
-  player.inventory.length = 0;
+  player.items.length = 0;
 });
 
 Deno.test("can_set_players_room_to_zone_start", () => {

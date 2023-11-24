@@ -43,11 +43,11 @@ export interface Stats {
   damage_and_defense: DamageAndDefense;
 }
 
-export interface Inventory {
-  inventory: ItemDrop[];
+export interface Storage {
+  items: ItemDrop[];
 }
 
-export interface Player extends Entity, Stats, Inventory {
+export interface Player extends Entity, Stats, Storage {
   score: number;
   gold: number;
   progress: Level;
@@ -95,7 +95,7 @@ export interface NPC extends Entity, Stats {
   vendor_items: VendorItem[] | null;
 }
 
-export interface Mob extends Entity, Stats, Inventory {}
+export interface Mob extends Entity, Stats, Storage {}
 
 export interface VendorItem {
   name: string;
@@ -143,7 +143,7 @@ export interface Zone {
   rooms: Room[];
 }
 
-export interface Room extends Entity, Inventory {
+export interface Room extends Entity, Storage {
   zone_start: boolean;
   npcs: NPC[];
   exits: Exit[];
@@ -378,7 +378,7 @@ export class TextWorld {
             player.zone = player_result.player.zone;
             player.room = player_result.player.room;
             player.flags = player_result.player.flags;
-            player.inventory = player_result.player.inventory;
+            player.items = player_result.player.items;
             player.quests = player_result.player.quests;
             player.quests_completed = player_result.player.quests_completed;
             player.known_recipes = player_result.player.known_recipes;
@@ -466,7 +466,7 @@ export class TextWorld {
       zone: zone_name,
       room: room_name,
       flags: [],
-      inventory: [],
+      items: [],
       quests: [],
       quests_completed: [],
       known_recipes: [],
@@ -511,12 +511,12 @@ export class TextWorld {
   look_self(player: Player): string {
     if (!player) return "You can't see anything.";
 
-    const inventory = player.inventory
+    const inventory = player.items
       .map((item) => `${item.name} (${item.quantity})`)
       .join(", ");
 
     return `${this.get_description(player, player, "default")}${
-      player.inventory.length > 0 ? `\n\nInventory: ${inventory}` : ""
+      player.items.length > 0 ? `\n\nInventory: ${inventory}` : ""
     }`;
   }
 
@@ -957,7 +957,7 @@ export class TextWorld {
       } else {
         if (player && vendor_item && player.gold >= vendor_item.price) {
           player.gold -= vendor_item.price;
-          player.inventory.push({ name: vendor_item.name, quantity: 1 });
+          player.items.push({ name: vendor_item.name, quantity: 1 });
           result = `You purchased ${vendor_item.name} for ${vendor_item.price} gold.`;
         } else {
           result = `You don't have enough gold to purchase ${item_name}.`;
@@ -976,13 +976,13 @@ export class TextWorld {
     const current_room = this.get_players_room(player);
     if (current_room) {
       item_drops.forEach((item) => {
-        const room_item = current_room.inventory.find(
+        const room_item = current_room.items.find(
           (room_item) => room_item.name === item.name
         );
         if (room_item) {
           room_item.quantity += item.quantity;
         } else {
-          current_room.inventory.push(item);
+          current_room.items.push(item);
         }
       });
     }
@@ -997,7 +997,7 @@ export class TextWorld {
     const room = zone.rooms.find((room) => room.name === room_name);
     if (room) {
       return (
-        room.inventory.find(
+        room.items.find(
           (item) => item.name.toLowerCase() === item_name.toLowerCase()
         ) ?? null
       );
@@ -1014,7 +1014,7 @@ export class TextWorld {
     const zone = this.get_zone(zone_name);
     const in_room = zone.rooms.find((room) => room.name === in_room_name);
     if (in_room) {
-      in_room.inventory.push({
+      in_room.items.push({
         name: item_name,
         quantity,
       });
@@ -1065,13 +1065,13 @@ export class TextWorld {
   }
 
   has_item(player: Player, item_name: string): boolean {
-    return player.inventory.some(
+    return player.items.some(
       (item) => item.name.toLowerCase() === item_name.toLowerCase()
     );
   }
 
   has_item_in_quantity(player: Player, item_name: string, quantity: number) {
-    const item = player.inventory.find(
+    const item = player.items.find(
       (item) => item.name.toLowerCase() === item_name.toLowerCase()
     );
     if (item) {
@@ -1091,7 +1091,7 @@ export class TextWorld {
         if (possible_items.includes("all")) {
           return this.take_all_items(player);
         } else {
-          const room_item = current_room.inventory.find((item) =>
+          const room_item = current_room.items.find((item) =>
             possible_items.find(
               (possible_item) =>
                 item.name.toLowerCase() === possible_item.toLowerCase()
@@ -1099,20 +1099,20 @@ export class TextWorld {
           );
 
           if (room_item) {
-            const player_item = player.inventory.find(
+            const player_item = player.items.find(
               (item) => item.name === room_item.name
             );
 
             if (player_item) {
               player_item.quantity += room_item.quantity;
             } else {
-              player.inventory.push({
+              player.items.push({
                 name: room_item.name,
                 quantity: room_item.quantity,
               });
             }
 
-            current_room.inventory = current_room.inventory.filter(
+            current_room.items = current_room.items.filter(
               (item) => item.name !== room_item.name
             );
             result = `You took the ${room_item.name}.`;
@@ -1130,22 +1130,22 @@ export class TextWorld {
     );
 
     if (current_room) {
-      current_room.inventory.forEach((room_item) => {
-        const player_item = player.inventory.find(
+      current_room.items.forEach((room_item) => {
+        const player_item = player.items.find(
           (pitem) => pitem.name === room_item.name
         );
 
         if (player_item) {
           player_item.quantity += room_item.quantity;
         } else {
-          player.inventory.push({
+          player.items.push({
             name: room_item.name,
             quantity: room_item.quantity,
           });
         }
       });
 
-      current_room.inventory = [];
+      current_room.items = [];
       result = "You took all items.";
     }
 
@@ -1157,7 +1157,7 @@ export class TextWorld {
 
     if (player) {
       const possible_items = this.generate_combinations(args);
-      const player_item = player.inventory.find((item) =>
+      const player_item = player.items.find((item) =>
         possible_items.find(
           (possible_item) =>
             item.name.toLowerCase() === possible_item.toLowerCase()
@@ -1191,7 +1191,7 @@ export class TextWorld {
           } else {
             player_item.quantity--;
             if (player_item.quantity === 0) {
-              player.inventory = player.inventory.filter(
+              player.items = player.items.filter(
                 (item) => item.name !== player_item.name
               );
             }
@@ -1203,15 +1203,15 @@ export class TextWorld {
   }
 
   remove_player_item(player: Player, item_name: string) {
-    const item_index = player?.inventory.findIndex(
+    const item_index = player?.items.findIndex(
       (item) => item.name.toLowerCase() === item_name.toLowerCase()
     );
 
     if (item_index !== undefined && item_index !== -1) {
-      player.inventory[item_index].quantity--;
+      player.items[item_index].quantity--;
 
-      if (player.inventory[item_index].quantity === 0) {
-        player.inventory.splice(item_index, 1);
+      if (player.items[item_index].quantity === 0) {
+        player.items.splice(item_index, 1);
       }
     }
   }
@@ -1231,7 +1231,7 @@ export class TextWorld {
       if (possible_items.includes("all")) {
         return this.drop_all_items(player);
       } else {
-        const player_item = player.inventory.find((item) =>
+        const player_item = player.items.find((item) =>
           possible_items.find(
             (possible_item) =>
               item.name.toLowerCase() === possible_item.toLowerCase()
@@ -1243,11 +1243,11 @@ export class TextWorld {
             (room) => room.name === player.room
           );
           if (current_room) {
-            current_room.inventory.push({
+            current_room.items.push({
               name: player_item.name,
               quantity: player_item.quantity,
             });
-            player.inventory = player.inventory.filter(
+            player.items = player.items.filter(
               (item) => item.name !== player_item.name
             );
             result = `You dropped the ${player_item.name}.`;
@@ -1264,9 +1264,9 @@ export class TextWorld {
       (room) => room.name === player.room
     );
 
-    if (current_room && player.inventory.length > 0) {
-      current_room.inventory.push(...player.inventory);
-      player.inventory = [];
+    if (current_room && player.items.length > 0) {
+      current_room.items.push(...player.items);
+      player.items = [];
 
       result = "You dropped all your items.";
     }
@@ -1282,7 +1282,7 @@ export class TextWorld {
     } else if (possible_items.includes("quests")) {
       result = this.show_quests(player);
     } else if (player) {
-      const player_item = player.inventory.find((item) =>
+      const player_item = player.items.find((item) =>
         possible_items.find(
           (possible_item) =>
             item.name.toLowerCase() === possible_item.toLowerCase()
@@ -1304,8 +1304,8 @@ export class TextWorld {
   show_all_items(player: Player): string {
     let result = "You have no items to show.";
 
-    if (player && player.inventory.length > 0) {
-      const items_description = player.inventory
+    if (player && player.items.length > 0) {
+      const items_description = player.items
         .map((item) => {
           const item_definition = this.world.items.find(
             (item_definition) => item_definition.name === item.name
@@ -1334,7 +1334,7 @@ export class TextWorld {
     description: string,
     stats: Resources,
     damage_and_defense: DamageAndDefense,
-    inventory: ItemDrop[]
+    items: ItemDrop[]
   ) {
     const mob: Mob = {
       id: crypto.randomUUID(),
@@ -1342,7 +1342,7 @@ export class TextWorld {
       descriptions: [{ flag: "default", description }],
       stats,
       damage_and_defense,
-      inventory,
+      items,
     };
     this.world.mobs.push(mob);
     return mob;
@@ -1443,8 +1443,8 @@ export class TextWorld {
 
           if (mob.stats.health.current <= 0) {
             mob.stats.health.current = 0;
-            this.add_item_drops_to_room(player, mob.inventory);
-            result += `\n${mob.name} dropped: ${mob.inventory
+            this.add_item_drops_to_room(player, mob.items);
+            result += `\n${mob.name} dropped: ${mob.items
               .map((item) => item.name)
               .join(", ")}`;
             current_room.mobs = current_room.mobs.filter(
@@ -1855,7 +1855,7 @@ export class TextWorld {
       name,
       descriptions: [{ flag: "default", description }],
       zone_start: false,
-      inventory: [],
+      items: [],
       npcs: [],
       mobs: [],
       objects: [],
@@ -1916,7 +1916,7 @@ export class TextWorld {
     );
 
     if (current_room) {
-      const items = current_room.inventory.map(
+      const items = current_room.items.map(
         (item) => `${item.name} (${item.quantity})`
       );
       const items_string =
@@ -2125,7 +2125,7 @@ export class TextWorld {
               this.remove_player_item(player, ingredient.name);
             }
           });
-          player.inventory.push({
+          player.items.push({
             name: recipe.crafted_item.name,
             quantity: recipe.crafted_item.quantity,
           });
