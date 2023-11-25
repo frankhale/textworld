@@ -1,14 +1,14 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhale AT gmail.com&gt;
-// 21 November 2023
+// 25 November 2023
 
 // FIXME: The commenting out of crypto.randomUUID() for id naming is a hack to
 // get around the fact that loading from a save file will result in all action
 // instances not having the correct id. For now we are using predictable ids to
-// get around this. The names are set to `name` primarily for the various
-// objects these actions go with. So for instance a room action will have the
-// same id as the name of the room it goes with. Collisions are bound to happen
-// like this and not be obvious.
+// get around this oversight in design. The names are set to `name` primarily
+// for the various objects these actions go with. So for instance a room action
+// will have the same id as the name of the room it goes with. Collisions are
+// bound to happen like this and not be obvious.
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -329,7 +329,8 @@ export class TextWorld {
       "attack action",
       "Attack a mob.",
       ["attack"],
-      (player, _input, _command, args) => this.attack_mob(player, args, true)
+      (player, _input, _command, args) =>
+        this.initiate_attack_on_mob(player, args, true)
     ),
     this.create_command_action(
       "craft action",
@@ -1385,7 +1386,7 @@ export class TextWorld {
     return null;
   }
 
-  attack(attacker: Player | Mob, defender: Player | Mob): string {
+  perform_attack(attacker: Player | Mob, defender: Player | Mob): string {
     const attacker_damage =
       Math.random() < attacker.damage_and_defense.critical_chance
         ? attacker.damage_and_defense.physical_damage * 2
@@ -1415,7 +1416,7 @@ export class TextWorld {
     return result;
   }
 
-  attack_mob(
+  initiate_attack_on_mob(
     player: Player,
     args: string[],
     should_mob_attack = false
@@ -1436,9 +1437,9 @@ export class TextWorld {
               ?.toLowerCase()
         );
         if (mob) {
-          result = this.attack(player, mob);
+          result = this.perform_attack(player, mob);
           if (should_mob_attack && mob.stats.health.current > 0) {
-            result += `\n${this.attack(mob, player)}`;
+            result += `\n${this.perform_attack(mob, player)}`;
           }
 
           if (mob.stats.health.current <= 0) {

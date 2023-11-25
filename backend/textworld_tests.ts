@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhale AT gmail.com&gt;
-// 21 November 2023
+// 25 November 2023
 
 import { assertEquals } from "https://deno.land/std@0.199.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.199.0/assert/assert_not_equals.ts";
@@ -122,27 +122,6 @@ Deno.test("can_show_alternate_room_description_and_switch_to_default", () => {
   player.flags.length = 0;
   result = textworld.get_room_description(player);
   assertEquals(result, "Location: Room1\n\nThis is room 1");
-  textworld.reset_world();
-});
-
-Deno.test("can_create_room_command_action", () => {
-  textworld.create_zone("Zone1");
-  textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.add_room_command_action(
-    "Zone1",
-    "Room1",
-    "xyzzy action",
-    "You recited the magical word XYZZY!!!",
-    ["xyzzy"],
-    (_player: tw.Player, _input: string, _command: string, _args: string[]) =>
-      "How dare you utter the magical word XYZZY!"
-  );
-  textworld.get_room("Zone1", "Room1");
-  const room_command_actions = textworld.get_room_command_action(
-    "Zone1",
-    "Room1"
-  );
-  assertNotEquals(room_command_actions, null);
   textworld.reset_world();
 });
 
@@ -1055,7 +1034,7 @@ Deno.test("mob_can_attack_player", () => {
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
-  const result = textworld.attack(mob, player);
+  const result = textworld.perform_attack(mob, player);
   assertStringIncludes(result, "Goblin attacks Player");
   player.stats.health.current = 100;
   textworld.reset_world();
@@ -1075,7 +1054,7 @@ Deno.test("mob_can_kill_player", () => {
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
-  const result = textworld.attack(mob, player);
+  const result = textworld.perform_attack(mob, player);
   assertStringIncludes(result, "Goblin attacks Player");
   assertStringIncludes(result, "Player has been defeated!");
   player.stats.health.current = 100;
@@ -1095,7 +1074,7 @@ Deno.test("player_can_attack_mob", () => {
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
-  const result = textworld.attack(player, mob);
+  const result = textworld.perform_attack(player, mob);
   assertStringIncludes(result, "Player attacks Goblin");
   textworld.reset_world();
 });
@@ -1113,7 +1092,7 @@ Deno.test("player_can_kill_mob", () => {
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
-  const result = textworld.attack(player, mob);
+  const result = textworld.perform_attack(player, mob);
   assertStringIncludes(result, "Player attacks Goblin");
   assertStringIncludes(result, "Goblin has been defeated!");
   textworld.reset_world();
@@ -1137,7 +1116,7 @@ Deno.test("player_can_kill_mob_and_drop_loot", () => {
     ]
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
-  const result = textworld.attack_mob(player, ["goblin"]);
+  const result = textworld.initiate_attack_on_mob(player, ["goblin"]);
   assertStringIncludes(result, "Player attacks Goblin");
   assertStringIncludes(result, "Goblin has been defeated!");
   const room = textworld.get_room("Zone1", "Room1");
@@ -1165,7 +1144,7 @@ Deno.test("player_can_kill_mob_and_pickup_look", () => {
     ]
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
-  const result = textworld.attack_mob(player, ["goblin"], true);
+  const result = textworld.initiate_attack_on_mob(player, ["goblin"], true);
   assertStringIncludes(result, "Player attacks Goblin");
   assertStringIncludes(result, "Goblin has been defeated!");
   textworld.take_all_items(player);
@@ -1192,7 +1171,7 @@ Deno.test("player_attack_mob_and_mob_attack_player", () => {
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
-  const result = textworld.attack_mob(player, ["goblin"], true);
+  const result = textworld.initiate_attack_on_mob(player, ["goblin"], true);
   assertStringIncludes(result, "Player attacks Goblin");
   assertStringIncludes(result, "Goblin attacks Player");
   player.stats.health.current = 100;
@@ -1213,7 +1192,7 @@ Deno.test("player_can_die_from_mob_attack", () => {
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
-  const result = textworld.attack_mob(player, ["goblin"], true);
+  const result = textworld.initiate_attack_on_mob(player, ["goblin"], true);
   assertStringIncludes(result, "Player attacks Goblin");
   assertStringIncludes(result, "Goblin attacks Player");
   assertStringIncludes(result, "Player has been defeated!");
@@ -1235,7 +1214,7 @@ Deno.test("player_can_die_from_mob_attack_and_ressurect", async () => {
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
-  let result = textworld.attack_mob(player, ["goblin"], true);
+  let result = textworld.initiate_attack_on_mob(player, ["goblin"], true);
   assertStringIncludes(result, "Player attacks Goblin");
   assertStringIncludes(result, "Goblin attacks Player");
   assertStringIncludes(result, "Player has been defeated!");
@@ -2073,6 +2052,67 @@ Deno.test("item_actions_work_after_loading_player_progress", async () => {
   await Deno.remove("test_game_saves.db");
   textworld.reset_world();
   player.items.length = 0;
+});
+
+Deno.test(
+  "room_command_actions_work_after_loading_player_progress",
+  async () => {
+    player.zone = "Zone1";
+    player.room = "Room1";
+    textworld.create_zone("Zone1");
+    textworld.create_room("Zone1", "Room1", "This is room 1 in zone 1");
+    textworld.set_room_as_zone_starter("Zone1", "Room1");
+    textworld.add_room_command_action(
+      "Zone1",
+      "Room1",
+      "warp action",
+      "Blue waves of light start spinning all around you. They get faster and faster until you can't see anything. When the light fades, you find yourself in a new place.",
+      ["warp"],
+      (_player, _input, _command, _args) => {
+        return "warping...";
+      }
+    );
+    await textworld.save_player_progress(
+      player,
+      "test_game_saves.db",
+      "test_slot"
+    );
+    await textworld.load_player_progress("test_game_saves.db", "test_slot");
+    const result = await textworld.parse_command(player, "warp");
+    assertEquals(
+      result,
+      "Blue waves of light start spinning all around you. They get faster and faster until you can't see anything. When the light fades, you find yourself in a new place.\n\nwarping..."
+    );
+    await Deno.remove("test_game_saves.db");
+    textworld.reset_world();
+  }
+);
+
+Deno.test("room_actions_work_after_loading_player_progress", async () => {
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.add_room_command_action(
+    "Zone1",
+    "Room1",
+    "xyzzy action",
+    "You recited the magical word XYZZY!!!",
+    ["xyzzy"],
+    (_player: tw.Player, _input: string, _command: string, _args: string[]) =>
+      "How dare you utter the magical word XYZZY!"
+  );
+  await textworld.save_player_progress(
+    player,
+    "test_game_saves.db",
+    "test_slot"
+  );
+  await textworld.load_player_progress("test_game_saves.db", "test_slot");
+  const result = await textworld.parse_command(player, "xyzzy");
+  await Deno.remove("test_game_saves.db");
+  assertEquals(
+    result,
+    "You recited the magical word XYZZY!!!\n\nHow dare you utter the magical word XYZZY!"
+  );
+  textworld.reset_world();
 });
 
 Deno.test("can_set_players_room_to_zone_start", () => {
