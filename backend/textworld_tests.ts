@@ -1638,6 +1638,7 @@ Deno.test("player_can_complete_quest_with_multiple_steps", () => {
   assertEquals(quest_result, true);
   assertEquals(player.quests.length, 0);
   assertEquals(player.flags.length, 0);
+  player.quests_completed.length = 0;
   player.items.length = 0;
   textworld.reset_world();
 });
@@ -2112,6 +2113,75 @@ Deno.test("room_actions_work_after_loading_player_progress", async () => {
     result,
     "You recited the magical word XYZZY!!!\n\nHow dare you utter the magical word XYZZY!"
   );
+  textworld.reset_world();
+});
+
+Deno.test("quest_actions_work_after_loading_player_progress", async () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item("Magic Ring", "A magic ring", false);
+  textworld.place_item("Zone1", "Room1", "Magic Ring");
+  textworld.create_quest("Quest1", "A quest");
+  textworld.add_quest_step(
+    "Quest1",
+    "Step1",
+    "Collect the magic ring",
+    (player) => {
+      if (player.items.some((item) => item.name === "Magic Ring")) {
+        const quest_step = textworld.get_quest_step("Quest1", "Step1");
+        if (quest_step) {
+          return true;
+        }
+      }
+      return false;
+    }
+  );
+  textworld.pickup_quest(player, "Quest1");
+  await textworld.save_player_progress(
+    player,
+    "test_game_saves.db",
+    "test_slot"
+  );
+  await textworld.load_player_progress("test_game_saves.db", "test_slot");
+  textworld.take_item(player, ["Magic Ring"]);
+  const result = textworld.is_quest_complete(player, "Quest1");
+  assertEquals(result, true);
+  assertEquals(player.quests.length, 0);
+  player.quests_completed.length = 0;
+  player.items.length = 0;
+  await Deno.remove("test_game_saves.db");
+  textworld.reset_world();
+});
+
+Deno.test("dialog_actions_work_after_loading_player_progress", async () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_npc("Guard", "A strong guard");
+  textworld.create_dialog(
+    "Guard",
+    ["hello"],
+    null,
+    (_player, _input, _command, _args) => {
+      return "this is a dialog action";
+    }
+  );
+  textworld.place_npc("Zone1", "Room1", "Guard");
+  await textworld.save_player_progress(
+    player,
+    "test_game_saves.db",
+    "test_slot"
+  );
+  await textworld.load_player_progress("test_game_saves.db", "test_slot");
+  const result = await textworld.parse_command(
+    player,
+    "talk to Guard say hello"
+  );
+  assertEquals(result, "this is a dialog action");
+  await Deno.remove("test_game_saves.db");
   textworld.reset_world();
 });
 
