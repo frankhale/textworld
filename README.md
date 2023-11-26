@@ -57,7 +57,7 @@ NOTE: Because we are using Deno.Kv we need to pass the --unstable flag
 
 ## Author(s)
 
-Frank Hale &lt;frankhale AT gmail.com&gt;
+Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 
 ## Date
 

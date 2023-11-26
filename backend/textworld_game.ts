@@ -1,5 +1,5 @@
 // A Text Adventure Library & Game for Deno
-// Frank Hale &lt;frankhale AT gmail.com&gt;
+// Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 // 21 November 2023
 
 import * as tw from "./textworld.ts";
@@ -15,6 +15,7 @@ class TextworldGame {
 
   constructor() {
     this.create_the_forest_zone();
+    this.create_log_cabin_zone();
     this.create_items();
     this.place_items();
     this.create_npcs();
@@ -116,6 +117,17 @@ class TextworldGame {
       "north",
       "Hollow Tree"
     );
+  }
+
+  create_log_cabin_zone() {
+    this.textworld.create_zone("Log Cabin");
+    this.textworld.create_room(
+      "Log Cabin",
+      "Living Room",
+      "You are standing inside the log cabin. The room is small but cozy. A fire is burning in the fireplace directly in front of you.",
+      null
+    );
+    this.textworld.set_room_as_zone_starter("Log Cabin", "Living Room");
   }
 
   create_items() {

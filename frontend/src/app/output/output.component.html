@@ -1,24 +1,24 @@
 <div class="output-container">
   <div #scrollContainer class="output-style">
     @for(message of history; track $index) {
-    @if(message.input && message.input.startsWith('map')) {
-    <div>Map:
-      <pre>{{message.response.replace("Map:\n\n", "")}}</pre>
-    </div>
-    } @else {
-    <div>
-      @if(message.input) {
-      <div class="command-text">
-        Command: {{ message.input }}
+      @if(message.input && message.input.startsWith('map') && message.map) {
+      <div>Map:
+        <pre>{{message.response.replace("Map:\n\n", "")}}</pre>
       </div>
+      } @else {
+        <div>
+          @if(message.input) {
+            <div class="command-text">
+              Command: {{ message.input }}
+            </div>
+          }
+          @for (line of message.responseLines; track $index) {
+            <div [ngClass]="getCssClass(line)">
+              {{ line }}
+            </div>
+          }
+        </div>
       }
-      @for (line of message.responseLines; track $index) {
-      <div [ngClass]="getCssClass(line)">
-        {{ line }}
-      </div>
-      }
-    </div>
-    }
     }
   </div>
 
@@ -33,11 +33,13 @@
     Health: {{currentMessage.player.stats.health.current }}/{{ currentMessage.player.stats.health.max }}
     <br />
     Gold: {{ currentMessage.player.gold }}
-    <br />
-    Map:
-    <div class="map">
-      <pre>{{ currentMessage.map.replace("Map:\n\n", "") }}</pre>
-    </div>
+    @if(currentMessage.map) {
+      <br />
+      Map:
+      <div class="map">
+        <pre>{{ currentMessage.map.replace("Map:\n\n", "") }}</pre>
+      </div>
+    }
   </div>
   }
 

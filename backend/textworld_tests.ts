@@ -1,5 +1,5 @@
 // A Text Adventure Library & Game for Deno
-// Frank Hale &lt;frankhale AT gmail.com&gt;
+// Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 // 25 November 2023
 
 import { assertEquals } from "https://deno.land/std@0.199.0/assert/assert_equals.ts";

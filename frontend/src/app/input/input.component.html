@@ -1,7 +1,9 @@
 <div>
   <app-output></app-output>
-  <div class="input-style">
-    &gt;<input #playerTextInput type="text" [(ngModel)]="playerInput" (keydown)="onKeyDown($event)" autofocus
-      spellcheck="false" class="input" />
-  </div>
+  @if(gameService.connected) {
+    <div class="input-style">
+      &gt;<input #playerTextInput type="text" [(ngModel)]="playerInput" (keydown)="onKeyDown($event)" autofocus
+        spellcheck="false" class="input" />
+    </div>
+  }
 </div>

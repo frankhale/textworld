@@ -1,5 +1,5 @@
 // A Text Adventure Library & Game for Deno
-// Frank Hale &lt;frankhale AT gmail.com&gt;
+// Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 // 25 November 2023
 
 // FIXME: The commenting out of crypto.randomUUID() for id naming is a hack to
@@ -30,7 +30,7 @@ export interface Description {
 }
 
 export interface Id {
-  id?: string | null;
+  id: string;
 }
 
 export interface Entity extends Id {
