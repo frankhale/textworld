@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 25 November 2023
+// 27 November 2023
 
 // FIXME: The commenting out of crypto.randomUUID() for id naming is a hack to
 // get around the fact that loading from a save file will result in all action
@@ -38,25 +38,26 @@ export interface Entity extends Id {
   descriptions: Description[];
 }
 
+export interface Storage {
+  items: ItemDrop[];
+}
+
 export interface Stats {
   stats: Resources;
   damage_and_defense: DamageAndDefense;
 }
 
-export interface Storage {
-  items: ItemDrop[];
+export interface Stat {
+  current: number;
+  max: number;
 }
 
-export interface Player extends Entity, Stats, Storage {
-  score: number;
-  gold: number;
-  progress: Level;
-  zone: string;
-  room: string;
-  flags: string[];
-  quests: string[];
-  quests_completed: string[];
-  known_recipes: string[];
+export interface InnateCharacteristics {
+  dexterity: number;
+  constitution: number;
+  intelligence: number;
+  wisdom: number;
+  charisma: number;
 }
 
 export interface Resources {
@@ -73,14 +74,27 @@ export interface DamageAndDefense {
   critical_chance: number;
 }
 
+export interface Race {
+  name: string;
+  innate_characteristics: InnateCharacteristics;
+}
+
+export interface Player extends Entity, Stats, Storage {
+  race: Race;
+  score: number;
+  gold: number;
+  progress: Level;
+  zone: string;
+  room: string;
+  flags: string[];
+  quests: string[];
+  quests_completed: string[];
+  known_recipes: string[];
+}
+
 export interface Recipe extends Entity {
   ingredients: ItemDrop[];
   crafted_item: ItemDrop;
-}
-
-export interface Stat {
-  current: number;
-  max: number;
 }
 
 export interface Level {
@@ -363,7 +377,7 @@ export class TextWorld {
       ["load"],
       async (player, _input, _command, args) => {
         let result = "You must specify a slot name";
-        if (args.length >= 0) {
+        if (args.length > 0) {
           const player_result = await this.load_player_progress(
             player_progress_db_name,
             args[0]
@@ -435,6 +449,16 @@ export class TextWorld {
   ) {
     const player: Player = {
       id: crypto.randomUUID(),
+      race: {
+        name: "Human",
+        innate_characteristics: {
+          dexterity: 1,
+          constitution: 1,
+          intelligence: 1,
+          wisdom: 1,
+          charisma: 1,
+        },
+      },
       name,
       descriptions: [{ flag: "default", description }],
       score: 0,
@@ -480,7 +504,7 @@ export class TextWorld {
     player.stats.health.current = player.stats.health.max;
     player.stats.stamina.current = player.stats.stamina.max;
     player.stats.magicka.current = player.stats.magicka.max;
-    // TODO: Move player to starting room
+    this.set_players_room_to_zone_start(player, player.zone);
     return "You have been resurrected.";
   }
 
@@ -2526,7 +2550,7 @@ export class TextWorld {
   }
 
   async parse_command(player: Player, input: string): Promise<string> {
-    let result = "I don't understand that command.";
+    let result;
     const input_limit = Math.min(input_character_limit, input.length);
     input = input.substring(0, input_limit);
 
@@ -2540,21 +2564,34 @@ export class TextWorld {
       talk_to ? action.toLowerCase().includes(talk_to) : true
     );
 
-    const command_actions =
-      player.stats.health.current <= 0
-        ? this.player_dead_command_actions
-        : this.main_command_actions;
+    let async_command_actions: CommandAction[] | null = null;
+    let command_actions: CommandAction[] | null = null;
+    let command_action: CommandAction | undefined;
 
-    const command_action = command_actions.find((action) =>
-      action.synonyms.some((synonym) => filtered_actions.includes(synonym))
-    );
+    if (!this.has_flag(player, "disable_main_commands")) {
+      async_command_actions = this.main_async_command_actions;
+      command_actions =
+        player.stats.health.current <= 0
+          ? this.player_dead_command_actions
+          : this.main_command_actions;
+    }
 
-    if (command_action) {
-      result = command_action.action(player, input, command, args) as string;
-    } else {
+    // MAIN COMMAND ACTIONS
+    if (command_actions) {
+      command_action = command_actions.find((action) =>
+        action.synonyms.some((synonym) => filtered_actions.includes(synonym))
+      );
+
+      if (command_action) {
+        result = command_action.action(player, input, command, args) as string;
+      }
+    }
+
+    // MAIN ASYNC COMMAND ACTIONS
+    if (!result && async_command_actions) {
       const async_command_action = this.main_async_command_actions.find(
         (action) =>
-          action.synonyms.some((synonym) => filtered_actions.includes(synonym))
+          action.synonyms.some((synonym) => possible_actions.includes(synonym))
       );
 
       if (async_command_action) {
@@ -2564,43 +2601,41 @@ export class TextWorld {
           command,
           args
         );
-      } else {
-        if (this.world.zones.length > 0) {
-          const players_room = this.get_players_room(player);
-          if (players_room) {
-            const players_room_command_actions = this.get_room_command_action(
-              player.zone,
-              players_room.name
+      }
+    }
+
+    // ROOM COMMAND ACTIONS
+    if (!result) {
+      const players_room = this.get_players_room(player);
+      if (players_room) {
+        const players_room_command_actions = this.get_room_command_action(
+          player.zone,
+          players_room.name
+        );
+
+        if (players_room_command_actions) {
+          const room_command_action =
+            players_room_command_actions.command_actions.find((action) =>
+              action.synonyms.some((synonym) =>
+                filtered_actions.includes(synonym)
+              )
             );
 
-            if (players_room_command_actions) {
-              const room_command_action =
-                players_room_command_actions.command_actions.find((action) =>
-                  action.synonyms.some((synonym) =>
-                    filtered_actions.includes(synonym)
-                  )
-                );
-
-              if (room_command_action) {
-                result = `${this.get_description(
-                  player,
-                  room_command_action,
-                  "default"
-                )}\n\n${room_command_action.action(
-                  player,
-                  input,
-                  command,
-                  args
-                )}`;
-              } else {
-                result = "I don't understand that command.";
-              }
-            }
+          if (room_command_action) {
+            result = `${this.get_description(
+              player,
+              room_command_action,
+              "default"
+            )}\n\n${room_command_action.action(player, input, command, args)}`;
           } else {
-            result = "Player's room does not exist.";
+            result = "I don't understand that command.";
           }
         }
       }
+    }
+
+    if (!result) {
+      result = "I don't understand that command.";
     }
 
     return result;

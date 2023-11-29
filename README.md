@@ -1,7 +1,7 @@
 # TextWorld
 
-A text based role playing game engine written in TypeScript on Deno with an 
-Angular frontend. This is still a work in progress but there is a lot here. 
+A text based role playing game engine written in TypeScript on Deno with an
+Angular frontend. This is still a work in progress but there is a lot here.
 There is a strong focus on test driven design although we don't currently have
 100% code coverage.
 
@@ -61,4 +61,4 @@ Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 
 ## Date
 
-25 November 2023
+27 November 2023

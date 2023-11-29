@@ -19,7 +19,7 @@ export class InputComponent {
   @ViewChild("playerTextInput", { static: false })
   playerTextInput!: ElementRef;
 
-  constructor(public gameService: GameService) {}
+  constructor(public gameService: GameService) { }
 
   onKeyDown(event: KeyboardEvent): void {
     if (event.key === "Enter") {

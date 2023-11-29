@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 25 November 2023
+// 27 November 2023
 
 import { assertEquals } from "https://deno.land/std@0.199.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.199.0/assert/assert_not_equals.ts";
@@ -985,6 +985,36 @@ Deno.test("can_parse_command_craft", async () => {
   textworld.reset_world();
 });
 
+Deno.test("can_parse_command_load", async () => {
+  player.gold = 1234;
+  await textworld.save_player_progress(
+    player,
+    tw.player_progress_db_name,
+    "test-slot"
+  );
+  const result = await textworld.parse_command(player, "load test-slot");
+  assertEquals(result, `Progress has been loaded from slot: test-slot`);
+  assertEquals(player.gold, 1234);
+  await Deno.remove(tw.player_progress_db_name);
+  textworld.reset_world();
+  player.gold = 0;
+});
+
+Deno.test("can_parse_command_save", async () => {
+  player.gold = 1234;
+  const result = await textworld.parse_command(player, "save test-slot");
+  assertEquals(result, `Progress has been saved to slot: test-slot`);
+  const playerResult = await textworld.load_player_progress(
+    tw.player_progress_db_name,
+    "test-slot"
+  );
+  assertNotEquals(playerResult, null);
+  assertEquals(playerResult?.player.gold, 1234);
+  await Deno.remove(tw.player_progress_db_name);
+  textworld.reset_world();
+  player.gold = 0;
+});
+
 Deno.test("can_spawn_item_in_room_using_spawn_location", async () => {
   player.zone = "Zone1";
   player.room = "Room1";
@@ -1018,6 +1048,7 @@ Deno.test("can_spawn_item_in_room_using_spawn_location", async () => {
   textworld.remove_spawn_location("Test Spawner");
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.items.length, 1);
+  textworld.reset_world();
 });
 
 Deno.test("mob_can_attack_player", () => {
@@ -1206,6 +1237,7 @@ Deno.test("player_can_die_from_mob_attack_and_ressurect", async () => {
   player.stats.health.current = 1;
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.set_room_as_zone_starter("Zone1", "Room1");
   textworld.create_mob(
     "Goblin",
     "A small goblin",
