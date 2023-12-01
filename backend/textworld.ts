@@ -33,6 +33,10 @@ export interface Id {
   id: string;
 }
 
+export interface Group {
+  group: string | null;
+}
+
 export interface Entity extends Id {
   name: string;
   descriptions: Description[];
