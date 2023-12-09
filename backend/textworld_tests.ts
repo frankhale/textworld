@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 27 November 2023
+// 8 December 2023
 
 import { assertEquals } from "https://deno.land/std@0.199.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.199.0/assert/assert_not_equals.ts";
@@ -428,7 +428,7 @@ Deno.test("can_process_examine_room_object", () => {
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
       {
-        id: "Fireplace", //crypto.randomUUID(),
+        group: "Fireplace",
         trigger: ["fan flame"],
         response: "The flames become stronger as you fan them.",
       },
@@ -467,7 +467,7 @@ Deno.test("can_parse_command_examine_room_object", async () => {
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
       {
-        id: "Fireplace", //crypto.randomUUID(),
+        group: "Fireplace",
         trigger: ["fan flame"],
         response: "The flames become stronger as you fan them.",
       },
@@ -663,7 +663,7 @@ Deno.test("can_parse_command_examine_object", async () => {
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
       {
-        id: "Fireplace", //crypto.randomUUID(),
+        group: "Fireplace",
         trigger: ["fan flames"],
         response: "The flames become stronger as you fan them.",
       },

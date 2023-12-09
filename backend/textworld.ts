@@ -1,14 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 27 November 2023
-
-// FIXME: The commenting out of crypto.randomUUID() for id naming is a hack to
-// get around the fact that loading from a save file will result in all action
-// instances not having the correct id. For now we are using predictable ids to
-// get around this oversight in design. The names are set to `name` primarily
-// for the various objects these actions go with. So for instance a room action
-// will have the same id as the name of the room it goes with. Collisions are
-// bound to happen like this and not be obvious.
+// 8 December 2023
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -120,7 +112,7 @@ export interface VendorItem {
   price: number;
 }
 
-export interface Dialog extends Id {
+export interface Dialog extends Group {
   trigger: string[];
   response: string | null;
 }
@@ -187,36 +179,36 @@ export interface PlayerProgress {
 // ACTION OBJECTS //
 ////////////////////
 
-export interface QuestAction extends Id {
+export interface QuestAction extends Group {
   start: ActionNoOutput | null;
   end: ActionNoOutput | null;
 }
 
-export interface QuestStepAction extends Id {
+export interface QuestStepAction extends Group {
   action: ActionDecision;
 }
 
 type QuestActionType = "Start" | "End";
 
-export interface CommandAction extends Entity {
+export interface CommandAction extends Entity, Group {
   synonyms: string[];
   action: CommandParserAction;
 }
 
-export interface DialogAction extends Id {
+export interface DialogAction extends Group {
   trigger: string[];
   action: CommandParserAction;
 }
 
-export interface ItemAction extends Id {
+export interface ItemAction extends Group {
   action: Action;
 }
 
-export interface RoomAction extends Id {
+export interface RoomAction extends Group {
   actions: Action[] | null;
 }
 
-export interface RoomCommandActions extends Id {
+export interface RoomCommandActions extends Group {
   command_actions: CommandAction[];
 }
 
@@ -573,7 +565,7 @@ export class TextWorld {
 
   create_quest(name: string, description: string) {
     this.world.quests.push({
-      id: name, //crypto.randomUUID(),
+      id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
       complete: false,
@@ -586,7 +578,7 @@ export class TextWorld {
     if (!quest) return null;
     return (
       this.world_actions.quest_actions.find(
-        (quest_action) => quest_action.id === quest.id
+        (quest_action) => quest_action.group === quest.name
       ) ?? null
     );
   }
@@ -596,7 +588,7 @@ export class TextWorld {
     if (!quest_step) return null;
     return (
       this.world_actions.quest_step_actions.find(
-        (quest_step_action) => quest_step_action.id === quest_step.id
+        (quest_step_action) => quest_step_action.group === quest_step.name
       ) ?? null
     );
   }
@@ -609,7 +601,7 @@ export class TextWorld {
     const quest = this.get_quest(quest_name);
     if (quest) {
       const quest_action: QuestAction = {
-        id: quest.id,
+        group: quest_name,
         start: null,
         end: null,
       };
@@ -631,16 +623,15 @@ export class TextWorld {
     const quest = this.get_quest(quest_name);
     if (quest) {
       if (!quest.steps) quest.steps = [];
-      const id = name; //crypto.randomUUID();
       quest.steps.push({
-        id,
+        id: crypto.randomUUID(),
         name,
         descriptions: [{ flag: "default", description }],
         complete: false,
       });
       if (action) {
         this.world_actions.quest_step_actions.push({
-          id,
+          group: name,
           action,
         });
       }
@@ -904,7 +895,7 @@ export class TextWorld {
 
   create_npc(name: string, description: string) {
     this.world.npcs.push({
-      id: name, //crypto.randomUUID(),
+      id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
       inventory: [],
@@ -922,7 +913,7 @@ export class TextWorld {
 
   create_vendor(name: string, description: string, vendor_items: VendorItem[]) {
     this.world.npcs.push({
-      id: name, //crypto.randomUUID(),
+      id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
       stats: this.create_resources(10, 10, 10, 10, 10, 10),
@@ -1060,16 +1051,15 @@ export class TextWorld {
     usable: boolean,
     action: Action | null = null
   ) {
-    const id = name; //crypto.randomUUID();
     this.world.items.push({
-      id,
-      name: name,
+      id: crypto.randomUUID(),
+      name,
       descriptions: [{ flag: "default", description }],
       usable,
     });
     if (action) {
       this.world_actions.item_actions.push({
-        id,
+        group: name,
         action,
       });
     }
@@ -1088,7 +1078,7 @@ export class TextWorld {
     if (!item) return null;
     return (
       this.world_actions.item_actions.find(
-        (item_action) => item_action.id === item.id
+        (item_action) => item_action.group === item.name
       ) ?? null
     );
   }
@@ -1201,7 +1191,7 @@ export class TextWorld {
           if (!item_definition.usable) return "You can't use that item.";
 
           const item_action = this.world_actions.item_actions.find(
-            (action) => action.id === item_definition.id
+            (action) => action.group === item_definition.name
           );
 
           if (item_action) {
@@ -1534,7 +1524,7 @@ export class TextWorld {
     const room = this.get_room(zone_name, room_name);
     if (room) {
       return this.world_actions.room_command_actions.find(
-        (action) => action.id === room.id
+        (action) => action.group === room.name
       );
     }
     return null;
@@ -1555,7 +1545,8 @@ export class TextWorld {
         room_name
       );
       const command_action = {
-        id: name, //crypto.randomUUID(),
+        id: crypto.randomUUID(),
+        group: name,
         name,
         descriptions: [{ flag: "default", description }],
         synonyms,
@@ -1565,7 +1556,7 @@ export class TextWorld {
         room_command_actions.command_actions.push(command_action);
       } else {
         this.world_actions.room_command_actions.push({
-          id: room.id,
+          group: room.name,
           command_actions: [command_action],
         });
       }
@@ -1761,7 +1752,7 @@ export class TextWorld {
 
       if (current_room) {
         const new_room_actions = this.world_actions.room_actions.find(
-          (action) => action.id === current_room?.id
+          (action) => action.group === current_room?.name
         );
 
         if (new_room_actions && new_room_actions.actions) {
@@ -1896,7 +1887,7 @@ export class TextWorld {
       actions = [action];
 
       this.world_actions.room_actions.push({
-        id,
+        group: id,
         actions,
       });
     }
@@ -1917,7 +1908,7 @@ export class TextWorld {
     const room = this.get_room(zone_name, room_name);
     if (room) {
       this.world_actions.room_actions.push({
-        id: room.id,
+        group: room.name,
         actions: [action],
       });
     }
@@ -2007,7 +1998,7 @@ export class TextWorld {
     if (!room)
       throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
     room.objects.push({
-      id: name, //crypto.randomUUID(),
+      id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
       inventory: [],
@@ -2062,7 +2053,7 @@ export class TextWorld {
           );
           if (dialog) {
             const dialog_action = this.world_actions.dialog_actions.find(
-              (action) => action.id === dialog.id
+              (action) => action.group === dialog.group
             );
 
             if (dialog_action) {
@@ -2093,7 +2084,7 @@ export class TextWorld {
     crafted_item: ItemDrop
   ) {
     this.world.recipes.push({
-      id: name, //crypto.randomUUID(),
+      id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
       ingredients,
@@ -2281,18 +2272,18 @@ export class TextWorld {
   ) {
     const npc = this.get_npc(npc_name);
     if (npc) {
-      const id = npc_name; //crypto.randomUUID();
+      const id = crypto.randomUUID();
       if (!npc.dialog) {
         npc.dialog = [];
       }
       npc.dialog.push({
-        id,
+        group: npc_name,
         trigger,
         response,
       });
       if (action) {
         this.world_actions.dialog_actions.push({
-          id,
+          group: id,
           trigger,
           action,
         });
@@ -2301,12 +2292,12 @@ export class TextWorld {
   }
 
   create_dialog_action(
-    id: string,
+    group: string,
     trigger: string[],
     action: CommandParserAction
   ) {
     this.world_actions.dialog_actions.push({
-      id,
+      group,
       trigger,
       action,
     });
@@ -2334,7 +2325,8 @@ export class TextWorld {
     action: CommandParserAction
   ): CommandAction {
     return {
-      id: name, //crypto.randomUUID(),
+      id: crypto.randomUUID(),
+      group: name,
       name,
       descriptions: [{ flag: "default", description }],
       synonyms,
@@ -2536,7 +2528,7 @@ export class TextWorld {
 
       const new_room = this.get_players_room(player);
       const new_room_actions = this.world_actions.room_actions.find(
-        (action) => action.id === new_room?.id
+        (action) => action.group === new_room?.name
       );
       if (new_room && new_room_actions && new_room_actions.actions) {
         const actionResult = new_room_actions.actions
