@@ -266,9 +266,9 @@
     public required Action Action { get; set; } = action;
   }
 
-  public class RoomAction(string name, string description) : Entity(name, description)
+  public class RoomAction(string name, string description, Action action) : Entity(name, description)
   {
-    public List<Action> Actions { get; set; } = [];
+    public Action Action { get; set; } = action;
   }
 
   public class CommandAction(string name, string description) : Entity(name, description)

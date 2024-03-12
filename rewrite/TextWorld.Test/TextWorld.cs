@@ -81,7 +81,7 @@ namespace TextWorld.Test
     {
       var textWorld = new TextWorldX();
       var player = textWorld.CreatePlayer("Player", "You are a strong adventurer", "Zone1", "Room1");
-      var result = TextWorldX.LookSelf(player);
+      var result = textWorld.LookSelf(player);
       Assert.Equal("You are a strong adventurer", result);
     }
     #endregion
@@ -181,12 +181,79 @@ namespace TextWorld.Test
     {
       var textWorld = new TextWorldX();
       var player = textWorld.CreatePlayer("Player", "You are a strong adventurer", "Zone1", "Room1");
+      textWorld.SetFlag(player, "Room1-Alt");
       textWorld.CreateZone("Zone1", "The first zone");
       textWorld.CreateRoom("Zone1", "Room1", "This is room 1");
       textWorld.AddRoomDescription("Zone1", "Room1", "Room1-Alt", "This is room 1, again!");
       var result = textWorld.GetRoomDescription(player);
-      Assert.Equal("This is room 1, again!", result);
+      Assert.Equal("Location: This is room 1, again!", result);
     }
+
+    [Fact]
+    public void CanShowAlternateRoomDescriptionAndSwitchToDefault()
+    {
+      var textWorld = new TextWorldX();
+      var player = textWorld.CreatePlayer("Player", "You are a strong adventurer", "Zone1", "Room1");
+      textWorld.SetFlag(player, "Room1-Alt");
+      textWorld.CreateZone("Zone1", "The first zone");
+      textWorld.CreateRoom("Zone1", "Room1", "This is room 1");
+      textWorld.AddRoomDescription("Zone1", "Room1", "Room1-Alt", "This is room 1, again!");
+      var result = textWorld.GetRoomDescription(player);
+      Assert.Equal("Location: This is room 1, again!", result);
+      textWorld.RemoveFlag(player, "Room1-Alt");
+      result = textWorld.GetRoomDescription(player);
+      Assert.Equal("Location: This is room 1", result);
+    }
+
+    [Fact]
+    public void CanRemoveRoom()
+    {
+      var textWorld = new TextWorldX();
+      textWorld.CreateZone("Zone1", "The first zone");
+      textWorld.CreateRoom("Zone1", "Room1", "The first room");
+      textWorld.RemoveRoom("Zone1", "Room1");
+      var result = textWorld.GetRoom("Zone1", "Room1");
+      Assert.Null(result);
+    }
+
+    [Fact]
+    public void CanCreateExit()
+    {
+      var textWorld = new TextWorldX();
+      textWorld.CreateZone("Zone1", "The first zone");
+      textWorld.CreateRoom("Zone1", "Room1", "The first room");
+      textWorld.CreateRoom("Zone1", "Room2", "The second room");
+      textWorld.CreateExit("Zone1", "Room1", "Room2", "north");
+      var result = textWorld.GetExit("Zone1", "Room1", "north");
+      Assert.NotNull(result);
+      Assert.Equal("Room2", result.Location);
+    }
+
+    [Fact]
+    public void CanRemoveExit()
+    {
+      var textWorld = new TextWorldX();
+      textWorld.CreateZone("Zone1", "The first zone");
+      textWorld.CreateRoom("Zone1", "Room1", "The first room");
+      textWorld.CreateRoom("Zone1", "Room2", "The second room");
+      textWorld.CreateExit("Zone1", "Room1", "Room2", "north");
+      textWorld.RemoveExit("Zone1", "Room1", "north");
+      var result = textWorld.GetExit("Zone1", "Room1", "north");
+      Assert.Null(result);
+    }
+
+    [Fact]
+    public void CanCreateRoomWithAction()
+    {
+      var textWorld = new TextWorldX();
+      var player = textWorld.CreatePlayer("Player", "You are a strong adventurer", "Zone1", "Room1");
+      textWorld.CreateZone("Zone1", "The first zone");
+      textWorld.CreateRoom("Zone1", "Room1", "The first room");
+      textWorld.CreateRoom("Zone1", "Room2", "The second room", (player) => { return "The healing waters have no effect on you."; });
+      textWorld.CreateExit("Zone1", "Room1", "Room2", "North");
+      var result = textWorld.SwitchRoom(player, "North");
+      Assert.Equal("The healing waters have no effect on you.", result);
+    } 
     #endregion
 
     #region QUEST

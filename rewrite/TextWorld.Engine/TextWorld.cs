@@ -1,4 +1,6 @@
-﻿namespace TextWorld.Engine
+﻿using System.Text;
+
+namespace TextWorld.Engine
 {
   public class TextWorldX
   {
@@ -11,7 +13,7 @@
 
     public TextWorldX() { }
 
-    public static string? GetDescription(Player player, Entity entity, string flag)
+    public string? GetDescription(Player player, Entity entity, string flag)
     {
       if (flag == "default" && player.Flags.Count > 0)
       {
@@ -34,6 +36,24 @@
       var player = new Player(name, description, zoneName, roomName);
       world.Players.Add(player);
       return player;
+    }
+
+    public void SetFlag(Player player, string flag)
+    {
+      if (!player.Flags.Contains(flag))
+      {
+        player.Flags.Add(flag);
+      }
+    }
+
+    public void RemoveFlag(Player player, string flag)
+    {
+      player.Flags.Remove(flag);
+    }
+
+    public bool HasFlag(Player player, string flag)
+    {
+      return player.Flags.Contains(flag);
     }
 
     public string ResurrectPlayer(Player player)
@@ -84,7 +104,7 @@
       throw new Exception("Player is not in a zone or room");
     }
 
-    public static string LookSelf(Player player)
+    public string LookSelf(Player player)
     {
       string inventory = string.Join(", ", player.Storage.Items.Select(item => $"{item.Name} ({item.Quantity})"));
       return $"{GetDescription(player, player, "default")}" +
@@ -141,13 +161,18 @@
     #endregion
 
     #region ROOM
-    public Room CreateRoom(string zoneName, string name, string description)
+    public Room CreateRoom(string zoneName, string name, string description, Action? action = null)
     {
       var zone = GetZone(zoneName);
       if (zone != null)
       {
         var room = new Room(name, description);
         zone.Rooms.Add(room);
+
+        if (action != null)
+        {
+          worldActions.RoomActions.Add(new RoomAction(name, description, action));
+        }
         return room;
       }
       throw new Exception($"Zone {zoneName} does not exist.");
@@ -199,6 +224,119 @@
       }
 
       return "You can't see anything.";
+    }
+
+    public void RemoveRoom(string zoneName, string roomName)
+    {
+      var zone = GetZone(zoneName);
+      zone?.Rooms.RemoveAll(r => r.Name == roomName);
+    }
+
+    public void CreateExit(string zoneName, string fromRoomName, string toRoomName, string exitName, bool hidden = false)
+    {
+      var zone = GetZone(zoneName);
+      if (zone != null)
+      {
+        var fromRoom = zone.Rooms.Find(r => r.Name == fromRoomName);
+        var toRoom = zone.Rooms.Find(r => r.Name == toRoomName);
+        if (fromRoom != null && toRoom != null)
+        {
+          if (fromRoom != null && toRoom != null)
+          {
+            var oppositeExitName = "";
+            switch (exitName)
+            {
+              case "north":
+                oppositeExitName = "south";
+                break;
+              case "south":
+                oppositeExitName = "north";
+                break;
+              case "east":
+                oppositeExitName = "west";
+                break;
+              case "west":
+                oppositeExitName = "east";
+                break;
+            }
+
+            fromRoom.Exits.Add(new Exit(exitName, $"Exit {exitName}", toRoomName) { Hidden = hidden });
+            toRoom.Exits.Add(new Exit(oppositeExitName, $"Exit {oppositeExitName}", fromRoomName) { Hidden = hidden });
+          }
+          else
+          {
+            throw new Exception($"Room {fromRoomName} or {toRoomName} does not exist in zone {zoneName}.");
+          }
+        }        
+      }
+      else
+      {
+        throw new Exception($"Zone {zoneName} does not exist.");
+      }
+    }
+
+    public void RemoveExit(string zoneName, string fromRoomName, string exitName)
+    {
+      var zone = GetZone(zoneName);
+      if (zone != null)
+      {
+        var fromRoom = zone.Rooms.Find(r => r.Name == fromRoomName);
+        if (fromRoom != null)
+        {
+          fromRoom.Exits.RemoveAll(e => e.Name == exitName);
+        }
+        else
+        {
+          throw new Exception($"Room {fromRoomName} does not exist in zone {zoneName}.");
+        }
+      }
+      else
+      {
+        throw new Exception($"Zone {zoneName} does not exist.");
+      }
+    }
+
+    public Exit? GetExit(string zoneName, string fromRoomName, string exitName)
+    {
+      var room = GetRoom(zoneName, fromRoomName);
+      if (room != null)
+      {
+        return room.Exits.Find(e => e.Name == exitName);
+      }
+      return null;
+    }
+
+    public string SwitchRoom(Player player, string exitName)
+    {
+      var room = GetPlayersRoom(player);
+      var exit = room.Exits.Find(e => e.Name == exitName);
+      if (exit != null)
+      {
+        if (exit.Hidden)
+          exit.Hidden = false;
+
+        player.RoomName = exit.Location;
+
+        var roomDescription = GetRoomDescription(player);
+        var roomActions = worldActions.RoomActions.FindAll(a => a.Name == player.RoomName);
+        if (roomActions.Count > 0)
+        {
+          var actionResults = new StringBuilder();
+          foreach (var action in roomActions)
+          {
+            var actionResult = action.Action(player);
+            actionResults.AppendLine(actionResult);
+          }
+
+          if(actionResults.Length > 0)
+          {
+            return actionResults.ToString().Trim();
+          }
+        }
+
+        return roomDescription;
+      }
+      return "You can't go that way.";
     }
     #endregion
 
