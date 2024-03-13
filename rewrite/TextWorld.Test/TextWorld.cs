@@ -40,7 +40,7 @@ namespace TextWorld.Test
       var textWorld = new TextWorldX();
       textWorld.CreateZone("Zone1", "The first zone");
       textWorld.CreateRoom("Zone1", "Room1", "The first room");
-      textWorld.SetRoomAsZoneStarter("Zone1", "Room1"); 
+      textWorld.SetRoomAsZoneStarter("Zone1", "Room1");
       var player = textWorld.CreatePlayer("Player", "You are a strong adventurer", "Zone1", "Room1");
       player.Stats.Value.Health.Current = 0;
       player.Stats.Value.Stamina.Current = 0;
@@ -253,7 +253,7 @@ namespace TextWorld.Test
       textWorld.CreateExit("Zone1", "Room1", "Room2", "North");
       var result = textWorld.SwitchRoom(player, "North");
       Assert.Equal("The healing waters have no effect on you.", result);
-    } 
+    }
     #endregion
 
     #region QUEST
@@ -354,6 +354,74 @@ namespace TextWorld.Test
       var quest = textWorld.CreateQuest("Quest1", "The first quest");
       var result = textWorld.PickupQuest(player, quest.Name);
       Assert.Equal($"You have picked up the quest Quest1.", result);
+    }
+    #endregion
+
+    #region RECIPES
+    [Fact]
+    public void CanCreateRecipe()
+    {
+      var textWorld = new TextWorldX();
+      textWorld.CreateRecipe("Recipe1", "The first recipe", [new("Iron", 2), new("Wood", 1)], new("Iron Sword", 1));
+      var result = textWorld.GetRecipe("Recipe1");
+      Assert.NotNull(result);
+      Assert.Equal("Recipe1", result.Name);
+    }
+    #endregion
+
+    #region ITEMS
+    [Fact]
+    public void CanCreateItem()
+    {
+      var textWorld = new TextWorldX();
+      var result = textWorld.CreateItem("Iron Sword", "An ordinary iron sword");
+      Assert.NotNull(result);
+      Assert.Equal("Iron Sword", result.Name);
+    }
+
+    [Fact]
+    public void CanCreateItemWithAction()
+    {
+      var textWorld = new TextWorldX();
+      var result = textWorld.CreateItem("Potion", "A potion", true, (player) => "You drank the potion but nothing happened.");
+      Assert.NotNull(result);
+      Assert.Equal("Potion", result.Name);
+      var action = textWorld.GetItemAction("Potion");
+      Assert.NotNull(action);
+    }
+
+    [Fact]
+    public void CanGetItem()
+    {
+      var textWorld = new TextWorldX();
+      textWorld.CreateItem("Iron Sword", "An ordinary iron sword");
+      var result = textWorld.GetItem("Iron Sword");
+      Assert.NotNull(result);
+      Assert.Equal("Iron Sword", result.Name);
+    }
+
+    [Fact]
+    public void CanPlaceItemInRoom()
+    {
+      var textWorld = new TextWorldX();
+      textWorld.CreateZone("Zone1", "The first zone");
+      textWorld.CreateRoom("Zone1", "Room1", "The first room");
+      textWorld.CreateItem("Iron Sword", "An ordinary iron sword");
+      textWorld.PlaceItem("Zone1", "Room1", "Iron Sword", 1);
+      var result = textWorld.GetRoom("Zone1", "Room1");
+      Assert.NotNull(result);
+      Assert.Equal("Iron Sword", result.Storage.Items[0].Name);
+    }
+    #endregion
+
+    #region MOBS
+    [Fact]
+    public void CanCreateMob()
+    {
+      var textWorld = new TextWorldX();
+      var result = textWorld.CreateMob("Goblin", "A small goblin", new(10, 10, 10, 10, 10, 10), new(15, 8, 5, 2, 0.05), []);
+      Assert.NotNull(result);
+      Assert.Equal("Goblin", result.Name);
     }
     #endregion
   }

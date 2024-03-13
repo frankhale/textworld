@@ -422,7 +422,76 @@ namespace TextWorld.Engine
         return $"You have picked up the quest {questName}.";
       }
     }
+    #endregion
 
+    #region RECIPE
+    public void CreateRecipe(string name, string description, List<ItemDrop> ingredients, ItemDrop craftedItem)
+    {
+      world.Recipes.Add(new Recipe(name, description, ingredients, craftedItem));
+    }
+
+    public Recipe? GetRecipe(string recipeName)
+    {
+      return world.Recipes.Find(r => r.Name == recipeName) ?? null;
+    }
+    #endregion
+
+    #region ITEM
+    public Item CreateItem(string name, string description, bool usable = false, Action? action = null)
+    {
+      var item = new Item(name, description, usable);
+      world.Items.Add(item);
+      if (action != null)
+      {
+        worldActions.ItemActions.Add(new ItemAction(name, description, action));
+      }
+      return item;
+    }
+
+    public Item? GetItem(string itemName)
+    {
+      return world.Items.Find(i => i.Name == itemName) ?? null;
+    }
+
+    public Action? GetItemAction(string itemName)
+    {
+      var itemAction = worldActions.ItemActions.Find(a => a.Name == itemName);
+      if (itemAction != null)
+      {
+        return itemAction.Action;
+      }
+      return null;
+    }
+
+    public void PlaceItem(string zoneName, string roomName, string itemName, int quantity)
+    {
+      var room = GetRoom(zoneName, roomName);
+      if (room != null)
+      {
+        var item = GetItem(itemName);
+        if (item != null)
+        {
+          room.Storage.Items.Add(new ItemDrop(item.Name, quantity));
+        }
+        else
+        {
+          throw new Exception($"Item {itemName} does not exist.");
+        }
+      }
+      else
+      {
+        throw new Exception($"Room {roomName} does not exist in zone {zoneName}.");
+      }
+    }
+    #endregion
+
+    #region MOB
+    public Mob CreateMob(string name, string description, Resources resources, DamageAndDefense damageAndDefense, List<ItemDrop> items)
+    {       
+      var mob = new Mob(name, description, resources, damageAndDefense, items);
+      world.Mobs.Add(mob);
+      return mob;
+    }
     #endregion
   }
 }
