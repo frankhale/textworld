@@ -2,9 +2,9 @@
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 // 8 December 2023
 
-import { assertEquals } from "https://deno.land/std@0.199.0/assert/assert_equals.ts";
-import { assertNotEquals } from "https://deno.land/std@0.199.0/assert/assert_not_equals.ts";
-import { assertStringIncludes } from "https://deno.land/std@0.199.0/assert/assert_string_includes.ts";
+import { assertEquals } from "https://deno.land/std@0.217.0/assert/assert_equals.ts";
+import { assertNotEquals } from "https://deno.land/std@0.217.0/assert/assert_not_equals.ts";
+import { assertStringIncludes } from "https://deno.land/std@0.217.0/assert/assert_string_includes.ts";
 
 import * as tw from "./textworld.ts";
 
@@ -37,7 +37,7 @@ Deno.test("can_add_quest_step_to_quest", () => {
   textworld.create_quest("Quest1", "A quest");
   textworld.add_quest_step("Quest1", "Step1", "A step");
   const quest = textworld.get_quest("Quest1");
-  assertEquals(quest?.steps!.length, 1);
+  assertEquals(quest?.steps?.length, 1);
   player.quests.length = 0;
   textworld.reset_world();
 });
@@ -48,7 +48,7 @@ Deno.test("can_add_quest_step_to_quest_with_action", () => {
     return true;
   });
   const quest = textworld.get_quest("Quest1");
-  assertEquals(quest?.steps!.length, 1);
+  assertEquals(quest?.steps?.length, 1);
   const quest_step_action = textworld.get_quest_step_action("Quest1", "Step1");
   assertNotEquals(quest_step_action, null);
   player.quests.length = 0;
