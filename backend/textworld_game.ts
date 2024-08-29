@@ -213,7 +213,7 @@ class TextworldGame {
     this.textworld.spawn_location_start("Gold purse spawner");
   }
 
-  async run_web_game_loop(port: number) {
+  run_web_game_loop(port: number) {
     const server = Deno.listen({ port });
 
     const get_response = async (input = "") => {
@@ -235,25 +235,21 @@ class TextworldGame {
       };
     };
 
-    for await (const conn of server) {
-      const httpConn = Deno.serveHttp(conn);
-      const e = await httpConn.nextRequest();
-      if (e) {
-        const { socket, response } = Deno.upgradeWebSocket(e.request);
-        socket.onopen = async () => {
-          socket.send(JSON.stringify(await get_response()));
-        };
-        socket.onmessage = async (e) => {
-          socket.send(JSON.stringify(await get_response(e.data)));
-          if (e.data === "quit") {
-            console.log("Shutting down server...");
-            socket.close();
-            server.close();
-          }
-        };
-        e.respondWith(response);
-      }
-    }
+    Deno.serve((_req: Request) => {
+      const { socket, response } = Deno.upgradeWebSocket(_req);
+      socket.onopen = async () => {
+        socket.send(JSON.stringify(await get_response()));
+      };
+      socket.onmessage = async (e) => {
+        socket.send(JSON.stringify(await get_response(e.data)));
+        if (e.data === "quit") {
+          console.log("Shutting down server...");
+          socket.close();
+          server.close();
+        }
+      };
+      return response;
+    });
   }
 }
 

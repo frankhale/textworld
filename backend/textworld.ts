@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 8 December 2023
+// 29 August 2024
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -25,13 +25,13 @@ export interface Id {
   id: string;
 }
 
-export interface Group {
-  group: string | null;
-}
-
 export interface Entity extends Id {
   name: string;
   descriptions: Description[];
+}
+
+export interface Parent {
+  name: string;
 }
 
 export interface Storage {
@@ -112,7 +112,7 @@ export interface VendorItem {
   price: number;
 }
 
-export interface Dialog extends Group {
+export interface Dialog extends Parent {
   trigger: string[];
   response: string | null;
 }
@@ -179,36 +179,36 @@ export interface PlayerProgress {
 // ACTION OBJECTS //
 ////////////////////
 
-export interface QuestAction extends Group {
+export interface QuestAction extends Parent {
   start: ActionNoOutput | null;
   end: ActionNoOutput | null;
 }
 
-export interface QuestStepAction extends Group {
+export interface QuestStepAction extends Parent {
   action: ActionDecision;
 }
 
 type QuestActionType = "Start" | "End";
 
-export interface CommandAction extends Entity, Group {
+export interface CommandAction extends Entity, Parent {
   synonyms: string[];
   action: CommandParserAction;
 }
 
-export interface DialogAction extends Group {
+export interface DialogAction extends Parent {
   trigger: string[];
   action: CommandParserAction;
 }
 
-export interface ItemAction extends Group {
+export interface ItemAction extends Parent {
   action: Action;
 }
 
-export interface RoomAction extends Group {
+export interface RoomAction extends Parent {
   actions: Action[] | null;
 }
 
-export interface RoomCommandActions extends Group {
+export interface RoomCommandActions extends Parent {
   command_actions: CommandAction[];
 }
 
@@ -578,7 +578,7 @@ export class TextWorld {
     if (!quest) return null;
     return (
       this.world_actions.quest_actions.find(
-        (quest_action) => quest_action.group === quest.name
+        (quest_action) => quest_action.name === quest.name
       ) ?? null
     );
   }
@@ -588,7 +588,7 @@ export class TextWorld {
     if (!quest_step) return null;
     return (
       this.world_actions.quest_step_actions.find(
-        (quest_step_action) => quest_step_action.group === quest_step.name
+        (quest_step_action) => quest_step_action.name === quest_step.name
       ) ?? null
     );
   }
@@ -601,7 +601,7 @@ export class TextWorld {
     const quest = this.get_quest(quest_name);
     if (quest) {
       const quest_action: QuestAction = {
-        group: quest_name,
+        name: quest_name,
         start: null,
         end: null,
       };
@@ -631,7 +631,7 @@ export class TextWorld {
       });
       if (action) {
         this.world_actions.quest_step_actions.push({
-          group: name,
+          name: name,
           action,
         });
       }
@@ -1059,7 +1059,7 @@ export class TextWorld {
     });
     if (action) {
       this.world_actions.item_actions.push({
-        group: name,
+        name: name,
         action,
       });
     }
@@ -1078,7 +1078,7 @@ export class TextWorld {
     if (!item) return null;
     return (
       this.world_actions.item_actions.find(
-        (item_action) => item_action.group === item.name
+        (item_action) => item_action.name === item.name
       ) ?? null
     );
   }
@@ -1191,7 +1191,7 @@ export class TextWorld {
           if (!item_definition.usable) return "You can't use that item.";
 
           const item_action = this.world_actions.item_actions.find(
-            (action) => action.group === item_definition.name
+            (action) => action.name === item_definition.name
           );
 
           if (item_action) {
@@ -1524,7 +1524,7 @@ export class TextWorld {
     const room = this.get_room(zone_name, room_name);
     if (room) {
       return this.world_actions.room_command_actions.find(
-        (action) => action.group === room.name
+        (action) => action.name === room.name
       );
     }
     return null;
@@ -1556,7 +1556,7 @@ export class TextWorld {
         room_command_actions.command_actions.push(command_action);
       } else {
         this.world_actions.room_command_actions.push({
-          group: room.name,
+          name: room.name,
           command_actions: [command_action],
         });
       }
@@ -1752,7 +1752,7 @@ export class TextWorld {
 
       if (current_room) {
         const new_room_actions = this.world_actions.room_actions.find(
-          (action) => action.group === current_room?.name
+          (action) => action.name === current_room?.name
         );
 
         if (new_room_actions && new_room_actions.actions) {
@@ -1887,7 +1887,7 @@ export class TextWorld {
       actions = [action];
 
       this.world_actions.room_actions.push({
-        group: id,
+        name: id,
         actions,
       });
     }
@@ -1908,7 +1908,7 @@ export class TextWorld {
     const room = this.get_room(zone_name, room_name);
     if (room) {
       this.world_actions.room_actions.push({
-        group: room.name,
+        name: room.name,
         actions: [action],
       });
     }
@@ -2053,7 +2053,7 @@ export class TextWorld {
           );
           if (dialog) {
             const dialog_action = this.world_actions.dialog_actions.find(
-              (action) => action.group === dialog.group
+              (action) => action.name === dialog.name
             );
 
             if (dialog_action) {
@@ -2277,13 +2277,13 @@ export class TextWorld {
         npc.dialog = [];
       }
       npc.dialog.push({
-        group: npc_name,
+        name: npc_name,
         trigger,
         response,
       });
       if (action) {
         this.world_actions.dialog_actions.push({
-          group: id,
+          name: id,
           trigger,
           action,
         });
@@ -2292,12 +2292,12 @@ export class TextWorld {
   }
 
   create_dialog_action(
-    group: string,
+    name: string,
     trigger: string[],
     action: CommandParserAction
   ) {
     this.world_actions.dialog_actions.push({
-      group,
+      name,
       trigger,
       action,
     });
@@ -2325,8 +2325,7 @@ export class TextWorld {
     action: CommandParserAction
   ): CommandAction {
     return {
-      id: crypto.randomUUID(),
-      group: name,
+      id: name,
       name,
       descriptions: [{ flag: "default", description }],
       synonyms,
@@ -2528,7 +2527,7 @@ export class TextWorld {
 
       const new_room = this.get_players_room(player);
       const new_room_actions = this.world_actions.room_actions.find(
-        (action) => action.group === new_room?.name
+        (action) => action.name === new_room?.name
       );
       if (new_room && new_room_actions && new_room_actions.actions) {
         const actionResult = new_room_actions.actions

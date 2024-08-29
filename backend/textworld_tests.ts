@@ -428,7 +428,7 @@ Deno.test("can_process_examine_room_object", () => {
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
       {
-        group: "Fireplace",
+        name: "Fireplace",
         trigger: ["fan flame"],
         response: "The flames become stronger as you fan them.",
       },
@@ -467,7 +467,7 @@ Deno.test("can_parse_command_examine_room_object", async () => {
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
       {
-        group: "Fireplace",
+        name: "Fireplace",
         trigger: ["fan flame"],
         response: "The flames become stronger as you fan them.",
       },
@@ -663,7 +663,7 @@ Deno.test("can_parse_command_examine_object", async () => {
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
       {
-        group: "Fireplace",
+        name: "Fireplace",
         trigger: ["fan flames"],
         response: "The flames become stronger as you fan them.",
       },

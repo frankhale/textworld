@@ -41,7 +41,8 @@ NOTE: Because we are using Deno.Kv we need to pass the --unstable flag
 
 Backend:
 
-> deno run --unstable --allow-read --allow-write --allow-net .\textworld_game.ts
+> deno run --unstable-kv --allow-read --allow-write --allow-net
+> .\textworld_game.ts
 
 Frontend:
 
@@ -53,7 +54,7 @@ NOTE: Requires Node.js and Angular CLI
 
 NOTE: Because we are using Deno.Kv we need to pass the --unstable flag
 
-> deno test --unstable --allow-read --allow-write .\textworld_tests.ts
+> deno test --unstable-kv --allow-read --allow-write .\textworld_tests.ts
 
 ## Author(s)
 
@@ -61,4 +62,4 @@ Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 
 ## Date
 
-27 November 2023
+29 August 2024
