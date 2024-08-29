@@ -214,8 +214,6 @@ class TextworldGame {
   }
 
   run_web_game_loop(port: number) {
-    const server = Deno.listen({ port });
-
     const get_response = async (input = "") => {
       let response = "";
 
@@ -235,23 +233,35 @@ class TextworldGame {
       };
     };
 
-    Deno.serve((_req: Request) => {
-      const { socket, response } = Deno.upgradeWebSocket(_req);
-      socket.onopen = async () => {
-        socket.send(JSON.stringify(await get_response()));
-      };
-      socket.onmessage = async (e) => {
-        socket.send(JSON.stringify(await get_response(e.data)));
-        if (e.data === "quit") {
-          console.log("Shutting down server...");
-          socket.close();
-          server.close();
-        }
-      };
-      return response;
+    const ac = new AbortController();
+    const server = Deno.serve(
+      {
+        port,
+        signal: ac.signal,
+      },
+      (_req: Request) => {
+        console.log("Request received.");
+        const { socket, response } = Deno.upgradeWebSocket(_req);
+        socket.onopen = async () => {
+          socket.send(JSON.stringify(await get_response()));
+        };
+        socket.onmessage = async (e) => {
+          socket.send(JSON.stringify(await get_response(e.data)));
+          if (e.data === "quit") {
+            console.log("Shutting down server...");
+            socket.close();
+            ac.abort();
+          }
+        };
+        return response;
+      }
+    );
+    server.finished.then(() => {
+      console.log("Server has been shutdown!");
+      Deno.exit();
     });
   }
 }
 
 const game = new TextworldGame();
-await game.run_web_game_loop(8080);
+game.run_web_game_loop(8080);
