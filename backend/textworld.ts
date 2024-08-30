@@ -1853,7 +1853,7 @@ export class TextWorld {
       !current_room ||
       (!has_command && !this.has_room_actions(current_room.name))
     ) {
-      return this.describe_room_with_actions(player);
+      return this.describe_room(player);
     }
 
     if (has_command) {
@@ -1867,7 +1867,7 @@ export class TextWorld {
         zone.rooms.find((room) => room.name === player.room) || current_room;
     }
 
-    return this.describe_room_with_actions(player);
+    return this.describe_room(player);
   }
 
   has_room_actions(room_name: string): boolean {
@@ -2630,14 +2630,14 @@ export class TextWorld {
 
     if (new_room_name) {
       player.room = new_room_name;
-      const new_room_description = this.describe_room_with_actions(player);
+      const new_room_description = this.describe_room(player);
       result = new_room_description;
     }
 
     return result;
   }
 
-  describe_room_with_actions(player: Player): string {
+  describe_room(player: Player): string {
     let room_description = this.get_room_description(player);
     const current_room = this.get_players_room(player);
 

@@ -2,9 +2,9 @@
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 // 8 December 2023
 
-import { assertEquals } from "https://deno.land/std@0.217.0/assert/assert_equals.ts";
-import { assertNotEquals } from "https://deno.land/std@0.217.0/assert/assert_not_equals.ts";
-import { assertStringIncludes } from "https://deno.land/std@0.217.0/assert/assert_string_includes.ts";
+import { assertEquals } from "https://deno.land/std@0.224.0/assert/assert_equals.ts";
+import { assertNotEquals } from "https://deno.land/std@0.224.0/assert/assert_not_equals.ts";
+import { assertStringIncludes } from "https://deno.land/std@0.224.0/assert/assert_string_includes.ts";
 
 import * as tw from "./textworld.ts";
 
@@ -18,6 +18,113 @@ const player = textworld.create_player(
   "Zone1",
   "Room1"
 );
+
+Deno.test("find_command_action_returns_the_correct_actions", () => {
+  const mockAction = () => "mock action";
+
+  const commandActions: tw.CommandAction[] = [
+    textworld.create_command_action(
+      "look",
+      "Look around",
+      ["look", "see", "view"],
+      mockAction
+    ),
+    textworld.create_command_action(
+      "move",
+      "Move to a different location",
+      ["move", "go", "walk"],
+      mockAction
+    ),
+    textworld.create_command_action(
+      "talk",
+      "Talk to someone",
+      ["talk", "speak", "chat"],
+      mockAction
+    ),
+  ];
+
+  const possibleActions1 = ["look", "examine", "inspect"];
+  const possibleActions2 = ["move", "run", "walk"];
+  const possibleActions3 = ["talk", "speak", "communicate"];
+  const possibleActions4 = ["eat", "consume", "ingest"];
+
+  const result1 = textworld.find_command_action(
+    possibleActions1,
+    commandActions
+  );
+  assertEquals(result1?.name, "look");
+
+  const result2 = textworld.find_command_action(
+    possibleActions2,
+    commandActions
+  );
+  assertEquals(result2?.name, "move");
+
+  const result3 = textworld.find_command_action(
+    possibleActions3,
+    commandActions
+  );
+  assertEquals(result3?.name, "talk");
+
+  const result4 = textworld.find_command_action(
+    possibleActions4,
+    commandActions
+  );
+  assertEquals(result4, undefined);
+});
+
+Deno.test("find_room_command_action_returns_the_correct_actions", () => {
+  const mockAction = () => "mock action";
+
+  // Set up a zone and room
+  const zoneName = "Zone1";
+  const roomName = "Room1";
+  textworld.create_zone(zoneName);
+  textworld.create_room(zoneName, roomName, "A test room");
+
+  // Add command actions to the room
+  textworld.add_room_command_action(
+    zoneName,
+    roomName,
+    "look",
+    "Look around the room",
+    ["look", "see", "view"],
+    mockAction
+  );
+  textworld.add_room_command_action(
+    zoneName,
+    roomName,
+    "move",
+    "Move within the room",
+    ["move", "go", "walk"],
+    mockAction
+  );
+
+  const filteredActions1 = ["look", "examine", "inspect"];
+  const filteredActions2 = ["move", "run", "walk"];
+  const filteredActions3 = ["talk", "speak", "communicate"];
+
+  const result1 = textworld.find_room_command_action(
+    filteredActions1,
+    zoneName,
+    roomName
+  );
+  assertEquals(result1?.name, "look");
+
+  const result2 = textworld.find_room_command_action(
+    filteredActions2,
+    zoneName,
+    roomName
+  );
+  assertEquals(result2?.name, "move");
+
+  const result3 = textworld.find_room_command_action(
+    filteredActions3,
+    zoneName,
+    roomName
+  );
+  assertEquals(result3, undefined);
+});
 
 Deno.test("can_get_player", () => {
   const p1 = textworld.get_player(player.id!);
@@ -60,6 +167,31 @@ Deno.test("can_create_room", () => {
   const zone = textworld.get_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   assertEquals(zone.rooms.length, 1);
+  textworld.reset_world();
+});
+
+Deno.test("can_describe_room", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  const result = textworld.describe_room(player);
+  assertEquals(result, "Location: Room1\n\nThis is room 1");
+  textworld.reset_world();
+});
+
+Deno.test("can_describe_room_with_room_actions", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1", (_player) => {
+    return `The healing waters have no effect on you.`;
+  });
+  const result = textworld.describe_room(player);
+  assertEquals(
+    result,
+    "Location: Room1\n\nThis is room 1\n\nThe healing waters have no effect on you."
+  );
   textworld.reset_world();
 });
 
@@ -326,6 +458,21 @@ Deno.test("can_remove_flag_on_player", () => {
   textworld.set_flag(player, "flag1");
   textworld.remove_flag(player, "flag1");
   const has_flag = textworld.has_flag(player, "flag1");
+  assertEquals(has_flag, false);
+  textworld.reset_world();
+});
+
+Deno.test("can_add_god_mode_flag_on_player", () => {
+  textworld.set_godmode(player);
+  const has_flag = textworld.has_flag(player, "godmode");
+  assertEquals(has_flag, true);
+  textworld.reset_world();
+});
+
+Deno.test("can_remove_god_mode_flag_on_player", () => {
+  textworld.set_godmode(player);
+  textworld.remove_godmode(player);
+  const has_flag = textworld.has_flag(player, "godmode");
   assertEquals(has_flag, false);
   textworld.reset_world();
 });
@@ -2243,4 +2390,12 @@ Deno.test("can_set_players_room_to_another_room", () => {
   assertEquals(player.zone, "Zone1");
   assertEquals(player.room, "Room2");
   textworld.reset_world();
+});
+
+Deno.test("can_get_help", () => {
+  const result = textworld.get_help(player);
+  assertEquals(
+    result,
+    "Commands:\n\nnorth, south, east, west - Commands for moving around the world.\ntake, get - Take an item from the room or an NPC.\nuse - Use an item in your inventory.\ndrop - Drop an item or all your items from your inventory.\nlook, l - Look around the room or at yourself.\nls - Look at yourself.\nexamine, x - Examine an object in a room.\ninspect, i - Inspect a room to see what items are there.\nmap - Plot a map showing nearby rooms.\nshow - Show an item in your inventory.\ntalk to, tt - Talk to an NPC or Vendor.\nquit - Quit the game.\ngoto - Go to a room or zone.\nhelp - Show the help text.\nattack - Attack a mob.\ncraft - Craft an item."
+  );
 });
