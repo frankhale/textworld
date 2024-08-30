@@ -1291,7 +1291,7 @@ export class TextWorld {
         action.name.toLowerCase() === item_definition.name.toLowerCase()
     );
 
-    let result =
+    const result =
       item_action?.action(player) ?? "You used the item but nothing happened.";
 
     if (this.has_flag(player, "prevent_item_consumption")) {
