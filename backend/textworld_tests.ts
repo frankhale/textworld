@@ -453,7 +453,7 @@ Deno.test("can_process_get_exit_with_no_rooms", () => {
   try {
     textworld.get_exit("Zone1", "Room1", "north");
   } catch (e) {
-    assertEquals(e.message, "The room or zone does not exist.");
+    assertEquals(e.message, "Zone Zone1 does not exist.");
   }
 });
 

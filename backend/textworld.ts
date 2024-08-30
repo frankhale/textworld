@@ -6,8 +6,7 @@ export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
 export const active_quest_limit = 5;
 
-type Action = (player: Player) => string | null;
-type ActionNoOutput = (player: Player) => void | null;
+type Action<T = void> = (player: Player) => T | string | null;
 type ActionDecision = (player: Player) => boolean;
 type CommandParserAction = (
   player: Player,
@@ -180,8 +179,8 @@ export interface PlayerProgress {
 ////////////////////
 
 export interface QuestAction extends Parent {
-  start: ActionNoOutput | null;
-  end: ActionNoOutput | null;
+  start: Action | null;
+  end: Action | null;
 }
 
 export interface QuestStepAction extends Parent {
@@ -516,29 +515,36 @@ export class TextWorld {
 
   get_players_zone(player: Player): Zone | null {
     if (!player) return null;
-    return this.world.zones.find((zone) => zone.name === player.zone)!;
+    return this.world.zones.find((zone) => zone.name === player.zone) || null;
   }
 
   get_players_room(player: Player): Room | null {
     const zone = this.get_players_zone(player);
-    if (zone) {
-      return zone.rooms.find(
+    return (
+      zone?.rooms.find(
         (room) => room.name.toLowerCase() === player.room.toLowerCase()
-      )!;
-    }
-    return null;
+      ) || null
+    );
   }
 
   look_self(player: Player): string {
     if (!player) return "You can't see anything.";
 
+    let description = this.get_description(player, player, "default");
+
+    if (!description) {
+      description = "You don't really like looking at yourself.";
+    }
+
+    if (!player.items || player.items.length === 0) {
+      return description;
+    }
+
     const inventory = player.items
       .map((item) => `${item.name} (${item.quantity})`)
       .join(", ");
 
-    return `${this.get_description(player, player, "default")}${
-      player.items.length > 0 ? `\n\nInventory: ${inventory}` : ""
-    }`;
+    return `${description}\n\nInventory: ${inventory}`;
   }
 
   set_players_room_to_zone_start(player: Player, zone_name: string) {
@@ -576,41 +582,50 @@ export class TextWorld {
   get_quest_action(quest_name: string) {
     const quest = this.get_quest(quest_name);
     if (!quest) return null;
+
     return (
       this.world_actions.quest_actions.find(
         (quest_action) => quest_action.name === quest.name
-      ) ?? null
+      ) || null
     );
   }
 
   get_quest_step_action(quest_name: string, name: string) {
     const quest_step = this.get_quest_step(quest_name, name);
     if (!quest_step) return null;
+
     return (
       this.world_actions.quest_step_actions.find(
         (quest_step_action) => quest_step_action.name === quest_step.name
-      ) ?? null
+      ) || null
     );
   }
 
   add_quest_action(
     quest_name: string,
     action_type: QuestActionType,
-    action: ActionNoOutput | null
+    action: Action | null
   ) {
     const quest = this.get_quest(quest_name);
-    if (quest) {
-      const quest_action: QuestAction = {
+    if (!quest) return;
+
+    let quest_action = this.world_actions.quest_actions.find(
+      (qa) => qa.name === quest_name
+    );
+
+    if (!quest_action) {
+      quest_action = {
         name: quest_name,
         start: null,
         end: null,
       };
-      if (action_type === "Start") {
-        quest_action.start = action;
-      } else {
-        quest_action.end = action;
-      }
       this.world_actions.quest_actions.push(quest_action);
+    }
+
+    if (action_type === "Start") {
+      quest_action.start = action;
+    } else {
+      quest_action.end = action;
     }
   }
 
@@ -621,17 +636,27 @@ export class TextWorld {
     action: ActionDecision | null = null
   ) {
     const quest = this.get_quest(quest_name);
-    if (quest) {
-      if (!quest.steps) quest.steps = [];
-      quest.steps.push({
-        id: crypto.randomUUID(),
-        name,
-        descriptions: [{ flag: "default", description }],
-        complete: false,
-      });
-      if (action) {
+
+    if (!quest) return;
+    if (!quest.steps) quest.steps = [];
+
+    const quest_step = {
+      id: crypto.randomUUID(),
+      name,
+      descriptions: [{ flag: "default", description }],
+      complete: false,
+    };
+
+    quest.steps.push(quest_step);
+
+    if (action) {
+      const existingAction = this.world_actions.quest_step_actions.find(
+        (qa) => qa.name === name
+      );
+
+      if (!existingAction) {
         this.world_actions.quest_step_actions.push({
-          name: name,
+          name,
           action,
         });
       }
@@ -642,126 +667,134 @@ export class TextWorld {
     return (
       this.world.quests.find(
         (quest) => quest.name.toLowerCase() === name.toLowerCase()
-      ) ?? null
+      ) || null
     );
   }
 
   get_quest_step(quest_name: string, name: string): QuestStep | null {
     const quest = this.get_quest(quest_name);
-    return quest?.steps?.find((step) => step.name === name) ?? null;
+    return (
+      quest?.steps?.find(
+        (step) => step.name.toLowerCase() === name.toLowerCase()
+      ) || null
+    );
   }
 
   pickup_quest(player: Player, quest_name: string): string {
-    let result = "The quest does not exist.";
+    if (!player) return "The quest does not exist.";
 
-    if (player) {
-      if (player.quests.length >= active_quest_limit) {
-        result = `You can't have more than ${active_quest_limit} active quests at a time.`;
-      } else {
-        const quest = this.get_quest(quest_name);
-        if (quest) {
-          if (!player.quests.includes(quest.name)) {
-            player.quests.push(quest.name);
-            result = `You picked up the quest ${quest.name}.`;
-            const quest_action = this.get_quest_action(quest.name);
-            if (quest_action && quest_action.start) {
-              const quest_start_result = quest_action.start(player);
-              if (quest_start_result) {
-                result += `\n\n${quest_start_result}`;
-              }
-            }
-          } else {
-            result = `You already have the quest ${quest.name}.`;
-          }
-        }
+    if (player.quests.length >= active_quest_limit) {
+      return `You can't have more than ${active_quest_limit} active quests at a time.`;
+    }
+
+    const quest = this.get_quest(quest_name);
+    if (!quest) return "The quest does not exist.";
+
+    if (player.quests.includes(quest.name)) {
+      return `You already have the quest ${quest.name}.`;
+    }
+
+    player.quests.push(quest.name);
+    let result = `You picked up the quest ${quest.name}.`;
+
+    const quest_action = this.get_quest_action(quest.name);
+    if (quest_action?.start) {
+      const quest_start_result = quest_action.start(player);
+      if (quest_start_result) {
+        result += `\n\n${quest_start_result}`;
       }
     }
+
     return result;
   }
 
   drop_quest(player: Player, quest_name: string): string {
     const quest = this.get_quest(quest_name);
 
-    let result = `The quest ${quest_name} does not exist.`;
+    if (!quest) {
+      return `The quest ${quest_name} does not exist.`;
+    }
 
-    if (quest) {
-      if (player && player.quests.includes(quest.name)) {
-        player.quests = player.quests.filter((quest) => quest !== quest_name);
-        result = `You dropped the quest ${quest.name}.`;
-        const quest_action = this.get_quest_action(quest.name);
-        if (quest_action && quest_action.end) {
-          const quest_end_result = quest_action.end(player);
-          if (quest_end_result) {
-            result += `\n\n${quest_end_result}`;
-          }
-        }
-      } else {
-        result = `You don't have the quest ${quest.name}.`;
+    if (!player || !player.quests.includes(quest.name)) {
+      return `You don't have the quest ${quest_name}.`;
+    }
+
+    player.quests = player.quests.filter((q) => q !== quest_name);
+    let result = `You dropped the quest ${quest.name}.`;
+
+    const quest_action = this.get_quest_action(quest.name);
+    if (quest_action?.end) {
+      const quest_end_result = quest_action.end(player);
+      if (quest_end_result) {
+        result += `\n\n${quest_end_result}`;
       }
     }
+
     return result;
   }
 
   is_quest_complete(player: Player, quest_name: string): boolean {
-    let result = false;
-
     const quest = this.get_quest(quest_name);
-    if (quest) {
-      if (player && player.quests.includes(quest.name)) {
-        if (quest.steps) {
-          result = quest.steps.every((step) => {
-            const quest_step_action = this.get_quest_step_action(
-              quest.name,
-              step.name
-            );
-            if (!step.complete && quest_step_action) {
-              return quest_step_action.action(player);
-            } else {
-              return step.complete;
-            }
-          });
+    if (!quest || !player || !player.quests.includes(quest.name)) {
+      return false;
+    }
 
-          if (result) {
-            const quest_action = this.get_quest_action(quest.name);
-            if (quest_action && quest_action.end) quest_action.end(player);
+    if (!quest.steps) {
+      return false;
+    }
 
-            if (!player.quests_completed.includes(quest.name)) {
-              player.quests = player.quests.filter(
-                (quest) => quest !== quest_name
-              );
-              player.quests_completed.push(quest.name);
-            }
-          }
-        }
+    const allStepsComplete = quest.steps.every((step) => {
+      const quest_step_action = this.get_quest_step_action(
+        quest.name,
+        step.name
+      );
+      if (!step.complete && quest_step_action) {
+        return quest_step_action.action(player);
+      }
+      return step.complete;
+    });
+
+    if (allStepsComplete) {
+      const quest_action = this.get_quest_action(quest.name);
+      quest_action?.end?.(player);
+
+      if (!player.quests_completed.includes(quest.name)) {
+        player.quests = player.quests.filter((q) => q !== quest_name);
+        player.quests_completed.push(quest.name);
       }
     }
-    return result;
+
+    return allStepsComplete;
   }
 
   get_quest_progress(player: Player, quest_name: string): string {
-    let result = `The quest ${quest_name} does not exist.`;
     const quest = this.get_quest(quest_name);
 
-    if (quest && player && player.quests.includes(quest.name)) {
-      result = `Quest: ${quest.name}\n\n${this.get_description(
-        player,
-        quest,
-        "default"
-      )}\n\n`;
-      if (quest.steps) {
-        quest.steps.forEach((step) => {
-          const quest_step_action = this.get_quest_step_action(
-            quest.name,
-            step.name
-          );
-          if (quest_step_action && !step.complete) {
-            step.complete = quest_step_action.action(player);
-          }
-          result += `${step.complete ? "[x]" : "[ ]"} ${step.name}\n`;
-        });
-      }
-    } else {
-      result = `You don't have the quest ${quest_name}.`;
+    if (!quest) {
+      return `The quest ${quest_name} does not exist.`;
+    }
+
+    if (!player || !player.quests.includes(quest.name)) {
+      return `You don't have the quest ${quest_name}.`;
+    }
+
+    let result = `Quest: ${quest.name}\n\n${this.get_description(
+      player,
+      quest,
+      "default"
+    )}\n\n`;
+
+    if (quest.steps) {
+      quest.steps.forEach((step) => {
+        const quest_step_action = this.get_quest_step_action(
+          quest.name,
+          step.name
+        );
+        if (quest_step_action && !step.complete) {
+          step.complete = quest_step_action.action(player);
+        }
+        result += `${step.complete ? "[x]" : "[ ]"} ${step.name}\n`;
+      });
     }
 
     return result;
@@ -774,24 +807,26 @@ export class TextWorld {
   // }
 
   show_quests(player: Player): string {
-    let result = "You have no quests.";
-
-    if (player && player.quests.length > 0) {
-      const quests_description = player.quests.map((player_quest) => {
-        const quest = this.world.quests.find(
-          (quest) => quest.name === player_quest
-        );
-        return `${quest!.name} - ${this.get_description(
-          player,
-          quest!,
-          "default"
-        )}`;
-      });
-
-      result = quests_description.join("\n\n");
+    if (!player || player.quests.length === 0) {
+      return "You have no quests.";
     }
 
-    return result;
+    const quests_description = player.quests.map((player_quest) => {
+      const quest = this.world.quests.find(
+        (quest) => quest.name === player_quest
+      );
+      if (quest) {
+        return `${quest.name} - ${this.get_description(
+          player,
+          quest,
+          "default"
+        )}`;
+      } else {
+        return `${player_quest} - Description not found.`;
+      }
+    });
+
+    return quests_description.join("\n\n");
   }
 
   /////////
@@ -799,25 +834,31 @@ export class TextWorld {
   /////////
 
   remove_npc(name: string) {
+    const lowerCaseName = name.toLowerCase();
     this.world.zones.forEach((zone) => {
       zone.rooms.forEach((room) => {
-        room.npcs = room.npcs.filter((npc) => npc.name !== name);
+        room.npcs = room.npcs.filter(
+          (npc) => npc.name.toLowerCase() !== lowerCaseName
+        );
       });
     });
-    this.world.npcs = this.world.npcs.filter((npc) => npc.name !== name);
+
+    this.world.npcs = this.world.npcs.filter(
+      (npc) => npc.name.toLowerCase() !== lowerCaseName
+    );
   }
 
   get_npc(name: string): NPC | null {
     return (
       this.world.npcs.find(
         (npc) => npc.name.toLowerCase() === name.toLowerCase()
-      ) ?? null
+      ) || null
     );
   }
 
   place_npc(zone_name: string, in_room_name: string, npc_name: string) {
     const in_room = this.get_room(zone_name, in_room_name);
-    const npc = this.world.npcs.find((npc) => npc.name === npc_name);
+    const npc = this.get_npc(npc_name);
 
     if (!in_room || !npc) {
       throw new Error(
@@ -834,9 +875,15 @@ export class TextWorld {
     npc_name: string
   ): NPC | null {
     const zone = this.get_zone(zone_name);
-    const room = zone?.rooms.find((room) => room.name === room_name);
+    if (!zone) return null;
+
+    const room = zone.rooms.find(
+      (room) => room.name.toLowerCase() === room_name.toLowerCase()
+    );
+    if (!room) return null;
+
     return (
-      room?.npcs.find(
+      room.npcs.find(
         (npc) => npc.name.toLowerCase() === npc_name.toLowerCase()
       ) || null
     );
@@ -848,49 +895,49 @@ export class TextWorld {
     command: string,
     args: string[]
   ): string {
-    let result = "That NPC does not exist.";
     const zone = this.get_players_zone(player);
-    if (zone) {
-      const possible_triggers = this.generate_combinations(args);
-      const current_room = this.get_players_room(player);
-      const npc = this.world.npcs.find((npc) =>
-        possible_triggers.some(
-          (trigger) => npc.name.toLowerCase() === trigger.toLowerCase()
-        )
-      );
-
-      if (npc && !npc.dialog) {
-        result = `${npc.name} does not want to talk to you.`;
-      } else if (
-        npc &&
-        current_room &&
-        npc.dialog &&
-        current_room.npcs.includes(npc)
-      ) {
-        const dialog = npc.dialog?.find((dialog) =>
-          dialog.trigger.some((trigger) => possible_triggers.includes(trigger))
-        );
-        if (dialog) {
-          const dialog_action = this.world_actions.dialog_actions.find(
-            (action) => action.trigger === dialog.trigger
-          );
-
-          if (dialog_action) {
-            result = dialog_action.action(
-              player,
-              input,
-              command,
-              args
-            ) as string;
-          } else {
-            result = dialog.response || "hmm...";
-          }
-        } else {
-          result = "hmm...";
-        }
-      }
+    if (!zone) {
+      return "That NPC does not exist.";
     }
-    return result;
+
+    const possible_triggers = this.generate_combinations(args);
+    const current_room = this.get_players_room(player);
+
+    if (!current_room) {
+      return "You are not in a valid room.";
+    }
+
+    const npc = this.world.npcs.find((npc) =>
+      possible_triggers.some(
+        (trigger) => npc.name.toLowerCase() === trigger.toLowerCase()
+      )
+    );
+
+    if (!npc || !current_room.npcs.includes(npc)) {
+      return "That NPC does not exist in this room.";
+    }
+
+    if (!npc.dialog) {
+      return `${npc.name} does not want to talk to you.`;
+    }
+
+    const dialog = npc.dialog.find((dialog) =>
+      dialog.trigger.some((trigger) => possible_triggers.includes(trigger))
+    );
+
+    if (!dialog) {
+      return "hmm...";
+    }
+
+    const dialog_action = this.world_actions.dialog_actions.find(
+      (action) => action.trigger === dialog.trigger
+    );
+
+    if (dialog_action) {
+      return dialog_action.action(player, input, command, args) as string;
+    }
+
+    return dialog.response || "hmm...";
   }
 
   create_npc(name: string, description: string) {
@@ -912,7 +959,8 @@ export class TextWorld {
   ////////////
 
   create_vendor(name: string, description: string, vendor_items: VendorItem[]) {
-    this.world.npcs.push({
+    // Create and add the vendor NPC
+    const vendor = {
       id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
@@ -922,8 +970,10 @@ export class TextWorld {
       damage_and_defense: this.create_damage_and_defense(10, 10, 10, 10, 10),
       dialog: [],
       vendor_items,
-    });
+    };
+    this.world.npcs.push(vendor);
 
+    // Create a dialog for listing items
     this.create_dialog(
       name,
       ["items"],
@@ -935,23 +985,32 @@ export class TextWorld {
         return `Items for sale: ${items.join(", ")}`;
       }
     );
+
+    // Create a dialog for purchasing items
     this.create_dialog(
       name,
       ["purchase", "buy"],
       null,
       (player, input, _command, _args) => {
-        if (input) {
-          const command_bits = input.split(" ");
-          if (command_bits) {
-            let trigger_word = command_bits.lastIndexOf("purchase") ?? -1;
-            if (trigger_word === -1) {
-              trigger_word = command_bits.lastIndexOf("buy") ?? -1;
-              const item_name = command_bits.slice(trigger_word + 1).join(" ");
-              return this.purchase_from_vendor(player, name, item_name!);
-            }
-          }
+        if (!input) {
+          return "You must specify an item to purchase.";
         }
-        return "You must specify an item to purchase.";
+
+        const command_bits = input.split(" ");
+        const trigger_word_index =
+          command_bits.lastIndexOf("purchase") >= 0
+            ? command_bits.lastIndexOf("purchase")
+            : command_bits.lastIndexOf("buy");
+
+        if (
+          trigger_word_index === -1 ||
+          trigger_word_index === command_bits.length - 1
+        ) {
+          return "You must specify an item to purchase.";
+        }
+
+        const item_name = command_bits.slice(trigger_word_index + 1).join(" ");
+        return this.purchase_from_vendor(player, name, item_name);
       }
     );
   }
@@ -961,31 +1020,38 @@ export class TextWorld {
     vendor_name: string,
     item_name: string
   ): string {
-    let result = "That vendor does not exist.";
     const npc = this.get_npc(vendor_name);
-
-    if (npc && npc.vendor_items) {
-      const vendor_item = npc.vendor_items.find(
-        (item) => item.name.toLowerCase() === item_name.toLowerCase()
-      );
-      const item = this.world.items.find(
-        (item) => item.name.toLowerCase() === item_name.toLowerCase()
-      );
-
-      if (!vendor_item || !item) {
-        result = "That item does not exist.";
-      } else {
-        if (player && vendor_item && player.gold >= vendor_item.price) {
-          player.gold -= vendor_item.price;
-          player.items.push({ name: vendor_item.name, quantity: 1 });
-          result = `You purchased ${vendor_item.name} for ${vendor_item.price} gold.`;
-        } else {
-          result = `You don't have enough gold to purchase ${item_name}.`;
-        }
-      }
+    if (!npc || !npc.vendor_items) {
+      return "That vendor does not exist.";
     }
 
-    return result;
+    const vendor_item = npc.vendor_items.find(
+      (item) => item.name.toLowerCase() === item_name.toLowerCase()
+    );
+    const item = this.world.items.find(
+      (item) => item.name.toLowerCase() === item_name.toLowerCase()
+    );
+
+    if (!vendor_item || !item) {
+      return "That item does not exist.";
+    }
+
+    if (player.gold < vendor_item.price) {
+      return `You don't have enough gold to purchase ${item_name}.`;
+    }
+
+    player.gold -= vendor_item.price;
+    const player_item = player.items.find(
+      (i) => i.name.toLowerCase() === vendor_item.name.toLowerCase()
+    );
+
+    if (player_item) {
+      player_item.quantity += 1;
+    } else {
+      player.items.push({ name: vendor_item.name, quantity: 1 });
+    }
+
+    return `You purchased ${vendor_item.name} for ${vendor_item.price} gold.`;
   }
 
   //////////
@@ -994,18 +1060,19 @@ export class TextWorld {
 
   add_item_drops_to_room(player: Player, item_drops: ItemDrop[]) {
     const current_room = this.get_players_room(player);
-    if (current_room) {
-      item_drops.forEach((item) => {
-        const room_item = current_room.items.find(
-          (room_item) => room_item.name === item.name
-        );
-        if (room_item) {
-          room_item.quantity += item.quantity;
-        } else {
-          current_room.items.push(item);
-        }
-      });
-    }
+    if (!current_room) return;
+
+    item_drops.forEach((item_drop) => {
+      const room_item = current_room.items.find(
+        (room_item) => room_item.name === item_drop.name
+      );
+
+      if (room_item) {
+        room_item.quantity += item_drop.quantity;
+      } else {
+        current_room.items.push({ ...item_drop });
+      }
+    });
   }
 
   get_room_item(
@@ -1014,15 +1081,18 @@ export class TextWorld {
     item_name: string
   ): ItemDrop | null {
     const zone = this.get_zone(zone_name);
-    const room = zone.rooms.find((room) => room.name === room_name);
-    if (room) {
-      return (
-        room.items.find(
-          (item) => item.name.toLowerCase() === item_name.toLowerCase()
-        ) ?? null
-      );
-    }
-    return null;
+    if (!zone) return null;
+
+    const room = zone.rooms.find(
+      (room) => room.name.toLowerCase() === room_name.toLowerCase()
+    );
+    if (!room) return null;
+
+    return (
+      room.items.find(
+        (item) => item.name.toLowerCase() === item_name.toLowerCase()
+      ) || null
+    );
   }
 
   place_item(
@@ -1032,16 +1102,31 @@ export class TextWorld {
     quantity = 1
   ) {
     const zone = this.get_zone(zone_name);
-    const in_room = zone.rooms.find((room) => room.name === in_room_name);
-    if (in_room) {
+    if (!zone) {
+      throw new Error(`Zone ${zone_name} does not exist.`);
+    }
+
+    const in_room = zone.rooms.find(
+      (room) => room.name.toLowerCase() === in_room_name.toLowerCase()
+    );
+
+    if (!in_room) {
+      throw new Error(
+        `Room ${in_room_name} does not exist in zone ${zone_name}.`
+      );
+    }
+
+    const room_item = in_room.items.find(
+      (item) => item.name.toLowerCase() === item_name.toLowerCase()
+    );
+
+    if (room_item) {
+      room_item.quantity += quantity;
+    } else {
       in_room.items.push({
         name: item_name,
         quantity,
       });
-    } else {
-      throw new Error(
-        `Room ${in_room_name} does not exist in zone ${zone_name}.`
-      );
     }
   }
 
@@ -1051,15 +1136,18 @@ export class TextWorld {
     usable: boolean,
     action: Action | null = null
   ) {
-    this.world.items.push({
+    const item = {
       id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
       usable,
-    });
+    };
+
+    this.world.items.push(item);
+
     if (action) {
       this.world_actions.item_actions.push({
-        name: name,
+        name,
         action,
       });
     }
@@ -1069,17 +1157,19 @@ export class TextWorld {
     return (
       this.world.items.find(
         (item) => item.name.toLowerCase() === name.toLowerCase()
-      ) ?? null
+      ) || null
     );
   }
 
   get_item_action(name: string): ItemAction | null {
     const item = this.get_item(name);
     if (!item) return null;
+
     return (
       this.world_actions.item_actions.find(
-        (item_action) => item_action.name === item.name
-      ) ?? null
+        (item_action) =>
+          item_action.name.toLowerCase() === item.name.toLowerCase()
+      ) || null
     );
   }
 
@@ -1089,144 +1179,141 @@ export class TextWorld {
     );
   }
 
-  has_item_in_quantity(player: Player, item_name: string, quantity: number) {
+  has_item_in_quantity(
+    player: Player,
+    item_name: string,
+    quantity: number
+  ): boolean {
     const item = player.items.find(
       (item) => item.name.toLowerCase() === item_name.toLowerCase()
     );
-    if (item) {
-      return item.quantity >= quantity;
-    }
-    return false;
+
+    return item ? item.quantity >= quantity : false;
   }
 
   take_item(player: Player, args: string[]): string {
-    let result = "That item does not exist.";
     const zone = this.get_players_zone(player);
-    if (zone) {
-      const current_room = zone.rooms.find((room) => room.name === player.room);
-      if (current_room) {
-        const possible_items = this.generate_combinations(args);
-
-        if (possible_items.includes("all")) {
-          return this.take_all_items(player);
-        } else {
-          const room_item = current_room.items.find((item) =>
-            possible_items.find(
-              (possible_item) =>
-                item.name.toLowerCase() === possible_item.toLowerCase()
-            )
-          );
-
-          if (room_item) {
-            const player_item = player.items.find(
-              (item) => item.name === room_item.name
-            );
-
-            if (player_item) {
-              player_item.quantity += room_item.quantity;
-            } else {
-              player.items.push({
-                name: room_item.name,
-                quantity: room_item.quantity,
-              });
-            }
-
-            current_room.items = current_room.items.filter(
-              (item) => item.name !== room_item.name
-            );
-            result = `You took the ${room_item.name}.`;
-          }
-        }
-      }
+    if (!zone) {
+      return "That item does not exist.";
     }
-    return result;
+
+    const current_room = zone.rooms.find((room) => room.name === player.room);
+    if (!current_room) {
+      return "That item does not exist.";
+    }
+
+    const possible_items = this.generate_combinations(args);
+
+    if (possible_items.includes("all")) {
+      return this.take_all_items(player);
+    }
+
+    const room_item = current_room.items.find((item) =>
+      possible_items.some(
+        (possible_item) =>
+          item.name.toLowerCase() === possible_item.toLowerCase()
+      )
+    );
+
+    if (!room_item) {
+      return "That item does not exist.";
+    }
+
+    const player_item = player.items.find(
+      (item) => item.name.toLowerCase() === room_item.name.toLowerCase()
+    );
+
+    if (player_item) {
+      player_item.quantity += room_item.quantity;
+    } else {
+      player.items.push({
+        name: room_item.name,
+        quantity: room_item.quantity,
+      });
+    }
+
+    current_room.items = current_room.items.filter(
+      (item) => item.name.toLowerCase() !== room_item.name.toLowerCase()
+    );
+
+    return `You took the ${room_item.name}.`;
   }
 
   take_all_items(player: Player): string {
-    let result = "That item does not exist.";
     const current_room = this.get_players_zone(player)?.rooms.find(
       (room) => room.name === player.room
     );
 
-    if (current_room) {
-      current_room.items.forEach((room_item) => {
-        const player_item = player.items.find(
-          (pitem) => pitem.name === room_item.name
-        );
-
-        if (player_item) {
-          player_item.quantity += room_item.quantity;
-        } else {
-          player.items.push({
-            name: room_item.name,
-            quantity: room_item.quantity,
-          });
-        }
-      });
-
-      current_room.items = [];
-      result = "You took all items.";
+    if (!current_room || current_room.items.length === 0) {
+      return "There are no items to take.";
     }
 
-    return result;
-  }
-
-  use_item(player: Player, args: string[]): string {
-    let result = "That item does not exist.";
-
-    if (player) {
-      const possible_items = this.generate_combinations(args);
-      const player_item = player.items.find((item) =>
-        possible_items.find(
-          (possible_item) =>
-            item.name.toLowerCase() === possible_item.toLowerCase()
-        )
+    current_room.items.forEach((room_item) => {
+      const player_item = player.items.find(
+        (pitem) => pitem.name.toLowerCase() === room_item.name.toLowerCase()
       );
 
       if (player_item) {
-        const item_definition = this.world.items.find(
-          (item) => item.name === player_item.name
+        player_item.quantity += room_item.quantity;
+      } else {
+        player.items.push({ ...room_item });
+      }
+    });
+
+    current_room.items = [];
+
+    return "You took all items.";
+  }
+
+  use_item(player: Player, args: string[]): string {
+    const possible_items = this.generate_combinations(args);
+    const player_item = player.items.find((item) =>
+      possible_items.some(
+        (possible_item) =>
+          item.name.toLowerCase() === possible_item.toLowerCase()
+      )
+    );
+
+    if (!player_item) {
+      return "That item does not exist.";
+    }
+
+    const item_definition = this.world.items.find(
+      (item) => item.name.toLowerCase() === player_item.name.toLowerCase()
+    );
+
+    if (!item_definition || !item_definition.usable) {
+      return "You can't use that item.";
+    }
+
+    const item_action = this.world_actions.item_actions.find(
+      (action) =>
+        action.name.toLowerCase() === item_definition.name.toLowerCase()
+    );
+
+    let result =
+      item_action?.action(player) ?? "You used the item but nothing happened.";
+
+    if (this.has_flag(player, "prevent_item_consumption")) {
+      this.remove_flag(player, "prevent_item_consumption");
+    } else {
+      player_item.quantity--;
+      if (player_item.quantity === 0) {
+        player.items = player.items.filter(
+          (item) => item.name.toLowerCase() !== player_item.name.toLowerCase()
         );
-        if (item_definition) {
-          if (!item_definition.usable) return "You can't use that item.";
-
-          const item_action = this.world_actions.item_actions.find(
-            (action) => action.name === item_definition.name
-          );
-
-          if (item_action) {
-            const action_result = item_action.action(player);
-            if (action_result) {
-              result = action_result;
-            }
-          }
-
-          if (!result) {
-            result = "You used the item but nothing happened.";
-          }
-
-          if (this.has_flag(player, "prevent_item_consumption")) {
-            this.remove_flag(player, "prevent_item_consumption");
-          } else {
-            player_item.quantity--;
-            if (player_item.quantity === 0) {
-              player.items = player.items.filter(
-                (item) => item.name !== player_item.name
-              );
-            }
-          }
-        }
       }
     }
+
     return result;
   }
 
   remove_player_item(player: Player, item_name: string) {
-    const item_index = player?.items.findIndex(
+    const item_index = player.items.findIndex(
       (item) => item.name.toLowerCase() === item_name.toLowerCase()
     );
 
-    if (item_index !== undefined && item_index !== -1) {
+    if (item_index !== -1) {
       player.items[item_index].quantity--;
 
       if (player.items[item_index].quantity === 0) {
@@ -1237,111 +1324,127 @@ export class TextWorld {
 
   remove_item(item_name: string) {
     this.world.items = this.world.items.filter(
-      (item) => item.name !== item_name
+      (item) => item.name.toLowerCase() !== item_name.toLowerCase()
     );
   }
 
   drop_item(player: Player, args: string[]): string {
-    let result = "That item does not exist.";
     const zone = this.get_players_zone(player);
-    if (zone) {
-      const possible_items = this.generate_combinations(args);
-
-      if (possible_items.includes("all")) {
-        return this.drop_all_items(player);
-      } else {
-        const player_item = player.items.find((item) =>
-          possible_items.find(
-            (possible_item) =>
-              item.name.toLowerCase() === possible_item.toLowerCase()
-          )
-        );
-
-        if (player_item) {
-          const current_room = zone.rooms.find(
-            (room) => room.name === player.room
-          );
-          if (current_room) {
-            current_room.items.push({
-              name: player_item.name,
-              quantity: player_item.quantity,
-            });
-            player.items = player.items.filter(
-              (item) => item.name !== player_item.name
-            );
-            result = `You dropped the ${player_item.name}.`;
-          }
-        }
-      }
+    if (!zone) {
+      return "That item does not exist.";
     }
-    return result;
-  }
 
-  drop_all_items(player: Player): string {
-    let result = "You have no items to drop.";
-    const current_room = this.get_players_zone(player)?.rooms.find(
-      (room) => room.name === player.room
-    );
-
-    if (current_room && player.items.length > 0) {
-      current_room.items.push(...player.items);
-      player.items = [];
-
-      result = "You dropped all your items.";
-    }
-    return result;
-  }
-
-  show_item(player: Player, args: string[]): string {
-    let result = "That item does not exist.";
     const possible_items = this.generate_combinations(args);
 
     if (possible_items.includes("all")) {
-      result = this.show_all_items(player);
-    } else if (possible_items.includes("quests")) {
-      result = this.show_quests(player);
-    } else if (player) {
-      const player_item = player.items.find((item) =>
-        possible_items.find(
-          (possible_item) =>
-            item.name.toLowerCase() === possible_item.toLowerCase()
-        )
-      );
-
-      if (player_item) {
-        const item = this.world.items.find(
-          (item) => item.name === player_item.name
-        );
-        if (item) {
-          result = this.get_description(player, item, "default")!;
-        }
-      }
+      return this.drop_all_items(player);
     }
-    return result;
+
+    const player_item = player.items.find((item) =>
+      possible_items.some(
+        (possible_item) =>
+          item.name.toLowerCase() === possible_item.toLowerCase()
+      )
+    );
+
+    if (!player_item) {
+      return "That item does not exist.";
+    }
+
+    const current_room = zone.rooms.find(
+      (room) => room.name.toLowerCase() === player.room.toLowerCase()
+    );
+    if (!current_room) {
+      return "You are not in a valid room.";
+    }
+
+    current_room.items.push({
+      name: player_item.name,
+      quantity: player_item.quantity,
+    });
+
+    player.items = player.items.filter(
+      (item) => item.name.toLowerCase() !== player_item.name.toLowerCase()
+    );
+
+    return `You dropped the ${player_item.name}.`;
+  }
+
+  drop_all_items(player: Player): string {
+    const current_room = this.get_players_zone(player)?.rooms.find(
+      (room) => room.name.toLowerCase() === player.room.toLowerCase()
+    );
+
+    if (!current_room || player.items.length === 0) {
+      return "You have no items to drop.";
+    }
+
+    current_room.items.push(...player.items);
+    player.items = [];
+
+    return "You dropped all your items.";
+  }
+
+  show_item(player: Player, args: string[]): string {
+    const possible_items = this.generate_combinations(args);
+
+    if (possible_items.includes("all")) {
+      return this.show_all_items(player);
+    }
+
+    if (possible_items.includes("quests")) {
+      return this.show_quests(player);
+    }
+
+    const player_item = player.items.find((item) =>
+      possible_items.some(
+        (possible_item) =>
+          item.name.toLowerCase() === possible_item.toLowerCase()
+      )
+    );
+
+    if (!player_item) {
+      return "That item does not exist.";
+    }
+
+    const item = this.world.items.find(
+      (item) => item.name.toLowerCase() === player_item.name.toLowerCase()
+    );
+
+    if (!item) {
+      return "That item does not exist in the world.";
+    }
+
+    return (
+      this.get_description(player, item, "default") ||
+      "No description available."
+    );
   }
 
   show_all_items(player: Player): string {
-    let result = "You have no items to show.";
-
-    if (player && player.items.length > 0) {
-      const items_description = player.items
-        .map((item) => {
-          const item_definition = this.world.items.find(
-            (item_definition) => item_definition.name === item.name
-          );
-          return item_definition
-            ? `${item_definition.name} - ${this.get_description(
-                player,
-                item_definition,
-                "default"
-              )}`
-            : null;
-        })
-        .filter(Boolean);
-
-      result = items_description.join("\n\n");
+    if (player.items.length === 0) {
+      return "You have no items to show.";
     }
-    return result;
+
+    const items_description = player.items
+      .map((item) => {
+        const item_definition = this.world.items.find(
+          (item_definition) =>
+            item_definition.name.toLowerCase() === item.name.toLowerCase()
+        );
+        return item_definition
+          ? `${item_definition.name} - ${this.get_description(
+              player,
+              item_definition,
+              "default"
+            )}`
+          : null;
+      })
+      .filter(Boolean);
+
+    return items_description.length > 0
+      ? items_description.join("\n\n")
+      : "You have no items to show.";
   }
 
   /////////
@@ -1371,20 +1474,25 @@ export class TextWorld {
     return (
       this.world.mobs.find(
         (mob) => mob.name.toLowerCase() === name.toLowerCase()
-      ) ?? null
+      ) || null
     );
   }
 
   place_mob(zone_name: string, in_room_name: string, mob_name: string) {
     const in_room = this.get_room(zone_name, in_room_name);
     const mob = this.get_mob(mob_name);
-    if (in_room && mob) {
-      in_room.mobs.push(structuredClone(mob));
-    } else {
+
+    if (!in_room) {
       throw new Error(
-        `Room ${in_room_name} or MOB ${mob_name} does not exist.`
+        `Room ${in_room_name} does not exist in zone ${zone_name}.`
       );
     }
+
+    if (!mob) {
+      throw new Error(`MOB ${mob_name} does not exist.`);
+    }
+
+    in_room.mobs.push(structuredClone(mob));
   }
 
   get_room_mob(
@@ -1393,42 +1501,43 @@ export class TextWorld {
     mob_name: string
   ): Mob | null {
     const zone = this.get_zone(zone_name);
-    const room = zone.rooms.find((room) => room.name === room_name);
-    if (room) {
-      return (
-        room.mobs.find(
-          (mob) => mob.name.toLowerCase() === mob_name.toLowerCase()
-        ) ?? null
-      );
-    }
-    return null;
+    if (!zone) return null;
+
+    const room = zone.rooms.find(
+      (room) => room.name.toLowerCase() === room_name.toLowerCase()
+    );
+    if (!room) return null;
+
+    return (
+      room.mobs.find(
+        (mob) => mob.name.toLowerCase() === mob_name.toLowerCase()
+      ) || null
+    );
   }
 
   perform_attack(attacker: Player | Mob, defender: Player | Mob): string {
-    const attacker_damage =
-      Math.random() < attacker.damage_and_defense.critical_chance
-        ? attacker.damage_and_defense.physical_damage * 2
-        : attacker.damage_and_defense.physical_damage;
+    const isCriticalHit =
+      Math.random() < attacker.damage_and_defense.critical_chance;
+    const attacker_damage = isCriticalHit
+      ? attacker.damage_and_defense.physical_damage * 2
+      : attacker.damage_and_defense.physical_damage;
 
     const damage_dealt = Math.max(
       0,
       attacker_damage - defender.damage_and_defense.physical_defense
     );
 
-    defender.stats.health.current -= damage_dealt;
-
-    defender.stats.health.current = Math.max(0, defender.stats.health.current);
-    attacker.stats.health.current = Math.max(0, attacker.stats.health.current);
+    defender.stats.health.current = Math.max(
+      0,
+      defender.stats.health.current - damage_dealt
+    );
 
     let result = `${attacker.name} attacks ${defender.name} for ${damage_dealt} damage.\n${defender.name} health: ${defender.stats.health.current}`;
 
-    if (
-      defender.stats.health.current <= 0 ||
-      attacker.stats.health.current <= 0
-    ) {
-      result += `\n${
-        defender.stats.health.current <= 0 ? defender.name : attacker.name
-      } has been defeated!`;
+    if (defender.stats.health.current <= 0) {
+      result += `\n${defender.name} has been defeated!`;
+    } else if (attacker.stats.health.current <= 0) {
+      result += `\n${attacker.name} has been defeated!`;
     }
 
     return result;
@@ -1439,40 +1548,42 @@ export class TextWorld {
     args: string[],
     should_mob_attack = false
   ): string {
-    let result = "That mob does not exist.";
     const zone = this.get_players_zone(player);
-    if (zone) {
-      const possible_mobs = this.generate_combinations(args);
-      const current_room = this.get_players_room(player);
-      if (current_room) {
-        const mob = current_room?.mobs.find(
-          (mob) =>
-            mob.name.toLowerCase() ===
-            possible_mobs
-              .find((mob_name) => {
-                return mob_name.toLowerCase() === mob_name.toLowerCase();
-              })
-              ?.toLowerCase()
-        );
-        if (mob) {
-          result = this.perform_attack(player, mob);
-          if (should_mob_attack && mob.stats.health.current > 0) {
-            result += `\n${this.perform_attack(mob, player)}`;
-          }
+    if (!zone) return "That mob does not exist.";
 
-          if (mob.stats.health.current <= 0) {
-            mob.stats.health.current = 0;
-            this.add_item_drops_to_room(player, mob.items);
-            result += `\n${mob.name} dropped: ${mob.items
-              .map((item) => item.name)
-              .join(", ")}`;
-            current_room.mobs = current_room.mobs.filter(
-              (mob) => mob.name !== mob.name
-            );
-          }
-        }
-      }
+    const current_room = this.get_players_room(player);
+    if (!current_room) return "That mob does not exist.";
+
+    const possible_mobs = this.generate_combinations(args);
+    const mob_name = possible_mobs.find((mob_name) =>
+      current_room.mobs.some(
+        (mob) => mob.name.toLowerCase() === mob_name.toLowerCase()
+      )
+    );
+
+    const mob = current_room.mobs.find(
+      (mob) => mob.name.toLowerCase() === mob_name?.toLowerCase()
+    );
+
+    if (!mob) return "That mob does not exist.";
+
+    let result = this.perform_attack(player, mob);
+
+    if (should_mob_attack && mob.stats.health.current > 0) {
+      result += `\n${this.perform_attack(mob, player)}`;
     }
+
+    if (mob.stats.health.current <= 0) {
+      mob.stats.health.current = 0;
+      this.add_item_drops_to_room(player, mob.items);
+      result += `\n${mob.name} dropped: ${mob.items
+        .map((item) => item.name)
+        .join(", ")}`;
+      current_room.mobs = current_room.mobs.filter(
+        (room_mob) => room_mob.name.toLowerCase() !== mob.name.toLowerCase()
+      );
+    }
+
     return result;
   }
 
@@ -1522,12 +1633,13 @@ export class TextWorld {
 
   get_room_command_action(zone_name: string, room_name: string) {
     const room = this.get_room(zone_name, room_name);
-    if (room) {
-      return this.world_actions.room_command_actions.find(
-        (action) => action.name === room.name
-      );
-    }
-    return null;
+    if (!room) return null;
+
+    return (
+      this.world_actions.room_command_actions.find(
+        (action) => action.name.toLowerCase() === room.name.toLowerCase()
+      ) || null
+    );
   }
 
   add_room_command_action(
@@ -1539,29 +1651,30 @@ export class TextWorld {
     action: CommandParserAction
   ) {
     const room = this.get_room(zone_name, room_name);
-    if (room) {
-      const room_command_actions = this.get_room_command_action(
-        zone_name,
-        room_name
-      );
-      const command_action = {
-        id: crypto.randomUUID(),
-        group: name,
-        name,
-        descriptions: [{ flag: "default", description }],
-        synonyms,
-        action,
-      };
-      if (room_command_actions) {
-        room_command_actions.command_actions.push(command_action);
-      } else {
-        this.world_actions.room_command_actions.push({
-          name: room.name,
-          command_actions: [command_action],
-        });
-      }
-    } else {
+    if (!room) {
       throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
+    }
+
+    const room_command_actions = this.get_room_command_action(
+      zone_name,
+      room_name
+    );
+    const command_action = {
+      id: crypto.randomUUID(),
+      group: name,
+      name,
+      descriptions: [{ flag: "default", description }],
+      synonyms,
+      action,
+    };
+
+    if (room_command_actions) {
+      room_command_actions.command_actions.push(command_action);
+    } else {
+      this.world_actions.room_command_actions.push({
+        name: room.name,
+        command_actions: [command_action],
+      });
     }
   }
 
@@ -1570,19 +1683,15 @@ export class TextWorld {
     room_name: string,
     action_name: string
   ) {
-    const zone = this.get_zone(zone_name);
-    const room = zone.rooms.find((room) => room.name === room_name);
-    if (room) {
-      const room_command_actions = this.get_room_command_action(
-        zone_name,
-        room_name
-      );
-      if (room_command_actions) {
-        room_command_actions.command_actions =
-          room_command_actions.command_actions.filter(
-            (action) => action.name !== action_name
-          );
-      }
+    const room_command_actions = this.get_room_command_action(
+      zone_name,
+      room_name
+    );
+    if (room_command_actions) {
+      room_command_actions.command_actions =
+        room_command_actions.command_actions.filter(
+          (action) => action.name.toLowerCase() !== action_name.toLowerCase()
+        );
     }
   }
 
@@ -1591,20 +1700,15 @@ export class TextWorld {
     room_name: string,
     action_name: string
   ): boolean {
-    const zone = this.get_zone(zone_name);
-    const room = zone.rooms.find((room) => room.name === room_name);
-    if (room) {
-      const room_command_actions = this.get_room_command_action(
-        zone_name,
-        room_name
-      );
-      if (room_command_actions) {
-        return room_command_actions.command_actions.some(
-          (action) => action.name === action_name
-        );
-      }
-    }
-    return false;
+    const room_command_actions = this.get_room_command_action(
+      zone_name,
+      room_name
+    );
+    return (
+      room_command_actions?.command_actions.some(
+        (action) => action.name.toLowerCase() === action_name.toLowerCase()
+      ) || false
+    );
   }
 
   create_exit(
@@ -1616,247 +1720,244 @@ export class TextWorld {
   ) {
     const zone = this.get_zone(zone_name);
     if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
-    const from_room = zone.rooms.find((room) => room.name === from_room_name);
-    const to_room = zone.rooms.find((room) => room.name === to_room_name);
 
-    if (from_room && to_room) {
-      let opposite_exit_name = "";
-      switch (exit_name) {
-        case "north":
-          opposite_exit_name = "south";
-          break;
-        case "south":
-          opposite_exit_name = "north";
-          break;
-        case "east":
-          opposite_exit_name = "west";
-          break;
-        case "west":
-          opposite_exit_name = "east";
-          break;
-      }
+    const from_room = zone.rooms.find(
+      (room) => room.name.toLowerCase() === from_room_name.toLowerCase()
+    );
+    const to_room = zone.rooms.find(
+      (room) => room.name.toLowerCase() === to_room_name.toLowerCase()
+    );
 
-      from_room.exits.push({
-        name: exit_name,
-        location: to_room_name,
-        hidden,
-      });
-
-      to_room.exits.push({
-        name: opposite_exit_name,
-        location: from_room_name,
-        hidden,
-      });
-    } else {
+    if (!from_room || !to_room) {
       throw new Error(
         `Room ${from_room_name} or ${to_room_name} does not exist in zone ${zone_name}.`
       );
     }
+
+    const opposite_exit_name = this.get_opposite_exit_name(exit_name);
+    if (!opposite_exit_name) {
+      throw new Error(`Invalid exit name: ${exit_name}.`);
+    }
+
+    from_room.exits.push({
+      name: exit_name,
+      location: to_room_name,
+      hidden,
+    });
+
+    to_room.exits.push({
+      name: opposite_exit_name,
+      location: from_room_name,
+      hidden,
+    });
+  }
+
+  get_opposite_exit_name(exit_name: string): string | null {
+    const opposites: { [key: string]: string } = {
+      north: "south",
+      south: "north",
+      east: "west",
+      west: "east",
+    };
+    return opposites[exit_name] || null;
   }
 
   remove_exit(zone_name: string, from_room_name: string, exit_name: string) {
     const zone = this.get_zone(zone_name);
     if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
-    const from_room = zone.rooms.find((room) => room.name === from_room_name);
 
-    if (from_room) {
-      from_room.exits = from_room.exits.filter(
-        (exit) => exit.name !== exit_name
-      );
-    } else {
+    const from_room = zone.rooms.find(
+      (room) => room.name.toLowerCase() === from_room_name.toLowerCase()
+    );
+    if (!from_room) {
       throw new Error(
         `Room ${from_room_name} does not exist in zone ${zone_name}.`
       );
     }
+
+    from_room.exits = from_room.exits.filter(
+      (exit) => exit.name.toLowerCase() !== exit_name.toLowerCase()
+    );
   }
 
   get_exit(zone_name: string, from_room_name: string, exit_name: string): Exit {
     const zone = this.get_zone(zone_name);
-    if (zone) {
-      const from_room = zone.rooms.find((room) => room.name === from_room_name);
-
-      if (from_room) {
-        const exit = from_room.exits.find((exit) => exit.name === exit_name);
-        if (exit) {
-          return exit;
-        }
-      }
+    if (!zone) {
+      throw new Error(`Zone ${zone_name} does not exist.`);
     }
 
-    throw new Error("The room or zone does not exist.");
+    const from_room = zone.rooms.find(
+      (room) => room.name.toLowerCase() === from_room_name.toLowerCase()
+    );
+    if (!from_room) {
+      throw new Error(
+        `Room ${from_room_name} does not exist in zone ${zone_name}.`
+      );
+    }
+
+    const exit = from_room.exits.find(
+      (exit) => exit.name.toLowerCase() === exit_name.toLowerCase()
+    );
+    if (!exit) {
+      throw new Error(
+        `Exit ${exit_name} does not exist in room ${from_room_name}.`
+      );
+    }
+
+    return exit;
   }
 
   get_room_description(player: Player): string {
-    let result = "You can't see anything.";
     const zone = this.get_players_zone(player);
-    if (zone) {
-      const current_room = zone.rooms.find(
-        (room) => room.name.toLowerCase() === player.room.toLowerCase()
-      );
+    if (!zone) return "You can't see anything.";
 
-      if (current_room) {
-        const exits: string[] = [];
-        current_room.exits.forEach((exit) => {
-          if (!exit.hidden) {
-            exits.push(exit.name);
-          }
-        });
-        const npcs_in_room: string[] = [];
-        if (current_room.npcs.length > 0) {
-          current_room.npcs.forEach((npc) => {
-            let npc_name = npc.name;
-            if (npc.vendor_items) {
-              npc_name = `${npc_name} (Vendor)`;
-            }
-            npcs_in_room.push(npc_name);
-          });
-        }
+    const current_room = zone.rooms.find(
+      (room) => room.name.toLowerCase() === player.room.toLowerCase()
+    );
+    if (!current_room) return "You can't see anything.";
 
-        result = `Location: ${current_room.name}\n\n${this.get_description(
-          player,
-          current_room,
-          "default"
-        )}`;
+    const exits = current_room.exits
+      .filter((exit) => !exit.hidden)
+      .map((exit) => exit.name);
 
-        if (npcs_in_room.length > 0) {
-          result += `\n\NPCs: ${npcs_in_room}`;
-        }
+    const npcs_in_room = current_room.npcs.map((npc) =>
+      npc.vendor_items ? `${npc.name} (Vendor)` : npc.name
+    );
 
-        if (exits.length > 0) {
-          result += `\n\nExits: ${exits.join(", ")}`;
-        }
-      }
+    let result = `Location: ${current_room.name}\n\n${this.get_description(
+      player,
+      current_room,
+      "default"
+    )}`;
+
+    if (npcs_in_room.length > 0) {
+      result += `\n\nNPCs: ${npcs_in_room.join(", ")}`;
     }
+
+    if (exits.length > 0) {
+      result += `\n\nExits: ${exits.join(", ")}`;
+    }
+
     return result;
   }
 
   switch_room(player: Player, command = ""): string {
-    let result = "You can't go that way.";
     const zone = this.get_players_zone(player);
-    if (zone) {
-      let current_room = zone.rooms.find((room) => room.name === player.room);
-      if (current_room && command.length > 0) {
-        const exit = current_room.exits.find((exit) => exit.name === command);
-        if (exit) {
-          if (exit.hidden) exit.hidden = false;
-          player.room = exit.location;
-          result = this.get_room_description(player);
-          const new_room = zone.rooms.find((room) => room.name === player.room);
-          if (new_room) {
-            current_room = new_room;
-          }
-        }
-      } else {
-        result = this.get_room_description(player);
-      }
+    if (!zone) return "You can't go that way.";
 
-      if (current_room) {
-        const new_room_actions = this.world_actions.room_actions.find(
-          (action) => action.name === current_room?.name
-        );
+    let current_room = zone.rooms.find((room) => room.name === player.room);
+    const has_command = command.length > 0;
 
-        if (new_room_actions && new_room_actions.actions) {
-          let action_result = "";
-          new_room_actions.actions.every((action) => {
-            const result = action(player);
-            if (result) {
-              action_result += result;
-            }
-          });
-
-          if (action_result) {
-            result = `${result}\n\n${action_result}`;
-          }
-        }
-      }
+    // Check if current room exists and whether a command was provided
+    if (
+      !current_room ||
+      (!has_command && !this.has_room_actions(current_room.name))
+    ) {
+      return this.describe_room_with_actions(player);
     }
-    return result;
+
+    if (has_command) {
+      const exit = current_room.exits.find((exit) => exit.name === command);
+      if (!exit) return "You can't go that way.";
+
+      if (exit.hidden) exit.hidden = false;
+      player.room = exit.location;
+
+      current_room =
+        zone.rooms.find((room) => room.name === player.room) || current_room;
+    }
+
+    return this.describe_room_with_actions(player);
   }
 
-  plot_room_map(player: Player, window_size: number) {
-    let result = "You are not in a zone.";
+  has_room_actions(room_name: string): boolean {
+    return !!this.world_actions.room_actions.find(
+      (action) => action.name === room_name
+    );
+  }
+
+  plot_room_map(player: Player, window_size: number): string {
     const zone = this.get_players_zone(player);
-    if (zone) {
-      let rooms = zone.rooms;
+    if (!zone) return "You are not in a zone.";
 
-      if (window_size != 0) {
-        const current_room_index = rooms.findIndex(
-          (room) => room.name === player.room
-        );
-        let window_start = current_room_index - 5;
-        let window_end = current_room_index + 5;
-        if (window_start - window_size <= 0) window_start = 0;
-        if (window_end + window_size >= rooms.length) window_end = rooms.length;
-        rooms = rooms.slice(window_start, window_end);
-      }
+    let rooms = zone.rooms;
 
-      const room_grid: { [key: string]: string } = {};
-      const visited_rooms = new Set<string>();
-      let current_room = rooms[0];
-      let current_x = 0;
-      let current_y = 0;
-      room_grid[`${current_x},${current_y}`] =
-        current_room.name === player.room ? "@" : "#";
-
-      const queue = [{ room: current_room, x: current_x, y: current_y }];
-      const direction_to_coords: Record<string, [number, number]> = {
-        north: [0, 1],
-        south: [0, -1],
-        east: [1, 0],
-        west: [-1, 0],
-      };
-      const direction_to_symbol: Record<string, string> = {
-        north: "|",
-        south: "|",
-        east: "-",
-        west: "-",
-      };
-
-      while (queue.length > 0) {
-        const item = queue.shift();
-        if (item) {
-          current_room = item.room;
-          current_x = item.x;
-          current_y = item.y;
-
-          if (visited_rooms.has(current_room.name)) continue;
-          visited_rooms.add(current_room.name);
-
-          current_room.exits.forEach((exit) => {
-            if (exit.hidden) return;
-            const room = rooms.find((room) => room.name === exit.location);
-            if (room && direction_to_coords[exit.name]) {
-              const [dx, dy] = direction_to_coords[exit.name];
-              const symbol = direction_to_symbol[exit.name];
-              room_grid[`${current_x + dx},${current_y + dy}`] =
-                room.name === player.room ? "@" : "#";
-              room_grid[`${current_x + dx / 2},${current_y + dy / 2}`] = symbol;
-              queue.push({ room, x: current_x + dx, y: current_y + dy });
-            }
-          });
-        }
-      }
-
-      const keys = Object.keys(room_grid);
-      const xs = keys.map((key) => parseFloat(key.split(",")[0]));
-      const ys = keys.map((key) => parseFloat(key.split(",")[1]));
-      const min_x = Math.min(...xs);
-      const max_x = Math.max(...xs);
-      const min_y = Math.min(...ys);
-      const max_y = Math.max(...ys);
-      const map_result: string[] = [];
-
-      for (let y = max_y; y >= min_y; y -= 0.5) {
-        let row = "";
-        for (let x = min_x; x <= max_x; x += 0.5) {
-          row += room_grid[`${x},${y}`] || " ";
-        }
-        map_result.push(row);
-      }
-      result = `Map:\n\n${map_result.join("\n")}\n`;
+    if (window_size !== 0) {
+      const current_room_index = rooms.findIndex(
+        (room) => room.name === player.room
+      );
+      const window_start = Math.max(current_room_index - window_size, 0);
+      const window_end = Math.min(
+        current_room_index + window_size + 1,
+        rooms.length
+      );
+      rooms = rooms.slice(window_start, window_end);
     }
 
-    return result;
+    const room_grid: { [key: string]: string } = {};
+    const visited_rooms = new Set<string>();
+    const direction_to_coords: Record<string, [number, number]> = {
+      north: [0, 1],
+      south: [0, -1],
+      east: [1, 0],
+      west: [-1, 0],
+    };
+    const direction_to_symbol: Record<string, string> = {
+      north: "|",
+      south: "|",
+      east: "-",
+      west: "-",
+    };
+
+    const queue = [
+      { room: rooms.find((room) => room.name === player.room)!, x: 0, y: 0 },
+    ];
+    room_grid["0,0"] = "@";
+
+    while (queue.length > 0) {
+      const { room, x, y } = queue.shift()!;
+      if (visited_rooms.has(room.name)) continue;
+      visited_rooms.add(room.name);
+
+      room.exits.forEach((exit) => {
+        if (exit.hidden) return;
+
+        const [dx, dy] = direction_to_coords[exit.name] || [];
+        if (dx === undefined || dy === undefined) return;
+
+        const neighbor_room = rooms.find((r) => r.name === exit.location);
+        if (neighbor_room) {
+          const new_x = x + dx;
+          const new_y = y + dy;
+          const symbol = direction_to_symbol[exit.name];
+
+          room_grid[`${new_x},${new_y}`] =
+            neighbor_room.name === player.room ? "@" : "#";
+          room_grid[`${x + dx / 2},${y + dy / 2}`] = symbol;
+
+          queue.push({ room: neighbor_room, x: new_x, y: new_y });
+        }
+      });
+    }
+
+    const keys = Object.keys(room_grid);
+    const xs = keys.map((key) => parseFloat(key.split(",")[0]));
+    const ys = keys.map((key) => parseFloat(key.split(",")[1]));
+    const min_x = Math.min(...xs);
+    const max_x = Math.max(...xs);
+    const min_y = Math.min(...ys);
+    const max_y = Math.max(...ys);
+
+    const map_result: string[] = [];
+    for (let y = max_y; y >= min_y; y -= 0.5) {
+      let row = "";
+      for (let x = min_x; x <= max_x; x += 0.5) {
+        row += room_grid[`${x},${y}`] || " ";
+      }
+      map_result.push(row);
+    }
+
+    return `Map:\n\n${map_result.join("\n")}\n`;
   }
 
   create_room(
@@ -1868,8 +1969,9 @@ export class TextWorld {
     const zone = this.get_zone(zone_name);
     if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
 
-    const id = name; //crypto.randomUUID();
+    const id = name;
 
+    // Create the new room and add it to the zone
     zone.rooms.push({
       id,
       name,
@@ -1882,31 +1984,36 @@ export class TextWorld {
       exits: [],
     });
 
-    let actions: Action[] | null = null;
+    // Add the action to the room actions if provided
     if (action) {
-      actions = [action];
-
       this.world_actions.room_actions.push({
         name: id,
-        actions,
+        actions: [action],
       });
     }
   }
 
   set_room_as_zone_starter(zone_name: string, room_name: string) {
-    const zone = this.get_zone(zone_name);
-    if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
-    const room = zone.rooms.find((room) => room.name === room_name);
-    if (room) {
-      room.zone_start = true;
-    } else {
+    const room = this.get_room(zone_name, room_name);
+    if (!room) {
       throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
     }
+    room.zone_start = true;
   }
 
   add_room_action(zone_name: string, room_name: string, action: Action) {
     const room = this.get_room(zone_name, room_name);
-    if (room) {
+    if (!room) {
+      throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
+    }
+
+    const room_action = this.world_actions.room_actions.find(
+      (action_obj) => action_obj.name.toLowerCase() === room_name.toLowerCase()
+    );
+
+    if (room_action) {
+      room_action.actions?.push(action);
+    } else {
       this.world_actions.room_actions.push({
         name: room.name,
         actions: [action],
@@ -1917,6 +2024,7 @@ export class TextWorld {
   get_room(zone_name: string, room_name: string): Room | null {
     const zone = this.get_zone(zone_name);
     if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
+
     return (
       zone.rooms.find(
         (room) => room.name.toLowerCase() === room_name.toLowerCase()
@@ -1930,57 +2038,58 @@ export class TextWorld {
   }
 
   inspect_room(player: Player): string {
-    let result = "There is nothing else of interest here.";
     const current_room = this.get_players_zone(player)?.rooms.find(
-      (room) => room.name === player.room
+      (room) => room.name.toLowerCase() === player.room.toLowerCase()
     );
 
-    if (current_room) {
-      const items = current_room.items.map(
-        (item) => `${item.name} (${item.quantity})`
-      );
-      const items_string =
-        items.length > 0
-          ? `Items: ${items.join(", ")}`
-          : "There is nothing else of interest here.";
-
-      const mobs = current_room.mobs.map((mob) => mob.name);
-      const mobs_string = mobs.length > 0 ? `Mobs: ${mobs.join(", ")}` : "";
-
-      //result = [mobs_string, items_string].filter(Boolean).join("\n");
-      result = `You inspect the room and found:\n\n${[mobs_string, items_string]
-        .filter(Boolean)
-        .join("\n")}`;
+    if (!current_room) {
+      return "There is nothing else of interest here.";
     }
 
-    return result;
+    const items_string =
+      current_room.items.length > 0
+        ? `Items: ${current_room.items
+            .map((item) => `${item.name} (${item.quantity})`)
+            .join(", ")}`
+        : "There is nothing else of interest here.";
+
+    const mobs_string =
+      current_room.mobs.length > 0
+        ? `Mobs: ${current_room.mobs.map((mob) => mob.name).join(", ")}`
+        : "";
+
+    return `You inspect the room and found:\n\n${[mobs_string, items_string]
+      .filter(Boolean)
+      .join("\n")}`;
   }
 
   look(player: Player, input: string, command: string, args: string[]): string {
-    let result = "You can't see anything.";
     const possible_actions = this.generate_combinations(args);
 
     if (possible_actions.includes("self")) {
-      result = this.look_self(player);
-    } else if (possible_actions.includes("at")) {
-      result = this.look_at_or_examine_object(player, input, command, args);
-    } else {
-      const current_room = this.get_players_zone(player)?.rooms.find(
-        (room) => room.name === player.room
-      );
-
-      if (current_room) {
-        const exits = current_room.exits
-          .filter((exit) => !exit.hidden)
-          .map((exit) => exit.name)
-          .join(", ");
-        result = `${this.get_description(player, current_room, "default")}${
-          exits.length > 0 ? `\n\nExits: ${exits}` : ""
-        }`;
-      }
+      return this.look_self(player);
     }
 
-    return result;
+    if (possible_actions.includes("at")) {
+      return this.look_at_or_examine_object(player, input, command, args);
+    }
+
+    const current_room = this.get_players_zone(player)?.rooms.find(
+      (room) => room.name.toLowerCase() === player.room.toLowerCase()
+    );
+
+    if (!current_room) {
+      return "You can't see anything.";
+    }
+
+    const exits = current_room.exits
+      .filter((exit) => !exit.hidden)
+      .map((exit) => exit.name)
+      .join(", ");
+
+    return `${this.get_description(player, current_room, "default")}${
+      exits ? `\n\nExits: ${exits}` : ""
+    }`;
   }
 
   /////////////////
@@ -1995,8 +2104,10 @@ export class TextWorld {
     dialog: Dialog[] | null = null
   ) {
     const room = this.get_room(zone_name, room_name);
-    if (!room)
+    if (!room) {
       throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
+    }
+
     room.objects.push({
       id: crypto.randomUUID(),
       name,
@@ -2015,10 +2126,11 @@ export class TextWorld {
     if (!room) {
       throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
     }
+
     return (
       room.objects.find(
         (object) => object.name.toLowerCase() === object_name.toLowerCase()
-      ) ?? null
+      ) || null
     );
   }
 
@@ -2031,46 +2143,48 @@ export class TextWorld {
     command: string,
     args: string[]
   ): string {
-    let result = "That object does not exist.";
     const zone = this.get_players_zone(player);
-    if (zone) {
-      const possible_triggers = this.generate_combinations(args);
-      const current_room = this.get_players_room(player);
-      const obj = current_room?.objects.find((obj) =>
-        possible_triggers.some(
-          (trigger) => obj.name.toLowerCase() === trigger.toLowerCase()
-        )
+    if (!zone) return "That object does not exist.";
+
+    const possible_triggers = this.generate_combinations(args);
+    const current_room = this.get_players_room(player);
+
+    if (!current_room) return "That object does not exist.";
+
+    const obj = current_room.objects.find((obj) =>
+      possible_triggers.some(
+        (trigger) => obj.name.toLowerCase() === trigger.toLowerCase()
+      )
+    );
+
+    if (!obj) return "That object does not exist.";
+
+    if (input.startsWith("look at")) {
+      return (
+        this.get_description(player, obj, "default") ||
+        "There's nothing special about it."
+      );
+    }
+
+    if (input.startsWith("examine") && obj.dialog) {
+      const dialog = obj.dialog.find((dialog) =>
+        dialog.trigger.some((trigger) => possible_triggers.includes(trigger))
       );
 
-      if (obj && current_room && current_room.objects.includes(obj)) {
-        if (input.startsWith("look at")) {
-          return this.get_description(player, obj, "default")!;
-        } else if (input.startsWith("examine") && obj.dialog) {
-          const dialog = obj.dialog.find((dialog) =>
-            dialog.trigger.some((trigger) =>
-              possible_triggers.includes(trigger)
-            )
-          );
-          if (dialog) {
-            const dialog_action = this.world_actions.dialog_actions.find(
-              (action) => action.name === dialog.name
-            );
+      if (dialog) {
+        const dialog_action = this.world_actions.dialog_actions.find(
+          (action) => action.name === dialog.name
+        );
 
-            if (dialog_action) {
-              result = dialog_action.action(
-                player,
-                input,
-                command,
-                args
-              ) as string;
-            } else if (dialog?.response) {
-              result = dialog.response;
-            }
-          }
+        if (dialog_action) {
+          return dialog_action.action(player, input, command, args) as string;
+        } else if (dialog.response) {
+          return dialog.response;
         }
       }
     }
-    return result;
+
+    return "There's nothing more to learn about this object.";
   }
 
   //////////////
@@ -2096,66 +2210,60 @@ export class TextWorld {
     return (
       this.world.recipes.find(
         (recipe) => recipe.name.toLowerCase() === name.toLowerCase()
-      ) ?? null
+      ) || null
     );
   }
 
   learn_recipe(player: Player, recipe_name: string): string {
-    let result = "That recipe does not exist.";
     const recipe = this.get_recipe(recipe_name);
-    if (recipe) {
-      if (player.known_recipes.includes(recipe.name)) {
-        this.set_flag(player, "prevent_item_consumption");
-        result = "You already know that recipe.";
-      } else {
-        player.known_recipes.push(recipe.name);
-        result = `You learned the recipe for ${recipe.name}.`;
-      }
+    if (!recipe) return "That recipe does not exist.";
+
+    if (player.known_recipes.includes(recipe.name)) {
+      this.set_flag(player, "prevent_item_consumption");
+      return "You already know that recipe.";
     }
-    return result;
+
+    player.known_recipes.push(recipe.name);
+    return `You learned the recipe for ${recipe.name}.`;
   }
 
   craft_recipe(player: Player, args: string[]): string {
-    let result = "You don't know how to craft that.";
     const recipe_names = this.generate_combinations(args);
     const recipe_name = recipe_names.find((name) =>
       this.world.recipes.some(
         (recipe) => recipe.name.toLowerCase() === name.toLowerCase()
       )
     );
-    if (recipe_name) {
-      const recipe = this.get_recipe(recipe_name);
-      if (recipe) {
-        let has_ingredients = true;
-        recipe.ingredients.forEach((ingredient) => {
-          if (
-            !this.has_item_in_quantity(
-              player,
-              ingredient.name,
-              ingredient.quantity
-            )
-          ) {
-            has_ingredients = false;
-          }
-        });
 
-        if (has_ingredients) {
-          recipe.ingredients.forEach((ingredient) => {
-            for (let i = 0; i < ingredient.quantity; i++) {
-              this.remove_player_item(player, ingredient.name);
-            }
-          });
-          player.items.push({
-            name: recipe.crafted_item.name,
-            quantity: recipe.crafted_item.quantity,
-          });
-          result = `${recipe.crafted_item.name} has been crafted.`;
-        } else {
-          result = "You don't have the ingredients to craft that.";
-        }
-      }
+    if (!recipe_name) {
+      return "You don't know how to craft that.";
     }
-    return result;
+
+    const recipe = this.get_recipe(recipe_name);
+    if (!recipe) {
+      return "You don't know how to craft that.";
+    }
+
+    const has_ingredients = recipe.ingredients.every((ingredient) =>
+      this.has_item_in_quantity(player, ingredient.name, ingredient.quantity)
+    );
+
+    if (!has_ingredients) {
+      return "You don't have the ingredients to craft that.";
+    }
+
+    // Remove ingredients from player inventory
+    recipe.ingredients.forEach((ingredient) => {
+      this.remove_player_item(player, ingredient.name);
+    });
+
+    // Add crafted item to player's inventory
+    player.items.push({
+      name: recipe.crafted_item.name,
+      quantity: recipe.crafted_item.quantity,
+    });
+
+    return `${recipe.crafted_item.name} has been crafted.`;
   }
 
   //////////
@@ -2217,15 +2325,13 @@ export class TextWorld {
       active,
       action,
       timer_id: 0,
-      timer: () => {},
-    };
-
-    spawn_location.timer = () => {
-      spawn_location.timer_id = setInterval(() => {
-        if (spawn_location.active) {
-          spawn_location.action(spawn_location);
-        }
-      }, spawn_location.interval);
+      timer: function () {
+        this.timer_id = setInterval(() => {
+          if (this.active) {
+            this.action(this);
+          }
+        }, this.interval);
+      },
     };
 
     this.world_actions.spawn_locations.push(spawn_location);
@@ -2256,12 +2362,11 @@ export class TextWorld {
 
     if (spawn_location) {
       clearInterval(spawn_location.timer_id);
+      this.world_actions.spawn_locations =
+        this.world_actions.spawn_locations.filter(
+          (location) => location.name !== name
+        );
     }
-
-    this.world_actions.spawn_locations =
-      this.world_actions.spawn_locations.filter(
-        (location) => location.name !== name
-      );
   }
 
   create_dialog(
@@ -2271,23 +2376,22 @@ export class TextWorld {
     action: CommandParserAction | null
   ) {
     const npc = this.get_npc(npc_name);
-    if (npc) {
-      const id = crypto.randomUUID();
-      if (!npc.dialog) {
-        npc.dialog = [];
-      }
-      npc.dialog.push({
-        name: npc_name,
-        trigger,
-        response,
-      });
-      if (action) {
-        this.world_actions.dialog_actions.push({
-          name: id,
-          trigger,
-          action,
-        });
-      }
+    if (!npc) return;
+
+    const dialog_id = crypto.randomUUID();
+
+    if (!npc.dialog) {
+      npc.dialog = [];
+    }
+
+    npc.dialog.push({
+      name: dialog_id,
+      trigger,
+      response,
+    });
+
+    if (action) {
+      this.create_dialog_action(dialog_id, trigger, action);
     }
   }
 
@@ -2305,15 +2409,17 @@ export class TextWorld {
 
   get_description(player: Player, entity: Entity, flag: string): string | null {
     if (flag === "default" && player.flags.length > 0) {
-      for (const player_flag of player.flags) {
-        const matching_desc = entity.descriptions.find(
-          (desc) => desc.flag === player_flag
-        );
-        if (matching_desc) {
-          flag = matching_desc.flag;
-        }
+      const matching_desc = player.flags
+        .map((player_flag) =>
+          entity.descriptions.find((desc) => desc.flag === player_flag)
+        )
+        .find((desc) => desc !== undefined);
+
+      if (matching_desc) {
+        flag = matching_desc.flag;
       }
     }
+
     const description = entity.descriptions.find((desc) => desc.flag === flag);
     return description ? description.description : null;
   }
@@ -2366,7 +2472,11 @@ export class TextWorld {
   to_title_case(str: string): string {
     return str
       .split(" ")
-      .map((word) => word[0].toUpperCase() + word.slice(1))
+      .map((word) =>
+        word.length > 0
+          ? word[0].toUpperCase() + word.slice(1).toLowerCase()
+          : ""
+      )
       .join(" ");
   }
 
@@ -2375,48 +2485,49 @@ export class TextWorld {
     growth_rate: number,
     num_levels: number
   ): Level[] {
-    const required_experience_points: Level[] = [];
-
-    for (let level = 1; level <= num_levels; level++) {
-      const xp = starting_experience * Math.pow(growth_rate, level - 1);
-      required_experience_points.push({ level, xp });
-    }
-
-    return required_experience_points;
+    return Array.from({ length: num_levels }, (_, i) => ({
+      level: i + 1,
+      xp: starting_experience * Math.pow(growth_rate, i),
+    }));
   }
 
   generate_combinations(input_array: string[]): string[] {
     const result: string[] = [];
 
     function generate_helper(combination: string, start_idx: number) {
-      result.push(combination.trim());
+      if (combination.length > 0) {
+        result.push(combination);
+      }
 
       for (let i = start_idx; i < input_array.length; i++) {
         const new_combination =
-          combination + (combination.length > 0 ? " " : "") + input_array[i];
+          combination.length > 0
+            ? `${combination} ${input_array[i]}`
+            : input_array[i];
         generate_helper(new_combination, i + 1);
       }
     }
 
     generate_helper("", 0);
-    return result.filter((str) => str !== "");
+    return result;
   }
 
-  get_help(player: Player) {
+  get_help(player: Player): string {
     const command_actions =
       player.stats.health.current <= 0
         ? this.player_dead_command_actions
         : this.main_command_actions;
+
     const result = command_actions
-      .map(
-        (action) =>
-          `${action.synonyms.join(", ")} - ${this.get_description(
-            player,
-            action,
-            "default"
-          )}`
-      )
+      .map((action) => {
+        const synonyms = action.synonyms.join(", ");
+        const description =
+          this.get_description(player, action, "default") ||
+          "No description available.";
+        return `${synonyms} - ${description}`;
+      })
       .join("\n");
+
     return `Commands:\n\n${result}`;
   }
 
@@ -2428,19 +2539,15 @@ export class TextWorld {
     magicka_current: number,
     magicka_max: number
   ): Resources {
+    const create_stat = (current: number, max: number): Stat => ({
+      current,
+      max,
+    });
+
     return {
-      health: {
-        current: health_current,
-        max: health_max,
-      },
-      stamina: {
-        current: stamina_current,
-        max: stamina_max,
-      },
-      magicka: {
-        current: magicka_current,
-        max: magicka_max,
-      },
+      health: create_stat(health_current, health_max),
+      stamina: create_stat(stamina_current, stamina_max),
+      magicka: create_stat(magicka_current, magicka_max),
     };
   }
 
@@ -2491,18 +2598,18 @@ export class TextWorld {
     const possible_rooms_or_zones = this.generate_combinations(args);
 
     for (const possible_room_or_zone of possible_rooms_or_zones) {
-      const room_or_zone = possible_room_or_zone.toLowerCase();
+      const normalized_name = possible_room_or_zone.toLowerCase();
 
-      if (room_or_zone.startsWith("room")) {
-        const room_name = possible_room_or_zone.replace(/room/, "").trim();
+      if (normalized_name.startsWith("room")) {
+        const room_name = possible_room_or_zone.replace(/room/i, "").trim();
         const new_room = this.get_room(player.zone, room_name);
 
         if (new_room) {
           new_room_name = new_room.name;
           break;
         }
-      } else if (room_or_zone.startsWith("zone")) {
-        const zone_name = possible_room_or_zone.replace(/zone/, "").trim();
+      } else if (normalized_name.startsWith("zone")) {
+        const zone_name = possible_room_or_zone.replace(/zone/i, "").trim();
         const new_zone = this.get_zone(zone_name);
 
         if (new_zone) {
@@ -2523,29 +2630,38 @@ export class TextWorld {
 
     if (new_room_name) {
       player.room = new_room_name;
-      let new_room_description = this.get_room_description(player);
-
-      const new_room = this.get_players_room(player);
-      const new_room_actions = this.world_actions.room_actions.find(
-        (action) => action.name === new_room?.name
-      );
-      if (new_room && new_room_actions && new_room_actions.actions) {
-        const actionResult = new_room_actions.actions
-          .map((action) => action(player))
-          .filter((result) => result)
-          .join("");
-
-        new_room_description = `${new_room_description}\n\n${actionResult}`;
-      }
-
+      const new_room_description = this.describe_room_with_actions(player);
       result = new_room_description;
     }
 
     return result;
   }
 
+  describe_room_with_actions(player: Player): string {
+    let room_description = this.get_room_description(player);
+    const current_room = this.get_players_room(player);
+
+    if (current_room) {
+      const room_actions = this.world_actions.room_actions.find(
+        (action) => action.name === current_room.name
+      );
+
+      if (room_actions?.actions) {
+        const action_result = room_actions.actions
+          .map((action) => action(player))
+          .filter(Boolean)
+          .join("");
+
+        if (action_result) {
+          room_description += `\n\n${action_result}`;
+        }
+      }
+    }
+
+    return room_description;
+  }
+
   async parse_command(player: Player, input: string): Promise<string> {
-    let result;
     const input_limit = Math.min(input_character_limit, input.length);
     input = input.substring(0, input_limit);
 
@@ -2555,84 +2671,85 @@ export class TextWorld {
     const talk_to = possible_actions.find((action) =>
       action.toLowerCase().startsWith("talk to")
     );
+
     const filtered_actions = possible_actions.filter((action) =>
       talk_to ? action.toLowerCase().includes(talk_to) : true
     );
 
-    let async_command_actions: CommandAction[] | null = null;
-    let command_actions: CommandAction[] | null = null;
+    let result: string | undefined;
     let command_action: CommandAction | undefined;
 
     if (!this.has_flag(player, "disable_main_commands")) {
-      async_command_actions = this.main_async_command_actions;
-      command_actions =
+      command_action = this.find_command_action(
+        filtered_actions,
         player.stats.health.current <= 0
           ? this.player_dead_command_actions
-          : this.main_command_actions;
-    }
-
-    // MAIN COMMAND ACTIONS
-    if (command_actions) {
-      command_action = command_actions.find((action) =>
-        action.synonyms.some((synonym) => filtered_actions.includes(synonym))
+          : this.main_command_actions
       );
 
       if (command_action) {
         result = command_action.action(player, input, command, args) as string;
       }
-    }
 
-    // MAIN ASYNC COMMAND ACTIONS
-    if (!result && async_command_actions) {
-      const async_command_action = this.main_async_command_actions.find(
-        (action) =>
-          action.synonyms.some((synonym) => possible_actions.includes(synonym))
-      );
-
-      if (async_command_action) {
-        result = await async_command_action.action(
-          player,
-          input,
-          command,
-          args
-        );
-      }
-    }
-
-    // ROOM COMMAND ACTIONS
-    if (!result) {
-      const players_room = this.get_players_room(player);
-      if (players_room) {
-        const players_room_command_actions = this.get_room_command_action(
-          player.zone,
-          players_room.name
+      if (!result) {
+        const async_command_action = this.find_command_action(
+          possible_actions,
+          this.main_async_command_actions
         );
 
-        if (players_room_command_actions) {
-          const room_command_action =
-            players_room_command_actions.command_actions.find((action) =>
-              action.synonyms.some((synonym) =>
-                filtered_actions.includes(synonym)
-              )
-            );
-
-          if (room_command_action) {
-            result = `${this.get_description(
-              player,
-              room_command_action,
-              "default"
-            )}\n\n${room_command_action.action(player, input, command, args)}`;
-          } else {
-            result = "I don't understand that command.";
-          }
+        if (async_command_action) {
+          result = await async_command_action.action(
+            player,
+            input,
+            command,
+            args
+          );
         }
       }
     }
 
     if (!result) {
-      result = "I don't understand that command.";
+      const players_room = this.get_players_room(player);
+      if (players_room) {
+        const room_command_action = this.find_room_command_action(
+          filtered_actions,
+          player.zone,
+          players_room.name
+        );
+
+        if (room_command_action) {
+          result = `${this.get_description(
+            player,
+            room_command_action,
+            "default"
+          )}\n\n${room_command_action.action(player, input, command, args)}`;
+        }
+      }
     }
 
-    return result;
+    return result || "I don't understand that command.";
+  }
+
+  find_command_action(
+    possible_actions: string[],
+    command_actions: CommandAction[]
+  ): CommandAction | undefined {
+    return command_actions.find((action) =>
+      action.synonyms.some((synonym) => possible_actions.includes(synonym))
+    );
+  }
+
+  find_room_command_action(
+    filtered_actions: string[],
+    zone_name: string,
+    room_name: string
+  ): CommandAction | undefined {
+    const room_command_actions = this.get_room_command_action(
+      zone_name,
+      room_name
+    );
+    return room_command_actions?.command_actions.find((action) =>
+      action.synonyms.some((synonym) => filtered_actions.includes(synonym))
+    );
   }
 }
