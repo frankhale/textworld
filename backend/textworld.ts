@@ -2034,6 +2034,7 @@ export class TextWorld {
 
   get_zone_starter_room(zone_name: string): Room | null {
     const zone = this.get_zone(zone_name);
+    if (!zone) return null;
     return zone.rooms.find((room) => room.zone_start) ?? null;
   }
 
@@ -2396,12 +2397,12 @@ export class TextWorld {
   }
 
   create_dialog_action(
-    name: string,
+    dialog_id: string,
     trigger: string[],
     action: CommandParserAction
   ) {
     this.world_actions.dialog_actions.push({
-      name,
+      name: dialog_id,
       trigger,
       action,
     });

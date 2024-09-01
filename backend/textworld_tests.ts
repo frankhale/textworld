@@ -132,6 +132,18 @@ Deno.test("can_get_player", () => {
   textworld.reset_world();
 });
 
+Deno.test("can_ressurect_player", () => {
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.set_room_as_zone_starter("Zone1", "Room1");
+  player.stats.health.current = 0;
+  textworld.resurrect_player(player);
+  assertEquals(player.stats.health.current, 10);
+  textworld.reset_world();
+});
+
 Deno.test("can_create_quest", () => {
   textworld.create_quest("Quest1", "A quest");
   const quest = textworld.get_quest("Quest1");
@@ -2398,4 +2410,50 @@ Deno.test("can_get_help", () => {
     result,
     "Commands:\n\nnorth, south, east, west - Commands for moving around the world.\ntake, get - Take an item from the room or an NPC.\nuse - Use an item in your inventory.\ndrop - Drop an item or all your items from your inventory.\nlook, l - Look around the room or at yourself.\nls - Look at yourself.\nexamine, x - Examine an object in a room.\ninspect, i - Inspect a room to see what items are there.\nmap - Plot a map showing nearby rooms.\nshow - Show an item in your inventory.\ntalk to, tt - Talk to an NPC or Vendor.\nquit - Quit the game.\ngoto - Go to a room or zone.\nhelp - Show the help text.\nattack - Attack a mob.\ncraft - Craft an item."
   );
+});
+
+Deno.test("can_calculate_level_experience", () => {
+  const result = textworld.calculate_level_experience(1, 1.2, 5);
+  assertEquals(result, [
+    {
+      level: 1,
+      xp: 1,
+    },
+    {
+      level: 2,
+      xp: 1.2,
+    },
+    {
+      level: 3,
+      xp: 1.44,
+    },
+    {
+      level: 4,
+      xp: 1.7279999999999998,
+    },
+    {
+      level: 5,
+      xp: 2.0736,
+    },
+  ]);
+});
+
+Deno.test("can_convert_string_to_title_case", () => {
+  const result = textworld.to_title_case("hello world");
+  assertEquals(result, "Hello World");
+});
+
+Deno.test("can_get_description_of_room", () => {
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  player.room = "Room1";
+  const current_room = textworld
+    .get_players_zone(player)
+    ?.rooms.find(
+      (room) => room.name.toLowerCase() === player.room.toLowerCase()
+    );
+  assertNotEquals(current_room, null);
+  const result = textworld.get_description(player, current_room!, "default");
+  assertEquals(result, "This is room 1");
+  textworld.reset_world();
 });
