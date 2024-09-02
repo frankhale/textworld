@@ -565,6 +565,19 @@ export class TextWorld {
     }
   }
 
+  set_players_zone_and_room(
+    player: Player,
+    zone_name: string,
+    room_name: string
+  ) {
+    const room = this.get_room(zone_name, room_name);
+
+    if (room) {
+      player.zone = zone_name;
+      player.room = room_name;
+    }
+  }
+
   ///////////
   // QUEST //
   ///////////
@@ -800,11 +813,11 @@ export class TextWorld {
     return result;
   }
 
-  // check_for_quest_completion(player: Player) {
-  //   player.quests.every((quest) => {
-  //     return this.is_quest_complete(player, quest);
-  //   });
-  // }
+  check_for_quest_completion(player: Player) {
+    player.quests.every((quest) => {
+      return this.is_quest_complete(player, quest);
+    });
+  }
 
   show_quests(player: Player): string {
     if (!player || player.quests.length === 0) {
@@ -832,6 +845,20 @@ export class TextWorld {
   /////////
   // NPC //
   /////////
+
+  create_npc(name: string, description: string) {
+    this.world.npcs.push({
+      id: crypto.randomUUID(),
+      name,
+      descriptions: [{ flag: "default", description }],
+      inventory: [],
+      stats: this.create_resources(10, 10, 10, 10, 10, 10),
+      damage_and_defense: this.create_damage_and_defense(10, 10, 10, 10, 10),
+      killable: false,
+      dialog: null,
+      vendor_items: null,
+    });
+  }
 
   remove_npc(name: string) {
     const lowerCaseName = name.toLowerCase();
@@ -940,26 +967,11 @@ export class TextWorld {
     return dialog.response || "hmm...";
   }
 
-  create_npc(name: string, description: string) {
-    this.world.npcs.push({
-      id: crypto.randomUUID(),
-      name,
-      descriptions: [{ flag: "default", description }],
-      inventory: [],
-      stats: this.create_resources(10, 10, 10, 10, 10, 10),
-      damage_and_defense: this.create_damage_and_defense(10, 10, 10, 10, 10),
-      killable: false,
-      dialog: null,
-      vendor_items: null,
-    });
-  }
-
   ////////////
   // VENDOR //
   ////////////
 
   create_vendor(name: string, description: string, vendor_items: VendorItem[]) {
-    // Create and add the vendor NPC
     const vendor = {
       id: crypto.randomUUID(),
       name,
@@ -973,7 +985,6 @@ export class TextWorld {
     };
     this.world.npcs.push(vendor);
 
-    // Create a dialog for listing items
     this.create_dialog(
       name,
       ["items"],
@@ -986,7 +997,6 @@ export class TextWorld {
       }
     );
 
-    // Create a dialog for purchasing items
     this.create_dialog(
       name,
       ["purchase", "buy"],
@@ -1058,6 +1068,29 @@ export class TextWorld {
   // ITEM //
   //////////
 
+  create_item(
+    name: string,
+    description: string,
+    usable: boolean,
+    action: Action | null = null
+  ) {
+    const item = {
+      id: crypto.randomUUID(),
+      name,
+      descriptions: [{ flag: "default", description }],
+      usable,
+    };
+
+    this.world.items.push(item);
+
+    if (action) {
+      this.world_actions.item_actions.push({
+        name,
+        action,
+      });
+    }
+  }
+
   add_item_drops_to_room(player: Player, item_drops: ItemDrop[]) {
     const current_room = this.get_players_room(player);
     if (!current_room) return;
@@ -1126,29 +1159,6 @@ export class TextWorld {
       in_room.items.push({
         name: item_name,
         quantity,
-      });
-    }
-  }
-
-  create_item(
-    name: string,
-    description: string,
-    usable: boolean,
-    action: Action | null = null
-  ) {
-    const item = {
-      id: crypto.randomUUID(),
-      name,
-      descriptions: [{ flag: "default", description }],
-      usable,
-    };
-
-    this.world.items.push(item);
-
-    if (action) {
-      this.world_actions.item_actions.push({
-        name,
-        action,
       });
     }
   }
@@ -2253,12 +2263,10 @@ export class TextWorld {
       return "You don't have the ingredients to craft that.";
     }
 
-    // Remove ingredients from player inventory
     recipe.ingredients.forEach((ingredient) => {
       this.remove_player_item(player, ingredient.name);
     });
 
-    // Add crafted item to player's inventory
     player.items.push({
       name: recipe.crafted_item.name,
       quantity: recipe.crafted_item.quantity,
