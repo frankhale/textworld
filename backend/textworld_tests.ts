@@ -154,9 +154,9 @@ Deno.test("can_ressurect_player", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.set_room_as_zone_starter("Zone1", "Room1");
-  player.stats.health.current = 0;
+  textworld.set_actor_health(player, 0);
   textworld.resurrect_player(player);
-  assertEquals(player.stats.health.current, 10);
+  assertEquals(textworld.get_actor_health(player), 10);
   textworld.reset_world();
 });
 
@@ -791,7 +791,7 @@ Deno.test("can_parse_command_attack_mob", async () => {
     "Zone1",
     "Room1"
   );
-  player.stats.health.current = 100;
+  textworld.set_actor_health(player, 100);
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_mob(
@@ -804,7 +804,6 @@ Deno.test("can_parse_command_attack_mob", async () => {
   textworld.place_mob("Zone1", "Room1", "Goblin");
   const result = await textworld.parse_command(player, "attack goblin");
   assertStringIncludes(result, "Player attacks Goblin");
-  player.stats.health.current = 100;
   textworld.reset_world();
 });
 
@@ -1481,7 +1480,7 @@ Deno.test("mob_can_attack_player", () => {
     "Zone1",
     "Room1"
   );
-  player.stats.health.current = 100;
+  textworld.set_actor_health(player, 100);
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   const mob = textworld.create_mob(
@@ -1494,7 +1493,6 @@ Deno.test("mob_can_attack_player", () => {
   textworld.place_mob("Zone1", "Room1", "Goblin");
   const result = textworld.perform_attack(mob, player);
   assertStringIncludes(result, "Goblin attacks Player");
-  player.stats.health.current = 100;
   textworld.reset_world();
 });
 
@@ -1505,7 +1503,7 @@ Deno.test("mob_can_kill_player", () => {
     "Zone1",
     "Room1"
   );
-  player.stats.health.current = 1;
+  textworld.set_actor_health(player, 1);
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   const mob = textworld.create_mob(
@@ -1519,7 +1517,6 @@ Deno.test("mob_can_kill_player", () => {
   const result = textworld.perform_attack(mob, player);
   assertStringIncludes(result, "Goblin attacks Player");
   assertStringIncludes(result, "Player has been defeated!");
-  player.stats.health.current = 100;
   textworld.reset_world();
 });
 
@@ -1642,7 +1639,7 @@ Deno.test("player_attack_mob_and_mob_attack_player", () => {
     "Zone1",
     "Room1"
   );
-  player.stats.health.current = 100;
+  textworld.set_actor_health(player, 100);
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_mob(
@@ -1656,7 +1653,6 @@ Deno.test("player_attack_mob_and_mob_attack_player", () => {
   const result = textworld.initiate_attack_on_mob(player, ["goblin"], true);
   assertStringIncludes(result, "Player attacks Goblin");
   assertStringIncludes(result, "Goblin attacks Player");
-  player.stats.health.current = 100;
   textworld.reset_world();
 });
 
@@ -1667,7 +1663,7 @@ Deno.test("player_can_die_from_mob_attack", () => {
     "Zone1",
     "Room1"
   );
-  player.stats.health.current = 1;
+  textworld.set_actor_health(player, 1);
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_mob(
@@ -1682,7 +1678,6 @@ Deno.test("player_can_die_from_mob_attack", () => {
   assertStringIncludes(result, "Player attacks Goblin");
   assertStringIncludes(result, "Goblin attacks Player");
   assertStringIncludes(result, "Player has been defeated!");
-  player.stats.health.current = 100;
   textworld.reset_world();
 });
 
@@ -1693,7 +1688,7 @@ Deno.test("player_can_die_from_mob_attack_and_ressurect", async () => {
     "Zone1",
     "Room1"
   );
-  player.stats.health.current = 1;
+  textworld.set_actor_health(player, 1);
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.set_room_as_zone_starter("Zone1", "Room1");
@@ -1711,7 +1706,6 @@ Deno.test("player_can_die_from_mob_attack_and_ressurect", async () => {
   assertStringIncludes(result, "Player has been defeated!");
   result = await textworld.parse_command(player, "resurrect");
   assertEquals(result, "You have been resurrected.");
-  player.stats.health.current = 100;
   textworld.reset_world();
 });
 
@@ -2305,7 +2299,7 @@ Deno.test("player_starts_in_valid_room", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  const room = textworld.get_players_room(player);
+  const room = textworld.get_player_room(player);
   assertEquals(room!.name, "Room1");
   textworld.reset_world();
 });
@@ -2322,7 +2316,7 @@ Deno.test("player_can_navigate_between_rooms", () => {
   textworld.create_room("Zone1", "Room2", "This is room 2");
   textworld.create_exit("Zone1", "Room1", "north", "Room2");
   textworld.switch_room(player, "north");
-  const room = textworld.get_players_room(player);
+  const room = textworld.get_player_room(player);
   assertEquals(room!.name, "Room2");
   textworld.reset_world();
 });
@@ -2933,7 +2927,7 @@ Deno.test("can_set_players_room_to_zone_start", () => {
   textworld.create_room("Zone2", "Room1", "This is room 1 in zone 2");
   textworld.set_room_as_zone_starter("Zone1", "Room1");
   textworld.set_room_as_zone_starter("Zone2", "Room1");
-  textworld.set_players_room_to_zone_start(player, "Zone2");
+  textworld.set_player_room_to_zone_start(player, "Zone2");
   assertEquals(player.zone, "Zone2");
   assertEquals(player.room, "Room1");
   textworld.reset_world();
@@ -2950,7 +2944,7 @@ Deno.test("can_set_players_room_to_another_room", () => {
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_room("Zone1", "Room2", "This is room 2");
   textworld.set_room_as_zone_starter("Zone1", "Room1");
-  textworld.set_players_room(player, "Zone1", "Room2");
+  textworld.set_player_room(player, "Zone1", "Room2");
   assertEquals(player.zone, "Zone1");
   assertEquals(player.room, "Room2");
   textworld.reset_world();
@@ -3012,7 +3006,7 @@ Deno.test("can_get_description_of_room", () => {
   textworld.create_room("Zone1", "Room1", "This is room 1");
   player.room = "Room1";
   const current_room = textworld
-    .get_players_zone(player)
+    .get_player_zone(player)
     ?.rooms.find(
       (room) => room.name.toLowerCase() === player.room.toLowerCase()
     );

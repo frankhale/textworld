@@ -32,8 +32,8 @@ class TextworldGame {
       "Pool of Water",
       "You are standing in a pool of water. The water is clear and you can see the bottom. You can see a small fish swimming around. The water is about 3 feet deep. There is an electricity about this water that makes your skin buzz.",
       (player) => {
-        if (player.stats.health.current != player.stats.health.max) {
-          player.stats.health.current = player.stats.health.max;
+        if (!this.textworld.is_actor_health_full(player)) {
+          this.textworld.set_actor_health_to_max(player);
           return `Your health has been regenerated.`;
         }
 
@@ -144,10 +144,7 @@ class TextworldGame {
       }
     );
     this.textworld.create_item("Spam", "A can of spam", true, (player) => {
-      player.stats.health.current += 50;
-      if (player.stats.health.max >= player.stats.health.current) {
-        player.stats.health.current = player.stats.health.max;
-      }
+      this.textworld.add_to_actor_health(player, 50);
       return `You ate the spam and gained 50 health!`;
     });
   }

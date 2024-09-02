@@ -38,13 +38,8 @@ export interface Storage {
 }
 
 export interface Stats {
-  stats: Resources;
-  damage_and_defense: DamageAndDefense;
-}
-
-export interface Stat {
-  current: number;
-  max: number;
+  stats?: Resources;
+  damage_and_defense?: DamageAndDefense;
 }
 
 export interface InnateCharacteristics {
@@ -56,9 +51,18 @@ export interface InnateCharacteristics {
 }
 
 export interface Resources {
-  health: Stat;
-  stamina: Stat;
-  magicka: Stat;
+  health: {
+    current: number;
+    max: number;
+  };
+  stamina: {
+    current: number;
+    max: number;
+  };
+  magicka: {
+    current: number;
+    max: number;
+  };
 }
 
 export interface DamageAndDefense {
@@ -74,7 +78,13 @@ export interface Race {
   innate_characteristics: InnateCharacteristics;
 }
 
-export interface Player extends Entity, Stats, Storage {
+export interface Actor extends Entity, Stats, Storage {
+  dialog?: Dialog[] | null;
+  vendor_items?: VendorItem[] | null;
+  killable?: boolean;
+}
+
+export interface Player extends Actor {
   race: Race;
   score: number;
   gold: number;
@@ -97,15 +107,6 @@ export interface Level {
   xp: number;
 }
 
-export interface NPC extends Entity, Stats {
-  inventory: string[];
-  dialog: Dialog[] | null;
-  killable: boolean;
-  vendor_items: VendorItem[] | null;
-}
-
-export interface Mob extends Entity, Stats, Storage {}
-
 export interface VendorItem {
   name: string;
   price: number;
@@ -114,11 +115,6 @@ export interface VendorItem {
 export interface Dialog extends Parent {
   trigger: string[];
   response: string | null;
-}
-
-export interface RoomObject extends Entity {
-  dialog: Dialog[] | null;
-  inventory: string[];
 }
 
 export interface Item extends Entity {
@@ -140,8 +136,8 @@ export interface World {
   zones: Zone[];
   items: Item[];
   recipes: Recipe[];
-  npcs: NPC[];
-  mobs: Mob[];
+  npcs: Actor[];
+  mobs: Actor[];
   players: Player[];
   quests: Quest[];
   level_data: Level[];
@@ -154,10 +150,10 @@ export interface Zone {
 
 export interface Room extends Entity, Storage {
   zone_start: boolean;
-  npcs: NPC[];
+  npcs: Actor[];
   exits: Exit[];
-  mobs: Mob[];
-  objects: RoomObject[];
+  mobs: Actor[];
+  objects: Actor[];
 }
 
 export interface QuestStep extends Entity {
@@ -457,20 +453,7 @@ export class TextWorld {
       name,
       descriptions: [{ flag: "default", description }],
       score: 0,
-      stats: {
-        health: {
-          current: 10,
-          max: 10,
-        },
-        stamina: {
-          current: 10,
-          max: 10,
-        },
-        magicka: {
-          current: 10,
-          max: 10,
-        },
-      },
+      stats: this.get_actor_stats(),
       damage_and_defense: {
         physical_damage: 10,
         physical_defense: 10,
@@ -496,10 +479,12 @@ export class TextWorld {
   }
 
   resurrect_player(player: Player) {
+    if (!player.stats) throw new Error("Player does not have stats.");
+
     player.stats.health.current = player.stats.health.max;
     player.stats.stamina.current = player.stats.stamina.max;
     player.stats.magicka.current = player.stats.magicka.max;
-    this.set_players_room_to_zone_start(player, player.zone);
+    this.set_player_room_to_zone_start(player, player.zone);
     return "You have been resurrected.";
   }
 
@@ -513,13 +498,48 @@ export class TextWorld {
     );
   }
 
-  get_players_zone(player: Player): Zone | null {
+  set_actor_stats(actor: Actor, stats: Resources) {
+    actor.stats = stats;
+  }
+
+  set_actor_health(actor: Actor, health: number) {
+    if (actor.stats) {
+      actor.stats.health.current = health;
+    }
+  }
+
+  set_actor_health_to_max(actor: Actor) {
+    if (actor.stats) {
+      actor.stats.health.current = actor.stats.health.max;
+    }
+  }
+
+  add_to_actor_health(actor: Actor, amount: number) {
+    if (actor.stats) {
+      const { health } = actor.stats;
+      health.current = Math.min(health.current + amount, health.max);
+    }
+  }
+
+  is_actor_health_full(actor: Actor) {
+    return actor.stats?.health.current === actor.stats?.health.max;
+  }
+
+  get_actor_stats(actor?: Actor): Resources {
+    return actor?.stats ?? this.create_resources(10, 10, 10, 10, 10, 10);
+  }
+
+  get_actor_health(actor: Actor): number {
+    return actor.stats?.health.current ?? 0;
+  }
+
+  get_player_zone(player: Player): Zone | null {
     if (!player) return null;
     return this.world.zones.find((zone) => zone.name === player.zone) || null;
   }
 
-  get_players_room(player: Player): Room | null {
-    const zone = this.get_players_zone(player);
+  get_player_room(player: Player): Room | null {
+    const zone = this.get_player_zone(player);
     return (
       zone?.rooms.find(
         (room) => room.name.toLowerCase() === player.room.toLowerCase()
@@ -547,7 +567,7 @@ export class TextWorld {
     return `${description}\n\nInventory: ${inventory}`;
   }
 
-  set_players_room_to_zone_start(player: Player, zone_name: string) {
+  set_player_room_to_zone_start(player: Player, zone_name: string) {
     const room = this.get_zone_starter_room(zone_name);
     if (room) {
       player.zone = zone_name;
@@ -557,7 +577,7 @@ export class TextWorld {
     }
   }
 
-  set_players_room(player: Player, zone_name: string, room_name: string) {
+  set_player_room(player: Player, zone_name: string, room_name: string) {
     const room = this.get_room(zone_name, room_name);
     if (room) {
       player.zone = zone_name;
@@ -565,7 +585,7 @@ export class TextWorld {
     }
   }
 
-  set_players_zone_and_room(
+  set_player_zone_and_room(
     player: Player,
     zone_name: string,
     room_name: string
@@ -851,7 +871,7 @@ export class TextWorld {
       id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
-      inventory: [],
+      items: [],
       stats: this.create_resources(10, 10, 10, 10, 10, 10),
       damage_and_defense: this.create_damage_and_defense(10, 10, 10, 10, 10),
       killable: false,
@@ -875,7 +895,7 @@ export class TextWorld {
     );
   }
 
-  get_npc(name: string): NPC | null {
+  get_npc(name: string): Actor | null {
     return (
       this.world.npcs.find(
         (npc) => npc.name.toLowerCase() === name.toLowerCase()
@@ -900,7 +920,7 @@ export class TextWorld {
     zone_name: string,
     room_name: string,
     npc_name: string
-  ): NPC | null {
+  ): Actor | null {
     const zone = this.get_zone(zone_name);
     if (!zone) return null;
 
@@ -922,13 +942,13 @@ export class TextWorld {
     command: string,
     args: string[]
   ): string {
-    const zone = this.get_players_zone(player);
+    const zone = this.get_player_zone(player);
     if (!zone) {
       return "That NPC does not exist.";
     }
 
     const possible_triggers = this.generate_combinations(args);
-    const current_room = this.get_players_room(player);
+    const current_room = this.get_player_room(player);
 
     if (!current_room) {
       return "You are not in a valid room.";
@@ -982,6 +1002,7 @@ export class TextWorld {
       damage_and_defense: this.create_damage_and_defense(10, 10, 10, 10, 10),
       dialog: [],
       vendor_items,
+      items: [],
     };
     this.world.npcs.push(vendor);
 
@@ -1092,7 +1113,7 @@ export class TextWorld {
   }
 
   add_item_drops_to_room(player: Player, item_drops: ItemDrop[]) {
-    const current_room = this.get_players_room(player);
+    const current_room = this.get_player_room(player);
     if (!current_room) return;
 
     item_drops.forEach((item_drop) => {
@@ -1202,7 +1223,7 @@ export class TextWorld {
   }
 
   take_item(player: Player, args: string[]): string {
-    const zone = this.get_players_zone(player);
+    const zone = this.get_player_zone(player);
     if (!zone) {
       return "That item does not exist.";
     }
@@ -1250,7 +1271,7 @@ export class TextWorld {
   }
 
   take_all_items(player: Player): string {
-    const current_room = this.get_players_zone(player)?.rooms.find(
+    const current_room = this.get_player_zone(player)?.rooms.find(
       (room) => room.name === player.room
     );
 
@@ -1339,7 +1360,7 @@ export class TextWorld {
   }
 
   drop_item(player: Player, args: string[]): string {
-    const zone = this.get_players_zone(player);
+    const zone = this.get_player_zone(player);
     if (!zone) {
       return "That item does not exist.";
     }
@@ -1381,7 +1402,7 @@ export class TextWorld {
   }
 
   drop_all_items(player: Player): string {
-    const current_room = this.get_players_zone(player)?.rooms.find(
+    const current_room = this.get_player_zone(player)?.rooms.find(
       (room) => room.name.toLowerCase() === player.room.toLowerCase()
     );
 
@@ -1468,7 +1489,7 @@ export class TextWorld {
     damage_and_defense: DamageAndDefense,
     items: ItemDrop[]
   ) {
-    const mob: Mob = {
+    const mob: Actor = {
       id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
@@ -1480,7 +1501,7 @@ export class TextWorld {
     return mob;
   }
 
-  get_mob(name: string): Mob | null {
+  get_mob(name: string): Actor | null {
     return (
       this.world.mobs.find(
         (mob) => mob.name.toLowerCase() === name.toLowerCase()
@@ -1509,7 +1530,7 @@ export class TextWorld {
     zone_name: string,
     room_name: string,
     mob_name: string
-  ): Mob | null {
+  ): Actor | null {
     const zone = this.get_zone(zone_name);
     if (!zone) return null;
 
@@ -1525,7 +1546,14 @@ export class TextWorld {
     );
   }
 
-  perform_attack(attacker: Player | Mob, defender: Player | Mob): string {
+  perform_attack(attacker: Actor, defender: Actor): string {
+    if (!attacker.damage_and_defense)
+      throw new Error("Attacker does not have damage and defense.");
+    if (!defender.damage_and_defense)
+      throw new Error("Defender does not have damage and defense.");
+    if (!attacker.stats) throw new Error("Attacker does not have stats.");
+    if (!defender.stats) throw new Error("Defender does not have stats.");
+
     const isCriticalHit =
       Math.random() < attacker.damage_and_defense.critical_chance;
     const attacker_damage = isCriticalHit
@@ -1558,10 +1586,10 @@ export class TextWorld {
     args: string[],
     should_mob_attack = false
   ): string {
-    const zone = this.get_players_zone(player);
+    const zone = this.get_player_zone(player);
     if (!zone) return "That mob does not exist.";
 
-    const current_room = this.get_players_room(player);
+    const current_room = this.get_player_room(player);
     if (!current_room) return "That mob does not exist.";
 
     const possible_mobs = this.generate_combinations(args);
@@ -1579,12 +1607,12 @@ export class TextWorld {
 
     let result = this.perform_attack(player, mob);
 
-    if (should_mob_attack && mob.stats.health.current > 0) {
+    if (should_mob_attack && this.get_actor_health(mob) > 0) {
       result += `\n${this.perform_attack(mob, player)}`;
     }
 
-    if (mob.stats.health.current <= 0) {
-      mob.stats.health.current = 0;
+    if (this.get_actor_health(mob) <= 0) {
+      this.set_actor_health(mob, 0);
       this.add_item_drops_to_room(player, mob.items);
       result += `\n${mob.name} dropped: ${mob.items
         .map((item) => item.name)
@@ -1822,7 +1850,7 @@ export class TextWorld {
   }
 
   get_room_description(player: Player): string {
-    const zone = this.get_players_zone(player);
+    const zone = this.get_player_zone(player);
     if (!zone) return "You can't see anything.";
 
     const current_room = zone.rooms.find(
@@ -1871,7 +1899,7 @@ export class TextWorld {
   }
 
   switch_room(player: Player, command = ""): string {
-    const zone = this.get_players_zone(player);
+    const zone = this.get_player_zone(player);
     if (!zone) return "You can't go that way.";
 
     let current_room = zone.rooms.find((room) => room.name === player.room);
@@ -1905,7 +1933,7 @@ export class TextWorld {
   }
 
   plot_room_map(player: Player, window_size: number): string {
-    const zone = this.get_players_zone(player);
+    const zone = this.get_player_zone(player);
     if (!zone) return "You are not in a zone.";
 
     let rooms = zone.rooms;
@@ -2067,7 +2095,7 @@ export class TextWorld {
   }
 
   inspect_room(player: Player): string {
-    const current_room = this.get_players_zone(player)?.rooms.find(
+    const current_room = this.get_player_zone(player)?.rooms.find(
       (room) => room.name.toLowerCase() === player.room.toLowerCase()
     );
 
@@ -2103,7 +2131,7 @@ export class TextWorld {
       return this.look_at_or_examine_object(player, input, command, args);
     }
 
-    const current_room = this.get_players_zone(player)?.rooms.find(
+    const current_room = this.get_player_zone(player)?.rooms.find(
       (room) => room.name.toLowerCase() === player.room.toLowerCase()
     );
 
@@ -2141,7 +2169,7 @@ export class TextWorld {
       id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
-      inventory: [],
+      items: [],
       dialog,
     });
   }
@@ -2150,7 +2178,7 @@ export class TextWorld {
     zone_name: string,
     room_name: string,
     object_name: string
-  ): RoomObject | null {
+  ): Actor | null {
     const room = this.get_room(zone_name, room_name);
     if (!room) {
       throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
@@ -2172,11 +2200,11 @@ export class TextWorld {
     command: string,
     args: string[]
   ): string {
-    const zone = this.get_players_zone(player);
+    const zone = this.get_player_zone(player);
     if (!zone) return "That object does not exist.";
 
     const possible_triggers = this.generate_combinations(args);
-    const current_room = this.get_players_room(player);
+    const current_room = this.get_player_room(player);
 
     if (!current_room) return "That object does not exist.";
 
@@ -2541,7 +2569,7 @@ export class TextWorld {
 
   get_help(player: Player): string {
     const command_actions =
-      player.stats.health.current <= 0
+      this.get_actor_health(player) <= 0
         ? this.player_dead_command_actions
         : this.main_command_actions;
 
@@ -2566,7 +2594,7 @@ export class TextWorld {
     magicka_current: number,
     magicka_max: number
   ): Resources {
-    const create_stat = (current: number, max: number): Stat => ({
+    const create_stat = (current: number, max: number) => ({
       current,
       max,
     });
@@ -2685,7 +2713,7 @@ export class TextWorld {
     if (!this.has_flag(player, "disable_main_commands")) {
       command_action = this.find_command_action(
         filtered_actions,
-        player.stats.health.current <= 0
+        this.get_actor_health(player) <= 0
           ? this.player_dead_command_actions
           : this.main_command_actions
       );
@@ -2712,7 +2740,7 @@ export class TextWorld {
     }
 
     if (!result) {
-      const players_room = this.get_players_room(player);
+      const players_room = this.get_player_room(player);
       if (players_room) {
         const room_command_action = this.find_room_command_action(
           filtered_actions,
