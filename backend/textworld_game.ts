@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 21 November 2023
+// 2 September 2024
 
 import * as tw from "./textworld.ts";
 
@@ -214,16 +214,16 @@ class TextworldGame {
   }
 
   run_web_game_loop(port: number) {
-    const get_response = async (input = "") => {
+    const process_request = async (input = "") => {
       let response = "";
 
       if (input.length <= 0) {
-        response = this.textworld.switch_room(this.player);
+        response = this.textworld.get_room_description(this.player);
       } else {
         response = await this.textworld.parse_command(this.player, input);
       }
 
-      return {
+      const final_response = {
         id: crypto.randomUUID(),
         input,
         player: this.player,
@@ -231,6 +231,10 @@ class TextworldGame {
         responseLines: response.split("\n"),
         map: this.textworld.plot_room_map(this.player, 5),
       };
+
+      console.log("Response: ", response);
+
+      return final_response;
     };
 
     const ac = new AbortController();
@@ -240,13 +244,12 @@ class TextworldGame {
         signal: ac.signal,
       },
       (_req: Request) => {
-        console.log("Request received.");
         const { socket, response } = Deno.upgradeWebSocket(_req);
         socket.onopen = async () => {
-          socket.send(JSON.stringify(await get_response()));
+          socket.send(JSON.stringify(await process_request()));
         };
         socket.onmessage = async (e) => {
-          socket.send(JSON.stringify(await get_response(e.data)));
+          socket.send(JSON.stringify(await process_request(e.data)));
           if (e.data === "quit") {
             console.log("Shutting down server...");
             socket.close();

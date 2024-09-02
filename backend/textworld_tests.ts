@@ -204,7 +204,7 @@ Deno.test("can_describe_room", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  const result = textworld.describe_room(player);
+  const result = textworld.get_room_description(player);
   assertEquals(result, "Location: Room1\n\nThis is room 1");
   textworld.reset_world();
 });
@@ -220,7 +220,7 @@ Deno.test("can_describe_room_with_room_actions", () => {
   textworld.create_room("Zone1", "Room1", "This is room 1", (_player) => {
     return `The healing waters have no effect on you.`;
   });
-  const result = textworld.describe_room(player);
+  const result = textworld.get_room_description(player);
   assertEquals(
     result,
     "Location: Room1\n\nThis is room 1\n\nThe healing waters have no effect on you."

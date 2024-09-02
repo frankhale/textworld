@@ -1852,6 +1852,21 @@ export class TextWorld {
       result += `\n\nExits: ${exits.join(", ")}`;
     }
 
+    const room_actions = this.world_actions.room_actions.find(
+      (action) => action.name === current_room.name
+    );
+
+    if (room_actions?.actions) {
+      const action_result = room_actions.actions
+        .map((action) => action(player))
+        .filter(Boolean)
+        .join("");
+
+      if (action_result) {
+        result += `\n\n${action_result}`;
+      }
+    }
+
     return result;
   }
 
@@ -1862,12 +1877,11 @@ export class TextWorld {
     let current_room = zone.rooms.find((room) => room.name === player.room);
     const has_command = command.length > 0;
 
-    // Check if current room exists and whether a command was provided
     if (
       !current_room ||
       (!has_command && !this.has_room_actions(current_room.name))
     ) {
-      return this.describe_room(player);
+      return this.get_room_description(player);
     }
 
     if (has_command) {
@@ -1881,7 +1895,7 @@ export class TextWorld {
         zone.rooms.find((room) => room.name === player.room) || current_room;
     }
 
-    return this.describe_room(player);
+    return this.get_room_description(player);
   }
 
   has_room_actions(room_name: string): boolean {
@@ -2643,35 +2657,11 @@ export class TextWorld {
 
     if (new_room_name) {
       player.room = new_room_name;
-      const new_room_description = this.describe_room(player);
+      const new_room_description = this.get_room_description(player);
       result = new_room_description;
     }
 
     return result;
-  }
-
-  describe_room(player: Player): string {
-    let room_description = this.get_room_description(player);
-    const current_room = this.get_players_room(player);
-
-    if (current_room) {
-      const room_actions = this.world_actions.room_actions.find(
-        (action) => action.name === current_room.name
-      );
-
-      if (room_actions?.actions) {
-        const action_result = room_actions.actions
-          .map((action) => action(player))
-          .filter(Boolean)
-          .join("");
-
-        if (action_result) {
-          room_description += `\n\n${action_result}`;
-        }
-      }
-    }
-
-    return room_description;
   }
 
   async parse_command(player: Player, input: string): Promise<string> {
