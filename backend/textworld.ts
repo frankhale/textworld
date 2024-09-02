@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 29 August 2024
+// 1 September 2024
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -1612,10 +1612,12 @@ export class TextWorld {
     this.world.zones = this.world.zones.filter((zone) => zone.name !== name);
   }
 
-  get_zone(zone_name: string): Zone {
-    return this.world.zones.find(
-      (zone) => zone.name.toLowerCase() === zone_name.toLowerCase()
-    )!;
+  get_zone(zone_name: string): Zone | null {
+    return (
+      this.world.zones.find(
+        (zone) => zone.name.toLowerCase() === zone_name.toLowerCase()
+      ) || null
+    );
   }
 
   //////////
@@ -1638,7 +1640,9 @@ export class TextWorld {
 
   remove_room(zone_name: string, room_name: string) {
     const zone = this.get_zone(zone_name);
-    zone.rooms = zone.rooms.filter((room) => room.name !== room_name);
+    if (zone) {
+      zone.rooms = zone.rooms.filter((room) => room.name !== room_name);
+    }
   }
 
   get_room_command_action(zone_name: string, room_name: string) {
