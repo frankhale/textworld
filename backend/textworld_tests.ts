@@ -455,12 +455,6 @@ Deno.test("can_create_mob", () => {
 });
 
 Deno.test("can_place_mob_in_room", () => {
-  const player = textworld.create_player(
-    "Player",
-    "You are a strong adventurer",
-    "Zone1",
-    "Room1"
-  );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_mob(
