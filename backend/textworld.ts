@@ -43,15 +43,15 @@ export interface ResourceAmount {
 }
 
 export interface Stats {
-  health?: ResourceAmount;
-  stamina?: ResourceAmount;
-  magicka?: ResourceAmount;
-  progress?: Level;
-  physical_damage?: number;
-  physical_defense?: number;
-  spell_damage?: number;
-  spell_defense?: number;
-  critical_chance?: number;
+  health: ResourceAmount;
+  stamina: ResourceAmount;
+  magicka: ResourceAmount;
+  progress: Level;
+  physical_damage: number;
+  physical_defense: number;
+  spell_damage: number;
+  spell_defense: number;
+  critical_chance: number;
 }
 
 export interface Race {
@@ -63,15 +63,16 @@ export interface Race {
   charisma: number;
 }
 
-export interface Actor extends Entity, Stats, Storage {
+export interface Actor extends Entity, Storage {
   dialog?: Dialog[] | null;
   vendor_items?: VendorItem[] | null;
   killable?: boolean;
   flags: string[];
+  stats?: Stats;
+  race?: Race; // TODO: Currently not being used
 }
 
 export interface Player extends Actor {
-  race: Race;
   score: number;
   gold: number;
   zone: string;
@@ -418,6 +419,7 @@ export class TextWorld {
     const player: Player = {
       id: crypto.randomUUID(),
       race: {
+        // FIXME: Don't hard code this
         name: "Human",
         dexterity: 1,
         constitution: 1,
@@ -428,15 +430,17 @@ export class TextWorld {
       name,
       descriptions: [{ flag: "default", description }],
       score: 0,
-      progress: stats.progress,
-      health: stats.health,
-      stamina: stats.stamina,
-      magicka: stats.magicka,
-      physical_damage: stats.physical_damage,
-      physical_defense: stats.physical_defense,
-      spell_damage: stats.spell_damage,
-      spell_defense: stats.spell_defense,
-      critical_chance: stats.critical_chance,
+      stats: {
+        progress: stats.progress,
+        health: stats.health,
+        stamina: stats.stamina,
+        magicka: stats.magicka,
+        physical_damage: stats.physical_damage,
+        physical_defense: stats.physical_defense,
+        spell_damage: stats.spell_damage,
+        spell_defense: stats.spell_defense,
+        critical_chance: stats.critical_chance,
+      },
       gold: 0,
       zone: zone_name,
       room: room_name,
@@ -452,13 +456,13 @@ export class TextWorld {
   }
 
   resurrect_player(player: Player) {
-    if (!player.health || !player.stamina || !player.magicka) {
+    if (!player.stats) {
       throw new Error("Player does not have stats.");
     }
 
-    player.health.current = player.health.max;
-    player.stamina.current = player.stamina.max;
-    player.magicka.current = player.magicka.max;
+    player.stats.health.current = player.stats.health.max;
+    player.stats.stamina.current = player.stats.stamina.max;
+    player.stats.magicka.current = player.stats.magicka.max;
     this.set_player_room_to_zone_start(player, player.zone);
     return "You have been resurrected.";
   }
@@ -543,32 +547,32 @@ export class TextWorld {
   ///////////
 
   set_actor_health(actor: Actor, health: number) {
-    if (actor.health) {
-      actor.health.current = health;
+    if (actor.stats) {
+      actor.stats.health.current = health;
     }
   }
 
   set_actor_health_to_max(actor: Actor) {
-    if (actor.health) {
-      actor.health.current = actor.health.max;
+    if (actor.stats) {
+      actor.stats.health.current = actor.stats.health.max;
     }
   }
 
   add_to_actor_health(actor: Actor, amount: number) {
-    if (actor.health) {
-      actor.health.current = Math.min(
-        actor.health.current + amount,
-        actor.health.max
+    if (actor.stats) {
+      actor.stats.health.current = Math.min(
+        actor.stats.health.current + amount,
+        actor.stats.health.max
       );
     }
   }
 
   is_actor_health_full(actor: Actor) {
-    return actor.health?.current === actor.health?.max;
+    return actor.stats?.health.current === actor.stats?.health.max;
   }
 
   get_actor_health(actor: Actor): number {
-    return actor.health?.current ?? 0;
+    return actor.stats?.health.current ?? 0;
   }
 
   ///////////
@@ -1458,15 +1462,17 @@ export class TextWorld {
       id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
-      health: stats.health,
-      stamina: stats.stamina,
-      magicka: stats.magicka,
-      progress: stats.progress,
-      physical_damage: stats.physical_damage,
-      physical_defense: stats.physical_defense,
-      spell_damage: stats.spell_damage,
-      spell_defense: stats.spell_defense,
-      critical_chance: stats.critical_chance,
+      stats: {
+        health: stats.health,
+        stamina: stats.stamina,
+        magicka: stats.magicka,
+        progress: stats.progress,
+        physical_damage: stats.physical_damage,
+        physical_defense: stats.physical_defense,
+        spell_damage: stats.spell_damage,
+        spell_defense: stats.spell_defense,
+        critical_chance: stats.critical_chance,
+      },
       killable: true,
       items,
       flags: [],
@@ -1520,46 +1526,30 @@ export class TextWorld {
     );
   }
 
-  can_actor_perform_attack(actor: Actor): boolean {
-    if (
-      !actor.critical_chance ||
-      !actor.physical_damage ||
-      !actor.physical_defense ||
-      !actor.health
-    ) {
-      return false;
-    }
-
-    return true;
-  }
-
   perform_attack(attacker: Actor, defender: Actor): string {
-    if (!this.can_actor_perform_attack(attacker)) {
-      return "Attacker cannot perform attack.";
+    if (!attacker.stats || !defender.stats) {
+      return "Cannot perform attack.";
     }
 
-    if (!this.can_actor_perform_attack(defender)) {
-      return "Defender cannot be attacked.";
-    }
-
-    const isCriticalHit = Math.random() < (attacker.critical_chance ?? 0);
-    const attackerDamage =
-      (attacker.physical_damage ?? 0) * (isCriticalHit ? 2 : 1);
-    const damageDealt = Math.max(
+    const is_critical_hit =
+      Math.random() < (attacker.stats.critical_chance ?? 0);
+    const attacker_damage =
+      (attacker.stats.physical_damage ?? 0) * (is_critical_hit ? 2 : 1);
+    const damage_dealt = Math.max(
       0,
-      attackerDamage - (defender.physical_defense ?? 0)
+      attacker_damage - (defender.stats.physical_defense ?? 0)
     );
 
-    defender.health!.current = Math.max(
+    defender.stats.health.current = Math.max(
       0,
-      (defender.health?.current ?? 0) - damageDealt
+      (defender.stats.health.current ?? 0) - damage_dealt
     );
 
     let result =
-      `${attacker.name} attacks ${defender.name} for ${damageDealt} damage.\n` +
-      `${defender.name} health: ${defender.health?.current}`;
+      `${attacker.name} attacks ${defender.name} for ${damage_dealt} damage.\n` +
+      `${defender.name} health: ${defender.stats.health.current}`;
 
-    if (defender.health?.current === 0) {
+    if (defender.stats.health.current === 0) {
       result += `\n${defender.name} has been defeated!`;
     }
 
@@ -2366,15 +2356,28 @@ export class TextWorld {
       action,
       timer_id: 0,
       timer: function () {
-        this.timer_id = setInterval(() => {
-          if (this.active) {
-            this.action(this);
-          }
-        }, this.interval);
+        // If the interval is 0, run the action immediately
+        if (this.interval === 0) {
+          this.action(this);
+        } else {
+          this.timer_id = setInterval(() => {
+            if (this.active) {
+              this.action(this);
+            }
+          }, this.interval);
+        }
       },
     };
 
     this.world_actions.spawn_locations.push(spawn_location);
+  }
+
+  get_spawn_location(name: string): SpawnLocation | null {
+    return (
+      this.world_actions.spawn_locations.find(
+        (location) => location.name === name
+      ) || null
+    );
   }
 
   set_spawn_location_active(name: string, active: boolean) {
@@ -2386,7 +2389,7 @@ export class TextWorld {
     }
   }
 
-  spawn_location_start(name: string) {
+  set_spawn_location_start(name: string) {
     const spawn_location = this.world_actions.spawn_locations.find(
       (location) => location.name === name
     );

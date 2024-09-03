@@ -8,9 +8,6 @@ import { assertStringIncludes } from "https://deno.land/std@0.224.0/assert/asser
 
 import * as tw from "./textworld.ts";
 
-// REF: https://stackoverflow.com/questions/14226803/wait-5-seconds-before-executing-next-line
-const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
 const textworld = new tw.TextWorld();
 
 Deno.test("can_create_zone", () => {
@@ -1475,7 +1472,7 @@ Deno.test("can_parse_command_save", async () => {
   textworld.reset_world();
 });
 
-Deno.test("can_spawn_item_in_room_using_spawn_location", async () => {
+Deno.test("can_spawn_item_in_room_using_spawn_location", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_item("Iron", "A piece of iron", false);
@@ -1501,13 +1498,42 @@ Deno.test("can_spawn_item_in_room_using_spawn_location", async () => {
       }
     }
   );
-  textworld.spawn_location_start("Test Spawner");
-  // Give the spawner time to spawn the item
-  await delay(10);
-  textworld.remove_spawn_location("Test Spawner");
+  textworld.set_spawn_location_start("Test Spawner");
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.items.length, 1);
   assertEquals(room?.items[0].name, "Iron");
+  textworld.reset_world();
+});
+
+Deno.test("can_remove_spawn_location", () => {
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item("Iron", "A piece of iron", false);
+  textworld.create_spawn_location(
+    "Test Spawner",
+    "Zone1",
+    "Room1",
+    0,
+    true,
+    (spawn_location: tw.SpawnLocation) => {
+      const item = textworld.get_room_item(
+        spawn_location.zone,
+        spawn_location.room,
+        "Iron"
+      );
+      if (!item) {
+        textworld.place_item(
+          spawn_location.zone,
+          spawn_location.room,
+          "Iron",
+          1
+        );
+      }
+    }
+  );
+  textworld.remove_spawn_location("Test Spawner");
+  const spawn_location = textworld.get_spawn_location("Test Spawner");
+  assertEquals(spawn_location, null);
   textworld.reset_world();
 });
 
