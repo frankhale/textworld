@@ -216,7 +216,7 @@ class TextworldGame {
         }
       }
     );
-    this.textworld.spawn_location_start("Gold purse spawner");
+    this.textworld.set_spawn_location_start("Gold purse spawner");
   }
 
   run_web_game_loop(port: number) {

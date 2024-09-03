@@ -56,7 +56,10 @@ NOTE: Requires Node.js and Angular CLI
 
 NOTE: Because we are using Deno.Kv we need to pass the --unstable flag
 
-> deno test --unstable-kv --allow-read --allow-write .\textworld_tests.ts
+> deno test --coverage --unstable-kv --allow-read --allow-write
+> .\textworld_tests.ts
+
+> deno coverage --html
 
 ## Author(s)
 
@@ -64,4 +67,4 @@ Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 
 ## Date
 
-2 September 2024
+3 September 2024

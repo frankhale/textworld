@@ -1,14 +1,14 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 2 September 2024
+// 3 September 2024
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
 export const active_quest_limit = 5;
 
-type Action<T = void> = (player: Player) => T | string | null;
-type ActionDecision = (player: Player) => boolean;
-type CommandParserAction = (
+export type Action<T = void> = (player: Player) => T | string | null;
+export type ActionDecision = (player: Player) => boolean;
+export type CommandParserAction = (
   player: Player,
   input: string,
   command: string,
@@ -283,20 +283,8 @@ export class TextWorld {
       "talk to action",
       "Talk to an NPC or Vendor.",
       ["talk to", "tt"],
-      (player, input, command, args) => {
-        if (args) {
-          return this.talk_to_npc(player, input, command, args);
-        }
-        return "You must specify an NPC to talk to.";
-      }
-    ),
-    this.create_command_action(
-      "quit action",
-      "Quit the game.",
-      ["quit"],
-      (_player, _input, _command, _args) => {
-        return "You quit the game.";
-      }
+      (player, input, command, args) =>
+        this.talk_to_npc(player, input, command, args)
     ),
     this.create_command_action(
       "goto action",
@@ -373,12 +361,6 @@ export class TextWorld {
   ];
   private player_dead_command_actions: CommandAction[] = [
     this.create_command_action(
-      "quit action",
-      "Quit the game.",
-      ["quit"],
-      (_player, _input, _command, _args) => "You quit the game."
-    ),
-    this.create_command_action(
       "help action",
       "Show the help text.",
       ["help"],
@@ -388,11 +370,12 @@ export class TextWorld {
       "resurrect action",
       "resurrect yourself.",
       ["resurrect", "rez"],
-      (player, _input, _command, _args) => this.resurrect_player(player)
+      (player, _input, _command, _args) => {
+        this.set_player_room_to_zone_start(player, player.zone);
+        return this.resurrect_actor(player);
+      }
     ),
   ];
-
-  constructor() {}
 
   ////////////
   // PLAYER //
@@ -455,16 +438,16 @@ export class TextWorld {
     return player;
   }
 
-  resurrect_player(player: Player) {
-    if (!player.stats) {
-      throw new Error("Player does not have stats.");
+  resurrect_actor(actor: Actor) {
+    if (!actor.stats) {
+      throw new Error("Actor does not have stats.");
     }
 
-    player.stats.health.current = player.stats.health.max;
-    player.stats.stamina.current = player.stats.stamina.max;
-    player.stats.magicka.current = player.stats.magicka.max;
-    this.set_player_room_to_zone_start(player, player.zone);
-    return "You have been resurrected.";
+    actor.stats.health.current = actor.stats.health.max;
+    actor.stats.stamina.current = actor.stats.stamina.max;
+    actor.stats.magicka.current = actor.stats.magicka.max;
+
+    return `${actor.name} has been resurrected.`;
   }
 
   get_player(id: string) {
@@ -920,7 +903,11 @@ export class TextWorld {
   ): string {
     const zone = this.get_player_zone(player);
     if (!zone) {
-      return "That NPC does not exist.";
+      throw new Error("Player is not in a valid zone.");
+    }
+
+    if (args.length === 0) {
+      return "You must specify an NPC to talk to.";
     }
 
     const possible_triggers = this.generate_combinations(args);
@@ -937,7 +924,7 @@ export class TextWorld {
     );
 
     if (!npc || !current_room.npcs.includes(npc)) {
-      return "That NPC does not exist in this room.";
+      return "That NPC does not exist.";
     }
 
     if (!npc.dialog) {
@@ -1730,6 +1717,20 @@ export class TextWorld {
     );
   }
 
+  find_room_command_action(
+    filtered_actions: string[],
+    zone_name: string,
+    room_name: string
+  ): CommandAction | undefined {
+    const room_command_actions = this.get_room_command_action(
+      zone_name,
+      room_name
+    );
+    return room_command_actions?.command_actions.find((action) =>
+      action.synonyms.some((synonym) => filtered_actions.includes(synonym))
+    );
+  }
+
   create_exit(
     zone_name: string,
     from_room_name: string,
@@ -1828,7 +1829,9 @@ export class TextWorld {
 
   get_room_description(player: Player): string {
     const zone = this.get_player_zone(player);
-    if (!zone) return "You can't see anything.";
+    if (!zone) {
+      throw new Error("Player is not in a valid zone.");
+    }
 
     const current_room = zone.rooms.find(
       (room) => room.name.toLowerCase() === player.room.toLowerCase()
@@ -1877,7 +1880,9 @@ export class TextWorld {
 
   switch_room(player: Player, command = ""): string {
     const zone = this.get_player_zone(player);
-    if (!zone) return "You can't go that way.";
+    if (!zone) {
+      throw new Error("Player is not in a valid zone.");
+    }
 
     let current_room = zone.rooms.find((room) => room.name === player.room);
     const has_command = command.length > 0;
@@ -1886,7 +1891,8 @@ export class TextWorld {
       !current_room ||
       (!has_command && !this.has_room_actions(current_room.name))
     ) {
-      return this.get_room_description(player);
+      return "You can't go that way.";
+      //return this.get_room_description(player);
     }
 
     if (has_command) {
@@ -2482,6 +2488,15 @@ export class TextWorld {
     };
   }
 
+  find_command_action(
+    possible_actions: string[],
+    command_actions: CommandAction[]
+  ): CommandAction | undefined {
+    return command_actions.find((action) =>
+      action.synonyms.some((synonym) => possible_actions.includes(synonym))
+    );
+  }
+
   reset_world() {
     const world: World = {
       zones: [],
@@ -2498,7 +2513,7 @@ export class TextWorld {
     return world;
   }
 
-  reset_world_actions(): WorldActions {
+  private reset_world_actions(): WorldActions {
     const world_actions: WorldActions = {
       spawn_locations: [],
       dialog_actions: [],
@@ -2668,6 +2683,20 @@ export class TextWorld {
     return result;
   }
 
+  // remove_string_from_array(from_string: string, from_arr: string[]): string[] {
+  //   return from_arr.filter((str) => !from_string.includes(str));
+  // }
+
+  // array_difference(array1: string[], array2: string[]): string[] {
+  //   return array1.filter(element => !array2.includes(element));
+  // }
+
+  filter_substrings(first_array: string[], second_array: string[]): string[] {
+    return second_array.filter(
+      (word) => !first_array.some((phrase) => phrase.includes(word))
+    );
+  }
+
   async parse_command(player: Player, input: string): Promise<string> {
     const input_limit = Math.min(input_character_limit, input.length);
     input = input.substring(0, input_limit);
@@ -2695,7 +2724,16 @@ export class TextWorld {
       );
 
       if (command_action) {
-        result = command_action.action(player, input, command, args) as string;
+        const filtered_args = this.filter_substrings(
+          command_action.synonyms,
+          args
+        );
+        result = command_action.action(
+          player,
+          input,
+          command,
+          filtered_args
+        ) as string;
       }
 
       if (!result) {
@@ -2705,11 +2743,15 @@ export class TextWorld {
         );
 
         if (async_command_action) {
+          const filtered_args = this.filter_substrings(
+            async_command_action.synonyms,
+            args
+          );
           result = await async_command_action.action(
             player,
             input,
             command,
-            args
+            filtered_args
           );
         }
       }
@@ -2725,38 +2767,24 @@ export class TextWorld {
         );
 
         if (room_command_action) {
+          const filtered_args = this.filter_substrings(
+            room_command_action.synonyms,
+            args
+          );
           result = `${this.get_description(
             player,
             room_command_action,
             "default"
-          )}\n\n${room_command_action.action(player, input, command, args)}`;
+          )}\n\n${room_command_action.action(
+            player,
+            input,
+            command,
+            filtered_args
+          )}`;
         }
       }
     }
 
     return result || "I don't understand that command.";
-  }
-
-  find_command_action(
-    possible_actions: string[],
-    command_actions: CommandAction[]
-  ): CommandAction | undefined {
-    return command_actions.find((action) =>
-      action.synonyms.some((synonym) => possible_actions.includes(synonym))
-    );
-  }
-
-  find_room_command_action(
-    filtered_actions: string[],
-    zone_name: string,
-    room_name: string
-  ): CommandAction | undefined {
-    const room_command_actions = this.get_room_command_action(
-      zone_name,
-      room_name
-    );
-    return room_command_actions?.command_actions.find((action) =>
-      action.synonyms.some((synonym) => filtered_actions.includes(synonym))
-    );
   }
 }
