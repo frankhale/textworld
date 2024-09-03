@@ -1,7 +1,14 @@
-import { DamageAndDefense } from "./damage-and-defense";
-import { Resources } from "./resources";
+import { Level } from "./level";
+import { ResourceAmount } from "./resource-amount";
 
 export interface Stats {
-    stats: Resources;
-    damage_and_defense: DamageAndDefense;
+    health: ResourceAmount;
+    stamina: ResourceAmount;
+    magicka: ResourceAmount;
+    physical_damage: number;
+    physical_defense: number;
+    spell_damage: number;
+    spell_defense: number;
+    critical_chance: number;
+    progress: Level;
 }

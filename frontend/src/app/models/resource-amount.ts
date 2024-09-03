@@ -1,4 +1,4 @@
-export interface Stat {
+export interface ResourceAmount {
     current: number;
     max: number;
 }

@@ -46,12 +46,12 @@ export interface Stats {
   health: ResourceAmount;
   stamina: ResourceAmount;
   magicka: ResourceAmount;
-  progress: Level;
   physical_damage: number;
   physical_defense: number;
   spell_damage: number;
   spell_defense: number;
   critical_chance: number;
+  progress: Level;
 }
 
 export interface Race {
@@ -264,7 +264,7 @@ export class TextWorld {
     this.create_command_action(
       "inspect action",
       "Inspect a room to see what items are there.",
-      ["inspect", "i"],
+      ["inspect", "i", "search"],
       (player, _input, _command, _args) => this.inspect_room(player)
     ),
     this.create_command_action(
@@ -413,17 +413,7 @@ export class TextWorld {
       name,
       descriptions: [{ flag: "default", description }],
       score: 0,
-      stats: {
-        progress: stats.progress,
-        health: stats.health,
-        stamina: stats.stamina,
-        magicka: stats.magicka,
-        physical_damage: stats.physical_damage,
-        physical_defense: stats.physical_defense,
-        spell_damage: stats.spell_damage,
-        spell_defense: stats.spell_defense,
-        critical_chance: stats.critical_chance,
-      },
+      stats,
       gold: 0,
       zone: zone_name,
       room: room_name,
@@ -1449,17 +1439,7 @@ export class TextWorld {
       id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
-      stats: {
-        health: stats.health,
-        stamina: stats.stamina,
-        magicka: stats.magicka,
-        progress: stats.progress,
-        physical_damage: stats.physical_damage,
-        physical_defense: stats.physical_defense,
-        spell_damage: stats.spell_damage,
-        spell_defense: stats.spell_defense,
-        critical_chance: stats.critical_chance,
-      },
+      stats,
       killable: true,
       items,
       flags: [],

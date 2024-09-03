@@ -22,13 +22,13 @@
     }
   </div>
 
-  @if(currentMessage && currentMessage.player) {
+  @if(currentMessage && currentMessage.player && currentMessage.player.stats) {
   <div class="right-content">
     Zone: {{currentMessage.player.zone}}
     <br />
     Room: {{currentMessage.player.room}}
     <br />
-    Level: {{currentMessage.player.progress.level }} ({{currentMessage.player.progress.xp}})
+    Level: {{currentMessage.player.stats.progress.level }} ({{currentMessage.player.stats.progress.xp}})
     <br />
     Health: {{currentMessage.player.stats.health.current }}/{{ currentMessage.player.stats.health.max }}
     <br />
