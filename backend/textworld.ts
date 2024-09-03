@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 1 September 2024
+// 2 September 2024
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -34,15 +34,28 @@ export interface Parent {
 }
 
 export interface Storage {
-  items: ItemDrop[];
+  items: Drop[];
+}
+
+export interface ResourceAmount {
+  current: number;
+  max: number;
 }
 
 export interface Stats {
-  stats?: Resources;
-  damage_and_defense?: DamageAndDefense;
+  health?: ResourceAmount;
+  stamina?: ResourceAmount;
+  magicka?: ResourceAmount;
+  progress?: Level;
+  physical_damage?: number;
+  physical_defense?: number;
+  spell_damage?: number;
+  spell_defense?: number;
+  critical_chance?: number;
 }
 
-export interface InnateCharacteristics {
+export interface Race {
+  name: string;
   dexterity: number;
   constitution: number;
   intelligence: number;
@@ -50,56 +63,27 @@ export interface InnateCharacteristics {
   charisma: number;
 }
 
-export interface Resources {
-  health: {
-    current: number;
-    max: number;
-  };
-  stamina: {
-    current: number;
-    max: number;
-  };
-  magicka: {
-    current: number;
-    max: number;
-  };
-}
-
-export interface DamageAndDefense {
-  physical_damage: number;
-  physical_defense: number;
-  spell_damage: number;
-  spell_defense: number;
-  critical_chance: number;
-}
-
-export interface Race {
-  name: string;
-  innate_characteristics: InnateCharacteristics;
-}
-
 export interface Actor extends Entity, Stats, Storage {
   dialog?: Dialog[] | null;
   vendor_items?: VendorItem[] | null;
   killable?: boolean;
+  flags: string[];
 }
 
 export interface Player extends Actor {
   race: Race;
   score: number;
   gold: number;
-  progress: Level;
   zone: string;
   room: string;
-  flags: string[];
   quests: string[];
   quests_completed: string[];
   known_recipes: string[];
 }
 
 export interface Recipe extends Entity {
-  ingredients: ItemDrop[];
-  crafted_item: ItemDrop;
+  ingredients: Drop[];
+  crafted_item: Drop;
 }
 
 export interface Level {
@@ -127,9 +111,22 @@ export interface Exit {
   hidden: boolean;
 }
 
-export interface ItemDrop {
+export interface Drop {
   name: string;
   quantity: number;
+}
+
+export interface Room extends Entity, Storage {
+  zone_start: boolean;
+  npcs: Actor[];
+  exits: Exit[];
+  mobs: Actor[];
+  objects: Actor[];
+}
+
+export interface Zone {
+  name: string;
+  rooms: Room[];
 }
 
 export interface World {
@@ -141,19 +138,6 @@ export interface World {
   players: Player[];
   quests: Quest[];
   level_data: Level[];
-}
-
-export interface Zone {
-  name: string;
-  rooms: Room[];
-}
-
-export interface Room extends Entity, Storage {
-  zone_start: boolean;
-  npcs: Actor[];
-  exits: Exit[];
-  mobs: Actor[];
-  objects: Actor[];
 }
 
 export interface QuestStep extends Entity {
@@ -376,27 +360,8 @@ export class TextWorld {
 
           if (player_result) {
             result = `Progress has been loaded from slot: ${args[0]}`;
-            player.score = player_result.player.score;
-            player.stats = player_result.player.stats;
-            player.damage_and_defense = player_result.player.damage_and_defense;
-            player.progress = player_result.player.progress;
-            player.gold = player_result.player.gold;
-            player.zone = player_result.player.zone;
-            player.room = player_result.player.room;
-            player.flags = player_result.player.flags;
-            player.items = player_result.player.items;
-            player.quests = player_result.player.quests;
-            player.quests_completed = player_result.player.quests_completed;
-            player.known_recipes = player_result.player.known_recipes;
-
-            this.world.zones = player_result.world.zones;
-            this.world.items = player_result.world.items;
-            this.world.recipes = player_result.world.recipes;
-            this.world.npcs = player_result.world.npcs;
-            this.world.mobs = player_result.world.mobs;
-            this.world.players = player_result.world.players;
-            this.world.quests = player_result.world.quests;
-            this.world.level_data = player_result.world.level_data;
+            Object.assign(player, player_result.player);
+            this.world = player_result.world;
           } else {
             result = `Unable to load progress from slot: ${args[0]}`;
           }
@@ -438,33 +403,40 @@ export class TextWorld {
     zone_name: string,
     room_name: string
   ) {
+    const stats = this.create_stats(
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      10,
+      10,
+      10,
+      10,
+      0.05,
+      { level: 1, xp: 0 }
+    );
+
     const player: Player = {
       id: crypto.randomUUID(),
       race: {
         name: "Human",
-        innate_characteristics: {
-          dexterity: 1,
-          constitution: 1,
-          intelligence: 1,
-          wisdom: 1,
-          charisma: 1,
-        },
+        dexterity: 1,
+        constitution: 1,
+        intelligence: 1,
+        wisdom: 1,
+        charisma: 1,
       },
       name,
       descriptions: [{ flag: "default", description }],
       score: 0,
-      stats: this.get_actor_stats(),
-      damage_and_defense: {
-        physical_damage: 10,
-        physical_defense: 10,
-        spell_damage: 10,
-        spell_defense: 5,
-        critical_chance: 0.1,
-      },
-      progress: {
-        level: 1,
-        xp: 0,
-      },
+      progress: stats.progress,
+      health: stats.health,
+      stamina: stats.stamina,
+      magicka: stats.magicka,
+      physical_damage: stats.physical_damage,
+      physical_defense: stats.physical_defense,
+      spell_damage: stats.spell_damage,
+      spell_defense: stats.spell_defense,
+      critical_chance: stats.critical_chance,
       gold: 0,
       zone: zone_name,
       room: room_name,
@@ -474,16 +446,19 @@ export class TextWorld {
       quests_completed: [],
       known_recipes: [],
     };
+
     this.world.players.push(player);
     return player;
   }
 
   resurrect_player(player: Player) {
-    if (!player.stats) throw new Error("Player does not have stats.");
+    if (!player.health || !player.stamina || !player.magicka) {
+      throw new Error("Player does not have stats.");
+    }
 
-    player.stats.health.current = player.stats.health.max;
-    player.stats.stamina.current = player.stats.stamina.max;
-    player.stats.magicka.current = player.stats.magicka.max;
+    player.health.current = player.health.max;
+    player.stamina.current = player.stamina.max;
+    player.magicka.current = player.magicka.max;
     this.set_player_room_to_zone_start(player, player.zone);
     return "You have been resurrected.";
   }
@@ -496,41 +471,6 @@ export class TextWorld {
     this.world.players = this.world.players.filter(
       (p) => p.name !== player.name
     );
-  }
-
-  set_actor_stats(actor: Actor, stats: Resources) {
-    actor.stats = stats;
-  }
-
-  set_actor_health(actor: Actor, health: number) {
-    if (actor.stats) {
-      actor.stats.health.current = health;
-    }
-  }
-
-  set_actor_health_to_max(actor: Actor) {
-    if (actor.stats) {
-      actor.stats.health.current = actor.stats.health.max;
-    }
-  }
-
-  add_to_actor_health(actor: Actor, amount: number) {
-    if (actor.stats) {
-      const { health } = actor.stats;
-      health.current = Math.min(health.current + amount, health.max);
-    }
-  }
-
-  is_actor_health_full(actor: Actor) {
-    return actor.stats?.health.current === actor.stats?.health.max;
-  }
-
-  get_actor_stats(actor?: Actor): Resources {
-    return actor?.stats ?? this.create_resources(10, 10, 10, 10, 10, 10);
-  }
-
-  get_actor_health(actor: Actor): number {
-    return actor.stats?.health.current ?? 0;
   }
 
   get_player_zone(player: Player): Zone | null {
@@ -596,6 +536,39 @@ export class TextWorld {
       player.zone = zone_name;
       player.room = room_name;
     }
+  }
+
+  ///////////
+  // ACTOR //
+  ///////////
+
+  set_actor_health(actor: Actor, health: number) {
+    if (actor.health) {
+      actor.health.current = health;
+    }
+  }
+
+  set_actor_health_to_max(actor: Actor) {
+    if (actor.health) {
+      actor.health.current = actor.health.max;
+    }
+  }
+
+  add_to_actor_health(actor: Actor, amount: number) {
+    if (actor.health) {
+      actor.health.current = Math.min(
+        actor.health.current + amount,
+        actor.health.max
+      );
+    }
+  }
+
+  is_actor_health_full(actor: Actor) {
+    return actor.health?.current === actor.health?.max;
+  }
+
+  get_actor_health(actor: Actor): number {
+    return actor.health?.current ?? 0;
   }
 
   ///////////
@@ -872,11 +845,10 @@ export class TextWorld {
       name,
       descriptions: [{ flag: "default", description }],
       items: [],
-      stats: this.create_resources(10, 10, 10, 10, 10, 10),
-      damage_and_defense: this.create_damage_and_defense(10, 10, 10, 10, 10),
       killable: false,
       dialog: null,
       vendor_items: null,
+      flags: [],
     });
   }
 
@@ -996,13 +968,12 @@ export class TextWorld {
       id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
-      stats: this.create_resources(10, 10, 10, 10, 10, 10),
       inventory: [],
       killable: false,
-      damage_and_defense: this.create_damage_and_defense(10, 10, 10, 10, 10),
       dialog: [],
       vendor_items,
       items: [],
+      flags: [],
     };
     this.world.npcs.push(vendor);
 
@@ -1112,7 +1083,7 @@ export class TextWorld {
     }
   }
 
-  add_item_drops_to_room(player: Player, item_drops: ItemDrop[]) {
+  add_item_drops_to_room(player: Player, item_drops: Drop[]) {
     const current_room = this.get_player_room(player);
     if (!current_room) return;
 
@@ -1133,7 +1104,7 @@ export class TextWorld {
     zone_name: string,
     room_name: string,
     item_name: string
-  ): ItemDrop | null {
+  ): Drop | null {
     const zone = this.get_zone(zone_name);
     if (!zone) return null;
 
@@ -1482,20 +1453,23 @@ export class TextWorld {
   // MOB //
   /////////
 
-  create_mob(
-    name: string,
-    description: string,
-    stats: Resources,
-    damage_and_defense: DamageAndDefense,
-    items: ItemDrop[]
-  ) {
+  create_mob(name: string, description: string, stats: Stats, items: Drop[]) {
     const mob: Actor = {
       id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
-      stats,
-      damage_and_defense,
+      health: stats.health,
+      stamina: stats.stamina,
+      magicka: stats.magicka,
+      progress: stats.progress,
+      physical_damage: stats.physical_damage,
+      physical_defense: stats.physical_defense,
+      spell_damage: stats.spell_damage,
+      spell_defense: stats.spell_defense,
+      critical_chance: stats.critical_chance,
+      killable: true,
       items,
+      flags: [],
     };
     this.world.mobs.push(mob);
     return mob;
@@ -1546,36 +1520,47 @@ export class TextWorld {
     );
   }
 
+  can_actor_perform_attack(actor: Actor): boolean {
+    if (
+      !actor.critical_chance ||
+      !actor.physical_damage ||
+      !actor.physical_defense ||
+      !actor.health
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+
   perform_attack(attacker: Actor, defender: Actor): string {
-    if (!attacker.damage_and_defense)
-      throw new Error("Attacker does not have damage and defense.");
-    if (!defender.damage_and_defense)
-      throw new Error("Defender does not have damage and defense.");
-    if (!attacker.stats) throw new Error("Attacker does not have stats.");
-    if (!defender.stats) throw new Error("Defender does not have stats.");
+    if (!this.can_actor_perform_attack(attacker)) {
+      return "Attacker cannot perform attack.";
+    }
 
-    const isCriticalHit =
-      Math.random() < attacker.damage_and_defense.critical_chance;
-    const attacker_damage = isCriticalHit
-      ? attacker.damage_and_defense.physical_damage * 2
-      : attacker.damage_and_defense.physical_damage;
+    if (!this.can_actor_perform_attack(defender)) {
+      return "Defender cannot be attacked.";
+    }
 
-    const damage_dealt = Math.max(
+    const isCriticalHit = Math.random() < (attacker.critical_chance ?? 0);
+    const attackerDamage =
+      (attacker.physical_damage ?? 0) * (isCriticalHit ? 2 : 1);
+    const damageDealt = Math.max(
       0,
-      attacker_damage - defender.damage_and_defense.physical_defense
+      attackerDamage - (defender.physical_defense ?? 0)
     );
 
-    defender.stats.health.current = Math.max(
+    defender.health!.current = Math.max(
       0,
-      defender.stats.health.current - damage_dealt
+      (defender.health?.current ?? 0) - damageDealt
     );
 
-    let result = `${attacker.name} attacks ${defender.name} for ${damage_dealt} damage.\n${defender.name} health: ${defender.stats.health.current}`;
+    let result =
+      `${attacker.name} attacks ${defender.name} for ${damageDealt} damage.\n` +
+      `${defender.name} health: ${defender.health?.current}`;
 
-    if (defender.stats.health.current <= 0) {
+    if (defender.health?.current === 0) {
       result += `\n${defender.name} has been defeated!`;
-    } else if (attacker.stats.health.current <= 0) {
-      result += `\n${attacker.name} has been defeated!`;
     }
 
     return result;
@@ -1613,13 +1598,15 @@ export class TextWorld {
 
     if (this.get_actor_health(mob) <= 0) {
       this.set_actor_health(mob, 0);
-      this.add_item_drops_to_room(player, mob.items);
-      result += `\n${mob.name} dropped: ${mob.items
-        .map((item) => item.name)
-        .join(", ")}`;
-      current_room.mobs = current_room.mobs.filter(
-        (room_mob) => room_mob.name.toLowerCase() !== mob.name.toLowerCase()
-      );
+      if (mob.items.length > 0) {
+        this.add_item_drops_to_room(player, mob.items);
+        result += `\n${mob.name} dropped: ${mob.items
+          .map((item) => item.name)
+          .join(", ")}`;
+        current_room.mobs = current_room.mobs.filter(
+          (room_mob) => room_mob.name.toLowerCase() !== mob.name.toLowerCase()
+        );
+      }
     }
 
     return result;
@@ -2171,6 +2158,7 @@ export class TextWorld {
       descriptions: [{ flag: "default", description }],
       items: [],
       dialog,
+      flags: [],
     });
   }
 
@@ -2191,9 +2179,6 @@ export class TextWorld {
     );
   }
 
-  // TODO: Objects are almost entirely NPCs except for the fact that we interact
-  // with them differently. We could definitely benefit from having one function
-  // that handles both NPCs and objects.
   look_at_or_examine_object(
     player: Player,
     input: string,
@@ -2251,8 +2236,8 @@ export class TextWorld {
   create_recipe(
     name: string,
     description: string,
-    ingredients: ItemDrop[],
-    crafted_item: ItemDrop
+    ingredients: Drop[],
+    crafted_item: Drop
   ) {
     this.world.recipes.push({
       id: crypto.randomUUID(),
@@ -2586,39 +2571,27 @@ export class TextWorld {
     return `Commands:\n\n${result}`;
   }
 
-  create_resources(
-    health_current: number,
-    health_max: number,
-    stamina_current: number,
-    stamina_max: number,
-    magicka_current: number,
-    magicka_max: number
-  ): Resources {
-    const create_stat = (current: number, max: number) => ({
-      current,
-      max,
-    });
-
-    return {
-      health: create_stat(health_current, health_max),
-      stamina: create_stat(stamina_current, stamina_max),
-      magicka: create_stat(magicka_current, magicka_max),
-    };
-  }
-
-  create_damage_and_defense(
+  create_stats(
+    health: ResourceAmount,
+    stamina: ResourceAmount,
+    magicka: ResourceAmount,
     physical_damage: number,
     physical_defense: number,
     spell_damage: number,
     spell_defense: number,
-    critical_chance: number
-  ): DamageAndDefense {
+    critical_chance: number,
+    progress: Level
+  ): Stats {
     return {
+      health,
+      stamina,
+      magicka,
       physical_damage,
       physical_defense,
       spell_damage,
       spell_defense,
       critical_chance,
+      progress,
     };
   }
 

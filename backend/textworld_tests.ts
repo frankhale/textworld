@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 1 September 2024
+// 2 September 2024
 
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.224.0/assert/assert_not_equals.ts";
@@ -445,8 +445,17 @@ Deno.test("can_create_mob", () => {
   textworld.create_mob(
     "Goblin",
     "A small goblin",
-    textworld.create_resources(10, 10, 10, 10, 10, 10),
-    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    textworld.create_stats(
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      15,
+      8,
+      5,
+      2,
+      0.05,
+      { level: 1, xp: 0 }
+    ),
     []
   );
   const mob = textworld.get_mob("Goblin");
@@ -460,8 +469,17 @@ Deno.test("can_place_mob_in_room", () => {
   textworld.create_mob(
     "Goblin",
     "A small goblin",
-    textworld.create_resources(10, 10, 10, 10, 10, 10),
-    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    textworld.create_stats(
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      15,
+      8,
+      5,
+      2,
+      0.05,
+      { level: 1, xp: 0 }
+    ),
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
@@ -477,8 +495,17 @@ Deno.test("can_get_room_mob", () => {
   textworld.create_mob(
     "Goblin",
     "A small goblin",
-    textworld.create_resources(10, 10, 10, 10, 10, 10),
-    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    textworld.create_stats(
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      15,
+      8,
+      5,
+      2,
+      0.05,
+      { level: 1, xp: 0 }
+    ),
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
@@ -797,8 +824,17 @@ Deno.test("can_parse_command_attack_mob", async () => {
   textworld.create_mob(
     "Goblin",
     "A small goblin",
-    textworld.create_resources(10, 10, 10, 10, 10, 10),
-    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    textworld.create_stats(
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      15,
+      8,
+      5,
+      2,
+      0.05,
+      { level: 1, xp: 0 }
+    ),
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
@@ -1486,8 +1522,17 @@ Deno.test("mob_can_attack_player", () => {
   const mob = textworld.create_mob(
     "Goblin",
     "A small goblin",
-    textworld.create_resources(10, 10, 10, 10, 10, 10),
-    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    textworld.create_stats(
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      15,
+      8,
+      5,
+      2,
+      0.05,
+      { level: 1, xp: 0 }
+    ),
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
@@ -1509,8 +1554,17 @@ Deno.test("mob_can_kill_player", () => {
   const mob = textworld.create_mob(
     "Goblin",
     "A small goblin",
-    textworld.create_resources(1, 1, 10, 10, 10, 10),
-    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    textworld.create_stats(
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      15,
+      8,
+      5,
+      2,
+      0.05,
+      { level: 1, xp: 0 }
+    ),
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
@@ -1532,8 +1586,17 @@ Deno.test("player_can_attack_mob", () => {
   const mob = textworld.create_mob(
     "Goblin",
     "A small goblin",
-    textworld.create_resources(10, 10, 10, 10, 10, 10),
-    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    textworld.create_stats(
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      15,
+      8,
+      5,
+      2,
+      0.05,
+      { level: 1, xp: 0 }
+    ),
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
@@ -1554,8 +1617,17 @@ Deno.test("player_can_kill_mob", () => {
   const mob = textworld.create_mob(
     "Goblin",
     "A small goblin",
-    textworld.create_resources(1, 1, 10, 10, 10, 10),
-    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    textworld.create_stats(
+      { current: 1, max: 1 },
+      { current: 1, max: 1 },
+      { current: 1, max: 1 },
+      1,
+      1,
+      1,
+      1,
+      0.05,
+      { level: 1, xp: 0 }
+    ),
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
@@ -1579,8 +1651,17 @@ Deno.test("player_can_kill_mob_and_drop_loot", () => {
   textworld.create_mob(
     "Goblin",
     "A small goblin",
-    textworld.create_resources(1, 1, 10, 10, 10, 10),
-    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    textworld.create_stats(
+      { current: 1, max: 1 },
+      { current: 1, max: 1 },
+      { current: 1, max: 1 },
+      1,
+      1,
+      1,
+      1,
+      0.05,
+      { level: 1, xp: 0 }
+    ),
     [
       { name: "Sword", quantity: 1 },
       { name: "Shield", quantity: 1 },
@@ -1611,8 +1692,17 @@ Deno.test("player_can_kill_mob_and_pickup_look", () => {
   textworld.create_mob(
     "Goblin",
     "A small goblin",
-    textworld.create_resources(1, 1, 10, 10, 10, 10),
-    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    textworld.create_stats(
+      { current: 1, max: 1 },
+      { current: 1, max: 1 },
+      { current: 1, max: 1 },
+      1,
+      1,
+      1,
+      1,
+      0.05,
+      { level: 1, xp: 0 }
+    ),
     [
       { name: "Sword", quantity: 1 },
       { name: "Shield", quantity: 1 },
@@ -1645,8 +1735,17 @@ Deno.test("player_attack_mob_and_mob_attack_player", () => {
   textworld.create_mob(
     "Goblin",
     "A small goblin",
-    textworld.create_resources(100, 10, 10, 10, 10, 10),
-    textworld.create_damage_and_defense(15, 8, 5, 2, 0.05),
+    textworld.create_stats(
+      { current: 20, max: 20 },
+      { current: 1, max: 1 },
+      { current: 1, max: 1 },
+      1,
+      1,
+      1,
+      1,
+      0.05,
+      { level: 1, xp: 0 }
+    ),
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
@@ -1669,8 +1768,17 @@ Deno.test("player_can_die_from_mob_attack", () => {
   textworld.create_mob(
     "Goblin",
     "A small goblin",
-    textworld.create_resources(100, 10, 10, 10, 10, 10),
-    textworld.create_damage_and_defense(55, 55, 55, 55, 5),
+    textworld.create_stats(
+      { current: 100, max: 100 },
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      55,
+      55,
+      55,
+      55,
+      0.5,
+      { level: 1, xp: 0 }
+    ),
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");
@@ -1695,8 +1803,17 @@ Deno.test("player_can_die_from_mob_attack_and_ressurect", async () => {
   textworld.create_mob(
     "Goblin",
     "A small goblin",
-    textworld.create_resources(100, 10, 10, 10, 10, 10),
-    textworld.create_damage_and_defense(55, 55, 55, 55, 5),
+    textworld.create_stats(
+      { current: 100, max: 100 },
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      55,
+      55,
+      55,
+      55,
+      5,
+      { level: 1, xp: 0 }
+    ),
     []
   );
   textworld.place_mob("Zone1", "Room1", "Goblin");

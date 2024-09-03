@@ -174,8 +174,17 @@ class TextworldGame {
     this.textworld.create_mob(
       "Goblin",
       "A small goblin",
-      this.textworld.create_resources(5, 5, 5, 5, 5, 5),
-      this.textworld.create_damage_and_defense(1, 1, 1, 1, 0),
+      this.textworld.create_stats(
+        { current: 5, max: 5 },
+        { current: 5, max: 5 },
+        { current: 5, max: 5 },
+        1,
+        1,
+        1,
+        1,
+        0,
+        { level: 1, xp: 0 }
+      ),
       [{ name: "Gold coin purse", quantity: 1 }]
     );
   }
