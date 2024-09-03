@@ -48,6 +48,8 @@ Frontend:
 
 NOTE: Requires Node.js and Angular CLI
 
+> npm install
+
 > ng serve
 
 ## Test
@@ -62,4 +64,4 @@ Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 
 ## Date
 
-30 August 2024
+2 September 2024

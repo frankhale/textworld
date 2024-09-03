@@ -1483,7 +1483,7 @@ Deno.test("can_spawn_item_in_room_using_spawn_location", async () => {
     "Test Spawner",
     "Zone1",
     "Room1",
-    500,
+    0,
     true,
     (spawn_location: tw.SpawnLocation) => {
       const item = textworld.get_room_item(
@@ -1502,10 +1502,12 @@ Deno.test("can_spawn_item_in_room_using_spawn_location", async () => {
     }
   );
   textworld.spawn_location_start("Test Spawner");
-  await delay(500);
+  // Give the spawner time to spawn the item
+  await delay(10);
   textworld.remove_spawn_location("Test Spawner");
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.items.length, 1);
+  assertEquals(room?.items[0].name, "Iron");
   textworld.reset_world();
 });
 
