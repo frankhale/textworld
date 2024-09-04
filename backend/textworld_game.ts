@@ -10,7 +10,7 @@ class TextworldGame {
     "player",
     "You are a curious person who is looking for adventure.",
     "The Forest",
-    "Open Field"
+    "Open Field",
   );
 
   constructor() {
@@ -38,47 +38,47 @@ class TextworldGame {
         }
 
         return `The healing waters have no effect on you.`;
-      }
+      },
     );
     this.textworld.create_room(
       "The Forest",
       "Rock formation",
-      "A peculiar rock formation stands before you."
+      "A peculiar rock formation stands before you.",
     );
     this.textworld.create_room(
       "The Forest",
       "Open Field",
-      "You are standing in an open field. All around you stands tall vibrant green grass. You can hear the sound of flowing water off in the distance which you suspect is a stream."
+      "You are standing in an open field. All around you stands tall vibrant green grass. You can hear the sound of flowing water off in the distance which you suspect is a stream.",
     );
     this.textworld.create_room(
       "The Forest",
       "Test Room",
-      "This is a test room."
+      "This is a test room.",
     );
     this.textworld.create_room(
       "The Forest",
       "Stream",
-      "A shallow rocky stream is swifty flowing from your west to east. The water looks approximately one foot deep from where you are standing."
+      "A shallow rocky stream is swifty flowing from your west to east. The water looks approximately one foot deep from where you are standing.",
     );
     this.textworld.create_room(
       "The Forest",
       "Large Rock",
-      "You are standing beside a large rock. The rock looks out of place with respect to the rest of your surroundings."
+      "You are standing beside a large rock. The rock looks out of place with respect to the rest of your surroundings.",
     );
     this.textworld.create_room(
       "The Forest",
       "Old Forest",
-      "Thick tall trees block your way but seem to have allowed the stream safe passage. It doesn't appear as though you can travel any further in this direction."
+      "Thick tall trees block your way but seem to have allowed the stream safe passage. It doesn't appear as though you can travel any further in this direction.",
     );
     this.textworld.create_room(
       "The Forest",
       "Dark Passage",
-      "Somehow you found a way to get into the forest. It's dark in here, the sound of the stream calms your nerves but you still feel a bit uneasy in here. The trunks of the trees stretch up into the heavens and the foliage above blocks most of the light."
+      "Somehow you found a way to get into the forest. It's dark in here, the sound of the stream calms your nerves but you still feel a bit uneasy in here. The trunks of the trees stretch up into the heavens and the foliage above blocks most of the light.",
     );
     this.textworld.create_room(
       "The Forest",
       "Hollow Tree",
-      "You stepped into a large hollow tree. It's damp in here."
+      "You stepped into a large hollow tree. It's damp in here.",
     );
 
     this.textworld.set_room_as_zone_starter("The Forest", "Open Field");
@@ -89,33 +89,33 @@ class TextworldGame {
       "The Forest",
       "Open Field",
       "south",
-      "Rock formation"
+      "Rock formation",
     );
     this.textworld.create_exit(
       "The Forest",
       "Rock formation",
       "west",
-      "Pool of Water"
+      "Pool of Water",
     );
     this.textworld.create_exit("The Forest", "Stream", "east", "Large Rock");
     this.textworld.create_exit(
       "The Forest",
       "Large Rock",
       "east",
-      "Old Forest"
+      "Old Forest",
     );
     this.textworld.create_exit(
       "The Forest",
       "Old Forest",
       "east",
       "Dark Passage",
-      true
+      true,
     );
     this.textworld.create_exit(
       "The Forest",
       "Dark Passage",
       "north",
-      "Hollow Tree"
+      "Hollow Tree",
     );
   }
 
@@ -125,7 +125,7 @@ class TextworldGame {
       "Log Cabin",
       "Living Room",
       "You are standing inside the log cabin. The room is small but cozy. A fire is burning in the fireplace directly in front of you.",
-      null
+      null,
     );
     this.textworld.set_room_as_zone_starter("Log Cabin", "Living Room");
   }
@@ -141,7 +141,7 @@ class TextworldGame {
       (player) => {
         player.gold += 10;
         return `You got 10 gold coins!`;
-      }
+      },
     );
     this.textworld.create_item("Spam", "A can of spam", true, (player) => {
       this.textworld.add_to_actor_health(player, 50);
@@ -162,7 +162,7 @@ class TextworldGame {
       "Charlotte",
       ["hello", "hi"],
       "Have you seen Wilbur? I've been looking around everywhere for him...",
-      null
+      null,
     );
   }
 
@@ -183,9 +183,9 @@ class TextworldGame {
         1,
         1,
         0,
-        { level: 1, xp: 0 }
+        { level: 1, xp: 0 },
       ),
-      [{ name: "Gold coin purse", quantity: 1 }]
+      [{ name: "Gold coin purse", quantity: 1 }],
     );
   }
 
@@ -204,17 +204,17 @@ class TextworldGame {
         const item = this.textworld.get_room_item(
           spawn_location.zone,
           spawn_location.room,
-          "Gold coin purse"
+          "Gold coin purse",
         );
         if (!item && this.textworld.get_random_number() > 80) {
           this.textworld.place_item(
             spawn_location.zone,
             spawn_location.room,
             "Gold coin purse",
-            1
+            1,
           );
         }
-      }
+      },
     );
     this.textworld.set_spawn_location_start("Gold purse spawner");
   }
@@ -222,13 +222,13 @@ class TextworldGame {
   run_web_game_loop(port: number) {
     const process_request = async (input = "") => {
       let response = "";
-
       if (input.length <= 0) {
-        response = this.textworld.get_room_description(this.player);
+        response = JSON.stringify(
+          this.textworld.get_room_description(this.player),
+        );
       } else {
         response = await this.textworld.parse_command(this.player, input);
       }
-
       const final_response = {
         id: crypto.randomUUID(),
         input,
@@ -237,12 +237,9 @@ class TextworldGame {
         responseLines: response.split("\n"),
         map: this.textworld.plot_room_map(this.player, 5),
       };
-
       console.log("Response: ", response);
-
       return final_response;
     };
-
     const ac = new AbortController();
     const server = Deno.serve(
       {
@@ -264,7 +261,7 @@ class TextworldGame {
           }
         };
         return response;
-      }
+      },
     );
     server.finished.then(() => {
       console.log("Server has been shutdown!");
