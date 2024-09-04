@@ -221,25 +221,24 @@ class TextworldGame {
 
   run_web_game_loop(port: number) {
     const process_request = async (input = "") => {
-      let response = "";
-      if (input.length <= 0) {
-        response = JSON.stringify(
-          this.textworld.get_room_description(this.player),
-        );
-      } else {
-        response = await this.textworld.parse_command(this.player, input);
-      }
+      const result: tw.CommandResponse = JSON.parse(
+        await this.textworld.parse_command(this.player, input),
+      );
+
       const final_response = {
         id: crypto.randomUUID(),
         input,
         player: this.player,
-        response,
-        responseLines: response.split("\n"),
-        map: this.textworld.plot_room_map(this.player, 5),
+        result,
+        responseLines: result.response.split("\n"),
+        map: this.textworld.plot_room_map(this.player, 5).response,
       };
-      console.log("Response: ", response);
+
+      console.log("Response: ", result.response);
+
       return final_response;
     };
+
     const ac = new AbortController();
     const server = Deno.serve(
       {
@@ -263,6 +262,7 @@ class TextworldGame {
         return response;
       },
     );
+
     server.finished.then(() => {
       console.log("Server has been shutdown!");
       Deno.exit();

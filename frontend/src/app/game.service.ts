@@ -29,7 +29,7 @@ export class GameService {
         id: crypto.randomUUID(),
         input: "error",
         player: null,
-        response: "Unable to connect to server.",
+        result: { response: "Unable to connect to server." },
         responseLines: ["Unable to connect to server."],
         map: null,
       };

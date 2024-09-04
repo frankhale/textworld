@@ -2854,6 +2854,10 @@ export class TextWorld {
     const input_limit = Math.min(input_character_limit, input.length);
     input = input.substring(0, input_limit);
 
+    if (input === "") {
+      input = "look";
+    }
+
     const [command, ...args] = input.toLowerCase().split(" ");
     const possible_actions = this.generate_combinations(input.split(" "));
 

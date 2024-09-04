@@ -3,7 +3,7 @@
     @for(message of history; track $index) {
       @if(message.input && message.input.startsWith('map') && message.map) {
       <div>Map:
-        <pre>{{message.response.replace("Map:\n\n", "")}}</pre>
+        <pre>{{message.result.response}}</pre>
       </div>
       } @else {
         <div>
