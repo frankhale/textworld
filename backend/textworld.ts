@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 3 September 2024
+// 4 September 2024
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -14,6 +14,10 @@ export type CommandParserAction = (
   command: string,
   args: string[]
 ) => string | Promise<string>;
+
+///////////////////////////////
+// CORE GAME DATA STRUCTURES //
+///////////////////////////////
 
 export interface Description {
   flag: string;
@@ -451,7 +455,6 @@ export class TextWorld {
   }
 
   get_player_zone(player: Player): Zone | null {
-    if (!player) return null;
     return this.world.zones.find((zone) => zone.name === player.zone) || null;
   }
 
@@ -465,8 +468,6 @@ export class TextWorld {
   }
 
   look_self(player: Player): string {
-    if (!player) return "You can't see anything.";
-
     let description = this.get_description(player, player, "default");
 
     if (!description) {
@@ -1816,7 +1817,9 @@ export class TextWorld {
     const current_room = zone.rooms.find(
       (room) => room.name.toLowerCase() === player.room.toLowerCase()
     );
-    if (!current_room) return "You can't see anything.";
+    if (!current_room) {
+      return "You can't see anything.";
+    }
 
     const exits = current_room.exits
       .filter((exit) => !exit.hidden)
@@ -1872,7 +1875,6 @@ export class TextWorld {
       (!has_command && !this.has_room_actions(current_room.name))
     ) {
       return "You can't go that way.";
-      //return this.get_room_description(player);
     }
 
     if (has_command) {
@@ -2678,37 +2680,36 @@ export class TextWorld {
   }
 
   async parse_command(player: Player, input: string): Promise<string> {
-    const input_limit = Math.min(input_character_limit, input.length);
-    input = input.substring(0, input_limit);
+    // Limit the input length
+    input = input.substring(0, Math.min(input_character_limit, input.length));
 
     const [command, ...args] = input.toLowerCase().split(" ");
     const possible_actions = this.generate_combinations(input.split(" "));
 
+    // Prioritize talk to actions
     const talk_to = possible_actions.find((action) =>
-      action.toLowerCase().startsWith("talk to")
+      action.startsWith("talk to")
     );
-
-    const filtered_actions = possible_actions.filter((action) =>
-      talk_to ? action.toLowerCase().includes(talk_to) : true
-    );
-
-    let result: string | undefined;
-    let command_action: CommandAction | undefined;
+    const filtered_actions = talk_to
+      ? possible_actions.filter((action) => action.includes(talk_to))
+      : possible_actions;
 
     if (!this.has_flag(player, "disable_main_commands")) {
-      command_action = this.find_command_action(
-        filtered_actions,
+      const healthBasedActions =
         this.get_actor_health(player) <= 0
           ? this.player_dead_command_actions
-          : this.main_command_actions
-      );
+          : this.main_command_actions;
 
+      const command_action = this.find_command_action(
+        filtered_actions,
+        healthBasedActions
+      );
       if (command_action) {
         const filtered_args = this.filter_substrings(
           command_action.synonyms,
           args
         );
-        result = command_action.action(
+        return command_action.action(
           player,
           input,
           command,
@@ -2716,55 +2717,49 @@ export class TextWorld {
         ) as string;
       }
 
-      if (!result) {
-        const async_command_action = this.find_command_action(
-          possible_actions,
-          this.main_async_command_actions
+      const async_command_action = this.find_command_action(
+        possible_actions,
+        this.main_async_command_actions
+      );
+      if (async_command_action) {
+        const filtered_args = this.filter_substrings(
+          async_command_action.synonyms,
+          args
         );
-
-        if (async_command_action) {
-          const filtered_args = this.filter_substrings(
-            async_command_action.synonyms,
-            args
-          );
-          result = await async_command_action.action(
-            player,
-            input,
-            command,
-            filtered_args
-          );
-        }
+        return await async_command_action.action(
+          player,
+          input,
+          command,
+          filtered_args
+        );
       }
     }
 
-    if (!result) {
-      const players_room = this.get_player_room(player);
-      if (players_room) {
-        const room_command_action = this.find_room_command_action(
-          filtered_actions,
-          player.zone,
-          players_room.name
+    const players_room = this.get_player_room(player);
+    if (players_room) {
+      const room_command_action = this.find_room_command_action(
+        filtered_actions,
+        player.zone,
+        players_room.name
+      );
+      if (room_command_action) {
+        const filtered_args = this.filter_substrings(
+          room_command_action.synonyms,
+          args
         );
-
-        if (room_command_action) {
-          const filtered_args = this.filter_substrings(
-            room_command_action.synonyms,
-            args
-          );
-          result = `${this.get_description(
-            player,
-            room_command_action,
-            "default"
-          )}\n\n${room_command_action.action(
-            player,
-            input,
-            command,
-            filtered_args
-          )}`;
-        }
+        return `${this.get_description(
+          player,
+          room_command_action,
+          "default"
+        )}\n\n${room_command_action.action(
+          player,
+          input,
+          command,
+          filtered_args
+        )}`;
       }
     }
 
-    return result || "I don't understand that command.";
+    return "I don't understand that command.";
   }
 }

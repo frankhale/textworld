@@ -255,11 +255,12 @@ class TextworldGame {
           socket.send(JSON.stringify(await process_request()));
         };
         socket.onmessage = async (e) => {
-          socket.send(JSON.stringify(await process_request(e.data)));
           if (e.data === "quit") {
             console.log("Shutting down server...");
             socket.close();
             ac.abort();
+          } else {
+            socket.send(JSON.stringify(await process_request(e.data)));
           }
         };
         return response;

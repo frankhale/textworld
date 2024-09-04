@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 3 September 2024
+// 4 September 2024
 
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/assert_equals.ts";
 import { assertNotEquals } from "https://deno.land/std@0.224.0/assert/assert_not_equals.ts";
@@ -150,6 +150,18 @@ Deno.test("can_get_player", () => {
   );
   const p1 = textworld.get_player(player.id!);
   assertEquals(p1?.name, "Player");
+  textworld.reset_world();
+});
+
+Deno.test("cant_get_player_zone_if_player_zone_is_invalid", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "",
+    "Room1"
+  );
+  const result = textworld.get_player_zone(player);
+  assertEquals(result, null);
   textworld.reset_world();
 });
 
@@ -2173,6 +2185,18 @@ Deno.test("player_can_look", () => {
   const result = textworld.look(player, "look", "look", ["look"]);
   assertEquals(result, "This is room 1");
   textworld.reset_world();
+});
+
+Deno.test("player_can_look_at_self_with_no_description", () => {
+  const player = textworld.create_player(
+    "Player",
+    "Player Description",
+    "Zone1",
+    "Room1"
+  );
+  player.descriptions = [];
+  const result = textworld.look_self(player);
+  assertEquals(result, "You don't really like looking at yourself.");
 });
 
 Deno.test("player_can_look_at_self_without_inventory", () => {
