@@ -2223,26 +2223,7 @@ export class TextWorld {
       return this.look_at_or_examine_object(player, input, command, args);
     }
 
-    const current_room = this.get_player_zone(player)?.rooms.find(
-      (room) => room.name.toLowerCase() === player.room.toLowerCase(),
-    );
-
-    if (!current_room) {
-      return {
-        response: "You can't see anything.",
-      };
-    }
-
-    const exits = current_room.exits
-      .filter((exit) => !exit.hidden)
-      .map((exit) => exit.name)
-      .join(", ");
-
-    return {
-      response: `${this.get_description(player, current_room, "default")}${
-        exits ? `\n\nExits: ${exits}` : ""
-      }`,
-    };
+    return this.get_room_description(player);
   }
 
   /////////////////
