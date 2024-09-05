@@ -1,5 +1,10 @@
+<div class="header">
+  @if(currentMessage && currentMessage.player) {
+    {{currentMessage.player.zone}} - {{currentMessage.player.room}}
+  }
+</div>
 <div class="output-container">
-  <div #scrollContainer class="output-style">
+  <div #scrollContainer class="output-content">
     @for(message of history; track $index) {
     @if(message.input && message.input.startsWith('map') && message.map) {
     <div>Map:
@@ -39,22 +44,24 @@
 
   @if(currentMessage && currentMessage.player && currentMessage.player.stats) {
   <div class="right-content">
-    Zone: {{currentMessage.player.zone}}
-    <br />
-    Room: {{currentMessage.player.room}}
-    <br />
-    Level: {{currentMessage.player.stats.progress.level }} ({{currentMessage.player.stats.progress.xp}})
-    <br />
-    Health: {{currentMessage.player.stats.health.current }}/{{ currentMessage.player.stats.health.max }}
-    <br />
-    Gold: {{ currentMessage.player.gold }}
-    @if(currentMessage.map) {
-    <br />
-    Map:
-    <div class="map">
-      <pre>{{ currentMessage.map.replace("Map:\n\n", "") }}</pre>
+    <div class="player-info">
+      Zone: {{currentMessage.player.zone}}
+      <br />
+      Room: {{currentMessage.player.room}}
+      <br />
+      Level: {{currentMessage.player.stats.progress.level }} ({{currentMessage.player.stats.progress.xp}})
+      <br />
+      Health: {{currentMessage.player.stats.health.current }}/{{ currentMessage.player.stats.health.max }}
+      <br />
+      Gold: {{ currentMessage.player.gold }}
+      @if(currentMessage.map) {
+      <br />
+      Map:
+      <div class="map">
+        <pre>{{ currentMessage.map.replace("Map:\n\n", "") }}</pre>
+      </div>
+      }
     </div>
-    }
   </div>
   }
 

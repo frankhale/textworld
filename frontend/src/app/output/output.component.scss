@@ -1,10 +1,32 @@
-.output-style {
+.header {
+  background-color: #000;
+  color: #fff;
+  padding-bottom: 10px;
+  text-align: center;
+  width: 100vw;
+  height: 25px;
+}
+
+.output-content {
   display: block;
   margin: 10px;
   overflow-y: auto;
-
-  height: calc(100vh - 55px);
+  height: calc(100vh - 90px);
   width: calc(100vw - 15px);
+}
+
+.right-content {
+  padding-left: 10px;
+  margin-top: 10px;
+  margin-left: 10px;
+  margin-right: 10px;
+  width: 500px;
+  border-left: dashed 1px black;
+  height: calc(100vh - 90px);
+}
+
+.player-info {
+  margin-left: 30px;
 }
 
 .command-text {
@@ -30,14 +52,6 @@
 
 .output-container {
   display: flex;
-}
-
-.right-content {
-  padding-left: 10px;
-  margin-top: 15px;
-  margin-left: 10px;
-  width: 500px;
-  border-left: dashed 1px black;
 }
 
 .map {
