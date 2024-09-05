@@ -153,6 +153,56 @@ Deno.test("can_get_player", () => {
   textworld.reset_world();
 });
 
+Deno.test("can_set_players_health_to_max", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.set_actor_health_to_max(player);
+  assertEquals(textworld.get_actor_health(player), 10);
+  textworld.reset_world();
+});
+
+Deno.test("can_add_health_to_players", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.set_actor_health(player, 2);
+  textworld.add_to_actor_health(player, 3);
+  assertEquals(textworld.get_actor_health(player), 5);
+  textworld.reset_world();
+});
+
+Deno.test("actor_without_stats_should_return_zero_when_get_actor_health_called", () => {
+  const actor: tw.Actor = {
+    id: crypto.randomUUID(),
+    name: "Actor",
+    descriptions: [],
+    flags: [],
+    items: [],
+  };
+  const result = textworld.get_actor_health(actor);
+  assertEquals(result, 0);
+  textworld.reset_world();
+});
+
+Deno.test("can_check_to_see_if_players_health_is_full", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  const result = textworld.is_actor_health_full(player);
+  assertEquals(result, true);
+  textworld.reset_world();
+});
+
 Deno.test("cant_get_player_zone_if_player_zone_is_invalid", () => {
   const player = textworld.create_player(
     "Player",
@@ -227,6 +277,18 @@ Deno.test("can_add_quest_step_to_quest", () => {
   textworld.reset_world();
 });
 
+Deno.test("cant_get_quest_action_if_quest_doesnt_exist", () => {
+  const quest = textworld.get_quest_action("Quest1");
+  assertEquals(quest, null);
+  textworld.reset_world();
+});
+
+Deno.test("cant_get_quest_step_action_if_quest_step_doesnt_exist", () => {
+  const quest = textworld.get_quest_step_action("Quest1", "Step1");
+  assertEquals(quest, null);
+  textworld.reset_world();
+});
+
 Deno.test("can_add_quest_step_to_quest_with_action", () => {
   textworld.create_quest("Quest1", "A quest");
   textworld.add_quest_step("Quest1", "Step1", "A step", (_player) => {
@@ -244,6 +306,15 @@ Deno.test("can_create_room", () => {
   const zone = textworld.get_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   assertEquals(zone!.rooms.length, 1);
+  textworld.reset_world();
+});
+
+Deno.test("cant_create_room_without_a_zone", () => {
+  try {
+    textworld.create_room("Zone1", "Room1", "This is room 1");
+  } catch (e) {
+    assertEquals(e.message, "Zone Zone1 does not exist.");
+  }
   textworld.reset_world();
 });
 
@@ -2244,7 +2315,30 @@ Deno.test("player_can_look", () => {
   textworld.reset_world();
 });
 
+Deno.test("player_can_look_at_self_with_description", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  const result = textworld.look_self(player);
+  assertEquals(result, "You are a strong adventurer");
+});
+
 Deno.test("player_can_look_at_self_with_no_description", () => {
+  const player = textworld.create_player(
+    "Player",
+    "Player Description",
+    "Zone1",
+    "Room1",
+  );
+  player.descriptions = [];
+  const result = textworld.look_self(player);
+  assertEquals(result, "You don't really like looking at yourself.");
+});
+
+Deno.test("player_can_look_at_self_with_no_description_and_has_inventory", () => {
   const player = textworld.create_player(
     "Player",
     "Player Description",
@@ -2263,8 +2357,19 @@ Deno.test("player_can_look_at_self_without_inventory", () => {
     "Zone1",
     "Room1",
   );
-  const result = textworld.look(player, "look", "look", ["look", "self"]);
-  assertEquals(result.response, "You are a strong adventurer");
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_item("Diamond", "A diamond surely worth a fortune", false);
+  textworld.place_item("Zone1", "Room1", "Sword");
+  textworld.place_item("Zone1", "Room1", "Diamond");
+  textworld.take_all_items(player);
+  const result = textworld.look_self(player);
+  assertEquals(
+    result,
+    "You are a strong adventurer\n\nInventory: Sword (1), Diamond (1)",
+  );
+  textworld.reset_world();
 });
 
 Deno.test("player_can_look_at_self_with_inventory", () => {
@@ -2277,10 +2382,15 @@ Deno.test("player_can_look_at_self_with_inventory", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_item("Diamond", "A diamond surely worth a fortune", false);
   textworld.place_item("Zone1", "Room1", "Sword");
-  textworld.take_item(player, ["Sword"]);
+  textworld.place_item("Zone1", "Room1", "Diamond");
+  textworld.take_all_items(player);
   const result = textworld.look_self(player);
-  assertEquals(result, `You are a strong adventurer\n\nInventory: Sword (1)`);
+  assertEquals(
+    result,
+    `You are a strong adventurer\n\nInventory: Sword (1), Diamond (1)`,
+  );
   textworld.reset_world();
 });
 
@@ -3314,6 +3424,26 @@ Deno.test("can_set_players_room_to_zone_start", () => {
   textworld.reset_world();
 });
 
+Deno.test("cant_set_players_room_to_zone_start_if_there_is_no_starter_room_in_zone", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_zone("Zone2");
+  textworld.create_room("Zone1", "Room1", "This is room 1 in zone 1");
+  textworld.create_room("Zone2", "Room1", "This is room 1 in zone 2");
+  textworld.set_room_as_zone_starter("Zone1", "Room1");
+  try {
+    textworld.set_player_room_to_zone_start(player, "Zone2");
+  } catch (e) {
+    assertEquals(e.message, "Zone Zone2 does not have a starter room.");
+  }
+  textworld.reset_world();
+});
+
 Deno.test("can_set_players_room_to_another_room", () => {
   const player = textworld.create_player(
     "Player",
@@ -3328,6 +3458,23 @@ Deno.test("can_set_players_room_to_another_room", () => {
   textworld.set_player_room(player, "Zone1", "Room2");
   assertEquals(player.zone, "Zone1");
   assertEquals(player.room, "Room2");
+  textworld.reset_world();
+});
+
+Deno.test("can_set_players_zone_and_room", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room2",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_zone("Zone2");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_room("Zone2", "Room1", "This is room 1");
+  textworld.set_player_zone_and_room(player, "Zone2", "Room1");
+  assertEquals(player.zone, "Zone2");
+  assertEquals(player.room, "Room1");
   textworld.reset_world();
 });
 

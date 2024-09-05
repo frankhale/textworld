@@ -504,7 +504,7 @@ export class TextWorld {
       description = "You don't really like looking at yourself.";
     }
 
-    if (!player.items || player.items.length === 0) {
+    if (player.items.length === 0) {
       return description;
     }
 
