@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 4 September 2024
+// 5 September 2024
 
 import * as tw from "./textworld.ts";
 
@@ -150,6 +150,7 @@ class TextworldGame {
   }
 
   place_items() {
+    this.textworld.place_item("The Forest", "Open Field", "Gold coin purse");
     this.textworld.place_item("The Forest", "Open Field", "Sword");
     this.textworld.place_item("The Forest", "Open Field", "Potion");
     this.textworld.place_item("The Forest", "Stream", "Potion", 3);

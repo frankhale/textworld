@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 4 September 2024
+// 5 September 2024
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
