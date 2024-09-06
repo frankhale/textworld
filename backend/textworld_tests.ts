@@ -351,6 +351,17 @@ Deno.test("can_add_quest_step_to_quest_with_action", () => {
   textworld.reset_world();
 });
 
+Deno.test("cant_add_quest_step_to_quest_that_doesnt_exist", () => {
+  try {
+    textworld.add_quest_step("Quest1", "Step1", "A step", (_player) => {
+      return true;
+    });
+  } catch (e) {
+    assertEquals(e.message, "Quest Quest1 does not exist.");
+  }
+  textworld.reset_world();
+});
+
 Deno.test("cant_get_quest_step_action_that_doesnt_exist", () => {
   textworld.create_quest("Quest1", "A quest");
   textworld.add_quest_step("Quest1", "Step1", "A step", null);
@@ -2592,6 +2603,9 @@ Deno.test("player_can_pickup_quest", () => {
     "Room1",
   );
   textworld.create_quest("Quest1", "A quest");
+  textworld.add_quest_action("Quest1", "Start", (_player) => {
+    return "Hello, World!";
+  });
   textworld.pickup_quest(player, "Quest1");
   assertEquals(player.quests.length, 1);
   textworld.reset_world();
@@ -2804,6 +2818,18 @@ Deno.test("player_can_drop_quest", () => {
   textworld.pickup_quest(player, "Quest1");
   textworld.drop_quest(player, "Quest1");
   assertEquals(player.quests.length, 0);
+  textworld.reset_world();
+});
+
+Deno.test("player_cant_drop_quest_that_doesnt_exist", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  const result = textworld.drop_quest(player, "Quest1");
+  assertEquals(result, "The quest Quest1 does not exist.");
   textworld.reset_world();
 });
 

@@ -666,8 +666,10 @@ export class TextWorld {
     action: ActionDecision | null = null,
   ) {
     const quest = this.get_quest(quest_name);
+    if (!quest) {
+      throw new Error(`Quest ${quest_name} does not exist.`);
+    }
 
-    if (!quest) return;
     if (!quest.steps) quest.steps = [];
 
     const quest_step = {
@@ -711,8 +713,6 @@ export class TextWorld {
   }
 
   pickup_quest(player: Player, quest_name: string): string {
-    if (!player) return "The quest does not exist.";
-
     if (player.quests.length >= active_quest_limit) {
       return `You can't have more than ${active_quest_limit} active quests at a time.`;
     }
@@ -750,27 +750,21 @@ export class TextWorld {
     }
 
     player.quests = player.quests.filter((q) => q !== quest_name);
-    let result = `You dropped the quest ${quest.name}.`;
-
-    const quest_action = this.get_quest_action(quest.name);
-    if (quest_action?.end) {
-      const quest_end_result = quest_action.end(player);
-      if (quest_end_result) {
-        result += `\n\n${quest_end_result}`;
-      }
-    }
-
-    return result;
+    return `You dropped the quest ${quest.name}.`;
   }
 
   is_quest_complete(player: Player, quest_name: string): boolean {
     const quest = this.get_quest(quest_name);
-    if (!quest || !player || !player.quests.includes(quest.name)) {
+    if (!quest) {
+      throw new Error(`The quest ${quest_name} does not exist.`);
+    }
+
+    if (!player.quests.includes(quest.name)) {
       return false;
     }
 
     if (!quest.steps) {
-      return false;
+      throw new Error(`The quest ${quest_name} does not have any steps.`);
     }
 
     const allStepsComplete = quest.steps.every((step) => {
