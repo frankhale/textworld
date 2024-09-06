@@ -1,10 +1,12 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 5 September 2024
+// 6 September 2024
 
-import { assertEquals } from "https://deno.land/std@0.224.0/assert/assert_equals.ts";
-import { assertNotEquals } from "https://deno.land/std@0.224.0/assert/assert_not_equals.ts";
-import { assertStringIncludes } from "https://deno.land/std@0.224.0/assert/assert_string_includes.ts";
+import {
+  assertEquals,
+  assertNotEquals,
+  assertStringIncludes,
+} from "@std/assert";
 
 import * as tw from "./textworld.ts";
 
@@ -258,7 +260,7 @@ Deno.test("can_remove_player", () => {
   );
   textworld.remove_player(player);
   const p1 = textworld.get_player(player.id!);
-  assertEquals(p1, undefined);
+  assertEquals(p1, null);
   textworld.reset_world();
 });
 
@@ -2660,6 +2662,21 @@ Deno.test("player_cant_pickup_more_quests_than_allowed", () => {
     result,
     `You can't have more than ${tw.active_quest_limit} active quests at a time.`,
   );
+  textworld.reset_world();
+});
+
+Deno.test("player_cant_complete_quest_that_doesnt_exist", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  try {
+    textworld.is_quest_complete(player, "Quest1");
+  } catch (e) {
+    assertEquals(e.message, "The quest Quest1 does not exist.");
+  }
   textworld.reset_world();
 });
 

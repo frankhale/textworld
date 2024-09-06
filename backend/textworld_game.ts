@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 5 September 2024
+// 6 September 2024
 
 import * as tw from "./textworld.ts";
 

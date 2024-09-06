@@ -35,7 +35,9 @@
 
 class Lua {
   private lua_lib;
-  private function_ptrs: Deno.UnsafeCallback<{ parameters: ["buffer"]; result: "void"; }>[] = [];
+  private function_ptrs: Deno.UnsafeCallback<
+    { parameters: ["buffer"]; result: "void" }
+  >[] = [];
   private lua_instance_res: Deno.PointerValue<unknown>;
   private lua_instance: Deno.UnsafePointerView;
 
@@ -66,11 +68,13 @@ class Lua {
       lua_set_global_function: {
         parameters: ["pointer", "buffer", "pointer"],
         result: "void",
-      }
+      },
     });
 
     this.lua_instance_res = this.lua_lib.symbols.lua_create_instance();
-    this.lua_instance = new Deno.UnsafePointerView(this.lua_instance_res as Deno.PointerObject<unknown>);
+    this.lua_instance = new Deno.UnsafePointerView(
+      this.lua_instance_res as Deno.PointerObject<unknown>,
+    );
   }
 
   cstr(str: string) {
@@ -78,27 +82,44 @@ class Lua {
   }
 
   from_cstr(ptr: Deno.PointerValue<unknown>) {
-    const ptr_view = new Deno.UnsafePointerView(ptr as Deno.PointerObject<unknown>);
+    const ptr_view = new Deno.UnsafePointerView(
+      ptr as Deno.PointerObject<unknown>,
+    );
     const str = ptr_view.getCString();
     return str;
   }
 
   public set_global_str(name: string, value: string) {
-    this.lua_lib.symbols.lua_set_global_str(this.lua_instance.pointer, this.cstr(name), this.cstr(value));
+    this.lua_lib.symbols.lua_set_global_str(
+      this.lua_instance.pointer,
+      this.cstr(name),
+      this.cstr(value),
+    );
   }
 
   public set_global_f32(name: string, value: number) {
-    this.lua_lib.symbols.lua_set_global_f32(this.lua_instance.pointer, this.cstr(name), value);
+    this.lua_lib.symbols.lua_set_global_f32(
+      this.lua_instance.pointer,
+      this.cstr(name),
+      value,
+    );
   }
 
-  public set_global_function(name: string, fn: (msg: Deno.PointerValue<unknown>) => void) {
+  public set_global_function(
+    name: string,
+    fn: (msg: Deno.PointerValue<unknown>) => void,
+  ) {
     const fn_ptr = new Deno.UnsafeCallback({
       parameters: ["buffer"],
       result: "void",
     }, fn);
 
     this.function_ptrs.push(fn_ptr);
-    this.lua_lib.symbols.lua_set_global_function(this.lua_instance.pointer, this.cstr(name), fn_ptr.pointer);
+    this.lua_lib.symbols.lua_set_global_function(
+      this.lua_instance.pointer,
+      this.cstr(name),
+      fn_ptr.pointer,
+    );
   }
 
   public eval(code: string) {
@@ -115,17 +136,18 @@ class Lua {
   }
 }
 
-
 const lua = new Lua();
 lua.set_global_f32("life", 42);
 lua.set_global_str("foo", "bzzzzz!!!!");
 lua.set_global_function("baz", (msg: Deno.PointerValue<unknown>) => {
-  console.log(`Called from Lua/Rust but this is executing in Deno: ${lua.from_cstr(msg)}`);
+  console.log(
+    `Called from Lua/Rust but this is executing in Deno: ${lua.from_cstr(msg)}`,
+  );
 });
 lua.eval("print(life)");
 lua.eval("print(foo)");
 lua.eval("baz()");
-lua.eval("print('This is Lua code #1')")
-lua.eval("print('This is Lua code #2')")
-lua.eval("print('This is Lua code #3')")
+lua.eval("print('This is Lua code #1')");
+lua.eval("print('This is Lua code #2')");
+lua.eval("print('This is Lua code #3')");
 lua.close();

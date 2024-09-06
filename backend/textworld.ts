@@ -1,6 +1,12 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 5 September 2024
+// 6 September 2024
+
+// TODO:
+//
+// - Make room objects the same as NPCs and Mobs, you add them to the world and
+// then place them in a room.
+// - Document the codes
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -140,6 +146,7 @@ export interface World {
   recipes: Recipe[];
   npcs: Actor[];
   mobs: Actor[];
+  objects: Actor[];
   players: Player[];
   quests: Quest[];
   level_data: Level[];
@@ -413,6 +420,13 @@ export class TextWorld {
   // PLAYER //
   ////////////
 
+  /**
+   * Creates a new player and adds it to the world.
+   * @param {string} name
+   * @param {string} description
+   * @param {string} zone_name
+   * @param {string} room_name
+   */
   create_player(
     name: string,
     description: string,
@@ -460,6 +474,11 @@ export class TextWorld {
     return player;
   }
 
+  /**
+   * Resurrects an actor by setting their health to max.
+   * @param {Actor} actor
+   * @returns {CommandResponse}
+   */
   resurrect_actor(actor: Actor): CommandResponse {
     if (!actor.stats) {
       throw new Error("Actor does not have stats.");
@@ -474,20 +493,39 @@ export class TextWorld {
     };
   }
 
-  get_player(id: string) {
-    return this.world.players.find((player) => player.id === id);
+  /**
+   * Gets the player object from the world.
+   * @param {string} id
+   * @returns {Player | null}
+   */
+  get_player(id: string): Player | null {
+    return this.world.players.find((player) => player.id === id) || null;
   }
 
+  /**
+   * Removes a player from the world.
+   * @param {Player} player
+   */
   remove_player(player: Player) {
     this.world.players = this.world.players.filter(
       (p) => p.name !== player.name,
     );
   }
 
+  /**
+   * Gets players zone.
+   * @param {Player} player
+   * @returns {Zone | null}
+   */
   get_player_zone(player: Player): Zone | null {
     return this.world.zones.find((zone) => zone.name === player.zone) || null;
   }
 
+  /**
+   * Gets players room.
+   * @param {Player} player
+   * @returns {Room | null}
+   */
   get_player_room(player: Player): Room | null {
     const zone = this.get_player_zone(player);
     return (
@@ -497,6 +535,11 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Gets the players description.
+   * @param {Player} player
+   * @returns {string}
+   */
   look_self(player: Player): string {
     let description = this.get_description(player, player, "default");
 
@@ -515,6 +558,11 @@ export class TextWorld {
     return `${description}\n\nInventory: ${inventory}`;
   }
 
+  /**
+   * Sets the players room to the zone start room.
+   * @param {Player} player
+   * @param {string} zone_name
+   */
   set_player_room_to_zone_start(player: Player, zone_name: string) {
     const room = this.get_zone_starter_room(zone_name);
     if (room) {
@@ -879,17 +927,17 @@ export class TextWorld {
   }
 
   remove_npc(name: string) {
-    const lowerCaseName = name.toLowerCase();
+    const npcLowerCaseName = name.toLowerCase();
     this.world.zones.forEach((zone) => {
       zone.rooms.forEach((room) => {
         room.npcs = room.npcs.filter(
-          (npc) => npc.name.toLowerCase() !== lowerCaseName,
+          (npc) => npc.name.toLowerCase() !== npcLowerCaseName,
         );
       });
     });
 
     this.world.npcs = this.world.npcs.filter(
-      (npc) => npc.name.toLowerCase() !== lowerCaseName,
+      (npc) => npc.name.toLowerCase() !== npcLowerCaseName,
     );
   }
 
@@ -2641,6 +2689,7 @@ export class TextWorld {
       recipes: [],
       npcs: [],
       mobs: [],
+      objects: [],
       players: [],
       quests: [],
       level_data: this.calculate_level_experience(1, 1.2, 50),
