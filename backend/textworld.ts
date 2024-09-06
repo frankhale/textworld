@@ -593,7 +593,9 @@ export class TextWorld {
     });
   }
 
-  get_quest_action(quest_name: string) {
+  get_quest_action(
+    quest_name: string,
+  ): QuestAction | null {
     const quest = this.get_quest(quest_name);
     if (!quest) return null;
 
@@ -604,7 +606,10 @@ export class TextWorld {
     );
   }
 
-  get_quest_step_action(quest_name: string, name: string) {
+  get_quest_step_action(
+    quest_name: string,
+    name: string,
+  ): QuestStepAction | null {
     const quest_step = this.get_quest_step(quest_name, name);
     if (!quest_step) return null;
 
@@ -621,7 +626,9 @@ export class TextWorld {
     action: Action | null,
   ) {
     const quest = this.get_quest(quest_name);
-    if (!quest) return;
+    if (!quest) {
+      throw new Error(`Quest ${quest_name} does not exist.`);
+    }
 
     let quest_action = this.world_actions.quest_actions.find(
       (qa) => qa.name === quest_name,
@@ -634,6 +641,15 @@ export class TextWorld {
         end: null,
       };
       this.world_actions.quest_actions.push(quest_action);
+    } else {
+      if (
+        (quest_action.start && action_type === "Start") ||
+        (quest_action.end && action_type === "End")
+      ) {
+        throw new Error(
+          `Quest ${quest_name} already has an action for ${action_type}.`,
+        );
+      }
     }
 
     if (action_type === "Start") {

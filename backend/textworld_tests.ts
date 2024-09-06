@@ -277,6 +277,56 @@ Deno.test("can_add_quest_step_to_quest", () => {
   textworld.reset_world();
 });
 
+Deno.test("cant_add_quest_action_to_quest_that_doesnt_exist", () => {
+  try {
+    textworld.add_quest_action("Quest1", "Start", (_player) => {
+      return "Hello, World!";
+    });
+  } catch (e) {
+    assertEquals(e.message, "Quest Quest1 does not exist.");
+  }
+
+  textworld.reset_world();
+});
+
+Deno.test("can_add_quest_action_to_quest", () => {
+  textworld.create_quest("Quest1", "A quest");
+  textworld.add_quest_action("Quest1", "Start", (_player) => {
+    return "Hello, World!";
+  });
+  const quest_action = textworld.get_quest_action("Quest1");
+  assertNotEquals(quest_action, null);
+  textworld.reset_world();
+});
+
+Deno.test("cant_add_quest_action_to_quest_that_has_quest_actions", () => {
+  textworld.create_quest("Quest1", "A quest");
+  textworld.add_quest_action("Quest1", "Start", (_player) => {
+    return "Hello, World!";
+  });
+  textworld.add_quest_action("Quest1", "End", (_player) => {
+    return "Hello, World!";
+  });
+
+  try {
+    textworld.add_quest_action("Quest1", "Start", (_player) => {
+      return "Hello, World!";
+    });
+  } catch (e) {
+    assertEquals(e.message, "Quest Quest1 already has an action for Start.");
+  }
+
+  try {
+    textworld.add_quest_action("Quest1", "End", (_player) => {
+      return "Hello, World!";
+    });
+  } catch (e) {
+    assertEquals(e.message, "Quest Quest1 already has an action for End.");
+  }
+
+  textworld.reset_world();
+});
+
 Deno.test("cant_get_quest_action_if_quest_doesnt_exist", () => {
   const quest = textworld.get_quest_action("Quest1");
   assertEquals(quest, null);
@@ -298,6 +348,14 @@ Deno.test("can_add_quest_step_to_quest_with_action", () => {
   assertEquals(quest?.steps?.length, 1);
   const quest_step_action = textworld.get_quest_step_action("Quest1", "Step1");
   assertNotEquals(quest_step_action, null);
+  textworld.reset_world();
+});
+
+Deno.test("cant_get_quest_step_action_that_doesnt_exist", () => {
+  textworld.create_quest("Quest1", "A quest");
+  textworld.add_quest_step("Quest1", "Step1", "A step", null);
+  const quest_step_action = textworld.get_quest_step_action("Quest1", "Step1");
+  assertEquals(quest_step_action, null);
   textworld.reset_world();
 });
 
