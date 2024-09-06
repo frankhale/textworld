@@ -807,6 +807,10 @@ export class TextWorld {
       throw new Error(`The quest ${quest_name} does not exist.`);
     }
 
+    if (player.quests_completed.includes(quest.name)) {
+      return true;
+    }
+
     if (!player.quests.includes(quest.name)) {
       return false;
     }
@@ -820,8 +824,10 @@ export class TextWorld {
         quest.name,
         step.name,
       );
-      if (!step.complete && quest_step_action) {
-        return quest_step_action.action(player);
+      if (!step.complete) {
+        if (quest_step_action) {
+          return quest_step_action.action(player);
+        }
       }
       return step.complete;
     });
@@ -843,10 +849,10 @@ export class TextWorld {
     const quest = this.get_quest(quest_name);
 
     if (!quest) {
-      return `The quest ${quest_name} does not exist.`;
+      throw new Error(`The quest ${quest_name} does not exist.`);
     }
 
-    if (!player || !player.quests.includes(quest.name)) {
+    if (!player.quests.includes(quest.name)) {
       return `You don't have the quest ${quest_name}.`;
     }
 

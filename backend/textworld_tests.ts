@@ -2680,6 +2680,36 @@ Deno.test("player_cant_complete_quest_that_doesnt_exist", () => {
   textworld.reset_world();
 });
 
+Deno.test("player_cant_complete_quest_that_player_doesnt_have", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_quest("Quest1", "A quest");
+  const result = textworld.is_quest_complete(player, "Quest1");
+  assertEquals(result, false);
+  textworld.reset_world();
+});
+
+Deno.test("player_cant_complete_quest_that_has_no_steps", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_quest("Quest1", "A quest");
+  textworld.pickup_quest(player, "Quest1");
+  try {
+    textworld.is_quest_complete(player, "Quest1");
+  } catch (e) {
+    assertEquals(e.message, "The quest Quest1 does not have any steps.");
+  }
+  textworld.reset_world();
+});
+
 Deno.test("player_can_complete_quest", () => {
   const player = textworld.create_player(
     "Player",
@@ -2700,6 +2730,7 @@ Deno.test("player_can_complete_quest", () => {
       if (player.items.some((item) => item.name === "Magic Ring")) {
         const quest_step = textworld.get_quest_step("Quest1", "Step1");
         if (quest_step) {
+          quest_step.complete = true;
           return true;
         }
       }
@@ -2711,6 +2742,8 @@ Deno.test("player_can_complete_quest", () => {
   const result = textworld.is_quest_complete(player, "Quest1");
   assertEquals(result, true);
   assertEquals(player.quests.length, 0);
+  const resul2 = textworld.is_quest_complete(player, "Quest1");
+  assertEquals(resul2, true);
   textworld.reset_world();
 });
 
@@ -2731,6 +2764,38 @@ Deno.test("player_can_get_quest_progress", () => {
   textworld.pickup_quest(player, "Quest1");
   const result = textworld.get_quest_progress(player, "Quest1");
   assertEquals(result, "Quest: Quest1\n\nA quest\n\n[x] Step1\n[ ] Step2\n");
+  const result2 = textworld.is_quest_complete(player, "Quest1");
+  assertEquals(result2, false);
+  textworld.reset_world();
+});
+
+Deno.test("player_cant_get_quest_progress_for_a_quest_that_doesnt_exist", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+
+  try {
+    textworld.get_quest_progress(player, "Quest1");
+  } catch (e) {
+    assertEquals(e.message, "The quest Quest1 does not exist.");
+  }
+
+  textworld.reset_world();
+});
+
+Deno.test("player_cant_get_quest_progress_for_a_quest_they_dont_have", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_quest("Quest1", "A quest");
+  const result = textworld.get_quest_progress(player, "Quest1");
+  assertEquals(result, "You don't have the quest Quest1.");
   textworld.reset_world();
 });
 
