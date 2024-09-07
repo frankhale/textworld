@@ -13,26 +13,23 @@ was created to play in. This will change as time moves on.
 
 ## Features
 
-- [x] Command line interface
+- [x] Web UI (Angular / Websockets)
 - [x] Parser
 - [x] Rooms/Zones
 - [x] Room/Zone movement
 - [x] Items (pickup, use, drop)
 - [x] Objects (look, examine)
 - [x] Crafting
-- [x] NPCs
-- [x] NPC interaction
+- [x] NPCs and interaction
 - [x] Vendors
 - [x] Quests
 - [x] Mapping
 - [x] Basic command help
-- [x] Combat
-- [x] Exposed through WebSocket server
-- [x] Exposed through command line interface
-- [x] Web UI
 - [x] Spawn Locations
 - [x] Save/Load (uses Deno KV)
+- [x] Combat (very basic)
 - [ ] Leveling
+- [ ] Multiplayer
 
 ## Run
 
@@ -66,4 +63,4 @@ Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 
 ## Date
 
-6 September 2024
+7 September 2024

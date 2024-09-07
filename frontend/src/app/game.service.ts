@@ -1,10 +1,12 @@
 import { Injectable, signal } from "@angular/core";
 import { GameMessage } from "./models/game-message";
+import { Player } from "./models/player";
 
 @Injectable({
   providedIn: "root",
 })
 export class GameService {
+  private player: Player | null = null;
   private socket: WebSocket = new WebSocket("ws://localhost:8080");
   public messageHistory$ = signal<GameMessage[]>([]);
   public message$ = signal({} as GameMessage);
@@ -19,6 +21,11 @@ export class GameService {
       this.connected = true;
       console.log("WebSocket message received:", event);
       const message: GameMessage = JSON.parse(event.data);
+
+      if (!this.player) {
+        this.player = message.player;
+      }
+
       this.messageHistory$.set([...this.messageHistory$(), message]);
       this.message$.set(message);
     });
@@ -40,6 +47,9 @@ export class GameService {
   }
 
   public send(message: string): void {
+    // TODO: Need to send an object here that contains the player Id and the
+    // message
+
     if (this.socket && this.socket.readyState === this.socket.OPEN) {
       this.socket.send(message);
     } else {

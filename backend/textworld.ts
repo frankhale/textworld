@@ -1,12 +1,15 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 6 September 2024
+// 7 September 2024
 
 // TODO:
 //
 // - Make room objects the same as NPCs and Mobs, you add them to the world and
 // then place them in a room.
-// - Document the codes
+// - Document the code
+// - Add rest of the support for multiplayer
+// - Rooms now have a players array, this is for multiplayer support and will
+// need to be populated when players switch rooms or join the game.
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -41,6 +44,11 @@ export interface Entity extends Id {
 
 export interface Parent {
   name: string;
+}
+
+export interface GameMessage {
+  player: Player;
+  command: string;
 }
 
 export interface Storage {
@@ -133,6 +141,7 @@ export interface Room extends Entity, Storage {
   exits: Exit[];
   mobs: Actor[];
   objects: Actor[];
+  players: Player[];
 }
 
 export interface Zone {
@@ -2182,6 +2191,7 @@ export class TextWorld {
       mobs: [],
       objects: [],
       exits: [],
+      players: [],
     });
 
     // Add the action to the room actions if provided
@@ -3002,5 +3012,66 @@ export class TextWorld {
     }
 
     return JSON.stringify({ response: "I don't understand that command." });
+  }
+
+  /**
+   * Starts up a web socket server to process game commands.
+   *
+   * Passing player here is temporary and will change once we implement
+   * multiplayer.
+   *
+   * @param {number} port
+   * @param {Player} player
+   */
+  run_websocket_server(port: number, player: Player) {
+    const process_request = async (input = "") => {
+      const result: CommandResponse = JSON.parse(
+        await this.parse_command(player, input),
+      );
+
+      const final_response = {
+        id: crypto.randomUUID(),
+        input,
+        // FIXME: In order to support multiplayer we need to do something other
+        // than hardcoding the player here.
+        player: player,
+        result,
+        responseLines: result.response.split("\n"),
+        map: this.plot_room_map(player, 5).response,
+      };
+
+      console.log("Response: ", result.response);
+
+      return final_response;
+    };
+
+    const ac = new AbortController();
+    const server = Deno.serve(
+      {
+        port,
+        signal: ac.signal,
+      },
+      (_req: Request) => {
+        const { socket, response } = Deno.upgradeWebSocket(_req);
+        socket.onopen = async () => {
+          socket.send(JSON.stringify(await process_request()));
+        };
+        socket.onmessage = async (e) => {
+          if (e.data === "quit") {
+            console.log("Shutting down server...");
+            socket.close();
+            ac.abort();
+          } else {
+            socket.send(JSON.stringify(await process_request(e.data)));
+          }
+        };
+        return response;
+      },
+    );
+
+    server.finished.then(() => {
+      console.log("Server has been shutdown!");
+      Deno.exit();
+    });
   }
 }

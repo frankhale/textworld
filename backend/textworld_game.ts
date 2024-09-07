@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 6 September 2024
+// 7 September 2024
 
 import * as tw from "./textworld.ts";
 
@@ -207,56 +207,6 @@ function create_spawn_locations() {
   textworld.set_spawn_location_start("Gold purse spawner");
 }
 
-function run_web_game_loop(port: number) {
-  const process_request = async (input = "") => {
-    const result: tw.CommandResponse = JSON.parse(
-      await textworld.parse_command(player, input),
-    );
-
-    const final_response = {
-      id: crypto.randomUUID(),
-      input,
-      player: player,
-      result,
-      responseLines: result.response.split("\n"),
-      map: textworld.plot_room_map(player, 5).response,
-    };
-
-    console.log("Response: ", result.response);
-
-    return final_response;
-  };
-
-  const ac = new AbortController();
-  const server = Deno.serve(
-    {
-      port,
-      signal: ac.signal,
-    },
-    (_req: Request) => {
-      const { socket, response } = Deno.upgradeWebSocket(_req);
-      socket.onopen = async () => {
-        socket.send(JSON.stringify(await process_request()));
-      };
-      socket.onmessage = async (e) => {
-        if (e.data === "quit") {
-          console.log("Shutting down server...");
-          socket.close();
-          ac.abort();
-        } else {
-          socket.send(JSON.stringify(await process_request(e.data)));
-        }
-      };
-      return response;
-    },
-  );
-
-  server.finished.then(() => {
-    console.log("Server has been shutdown!");
-    Deno.exit();
-  });
-}
-
 create_the_forest_zone();
 create_log_cabin_zone();
 create_items();
@@ -267,4 +217,4 @@ create_mobs();
 place_mobs();
 create_spawn_locations();
 
-run_web_game_loop(8080);
+textworld.run_websocket_server(8080, player);

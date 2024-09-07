@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 6 September 2024
+// 7 September 2024
 
 import {
   assertEquals,
