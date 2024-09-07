@@ -6,7 +6,6 @@
 //
 // - Make room objects the same as NPCs and Mobs, you add them to the world and
 // then place them in a room.
-// - Document the code
 // - Add rest of the support for multiplayer
 // - Rooms now have a players array, this is for multiplayer support and will
 // need to be populated when players switch rooms or join the game.
