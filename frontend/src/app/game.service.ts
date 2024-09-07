@@ -46,12 +46,14 @@ export class GameService {
     });
   }
 
-  public send(message: string): void {
-    // TODO: Need to send an object here that contains the player Id and the
-    // message
-
+  public send(command: string): void {
     if (this.socket && this.socket.readyState === this.socket.OPEN) {
-      this.socket.send(message);
+      this.socket.send(
+        JSON.stringify({
+          player_id: this.player?.id,
+          command: command,
+        }),
+      );
     } else {
       console.error("Socket is not open. Cannot send message.");
     }

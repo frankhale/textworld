@@ -5,12 +5,6 @@
 import * as tw from "./textworld.ts";
 
 const textworld = new tw.TextWorld();
-const player = textworld.create_player(
-  "player",
-  "You are a curious person who is looking for adventure.",
-  "The Forest",
-  "Open Field",
-);
 
 function create_the_forest_zone() {
   textworld.create_zone("The Forest");
@@ -204,7 +198,7 @@ function create_spawn_locations() {
       }
     },
   );
-  textworld.set_spawn_location_start("Gold purse spawner");
+  textworld.start_spawn_location("Gold purse spawner");
 }
 
 create_the_forest_zone();
@@ -217,4 +211,11 @@ create_mobs();
 place_mobs();
 create_spawn_locations();
 
-textworld.run_websocket_server(8080, player);
+// FIXME: This is temporary until full multiplayer is supported.
+const player = textworld.create_player(
+  "player",
+  "You are a curious person who is looking for adventure.",
+  "The Forest",
+  "Open Field",
+);
+textworld.run_websocket_server(8080, player.id);

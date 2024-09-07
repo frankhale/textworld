@@ -10,6 +10,8 @@
 // - Add rest of the support for multiplayer
 // - Rooms now have a players array, this is for multiplayer support and will
 // need to be populated when players switch rooms or join the game.
+// - Add support for instancing (items, npcs, mobs, etc...) to support
+// multiplayer
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -23,6 +25,7 @@ export type CommandParserAction = (
   command: string,
   args: string[],
 ) => string | Promise<string>;
+export type SpawnLocationAction = (spawn_location: SpawnLocation) => void;
 
 ///////////////////////////////
 // CORE GAME DATA STRUCTURES //
@@ -47,7 +50,7 @@ export interface Parent {
 }
 
 export interface GameMessage {
-  player: Player;
+  player_id: string;
   command: string;
 }
 
@@ -319,7 +322,7 @@ export class TextWorld {
       "Show an item in your inventory.",
       ["show"],
       (player, _input, _command, args) =>
-        JSON.stringify(this.show_item(player, args)),
+        JSON.stringify(this.show(player, args)),
     ),
     this.create_command_action(
       "talk to action",
@@ -431,6 +434,7 @@ export class TextWorld {
 
   /**
    * Creates a new player and adds it to the world.
+   *
    * @param {string} name
    * @param {string} description
    * @param {string} zone_name
@@ -485,6 +489,7 @@ export class TextWorld {
 
   /**
    * Resurrects an actor by setting their health to max.
+   *
    * @param {Actor} actor
    * @returns {CommandResponse}
    */
@@ -504,6 +509,7 @@ export class TextWorld {
 
   /**
    * Gets the player object from the world.
+   *
    * @param {string} id
    * @returns {Player | null}
    */
@@ -513,6 +519,7 @@ export class TextWorld {
 
   /**
    * Removes a player from the world.
+   *
    * @param {Player} player
    */
   remove_player(player: Player) {
@@ -523,6 +530,7 @@ export class TextWorld {
 
   /**
    * Gets players zone.
+   *
    * @param {Player} player
    * @returns {Zone | null}
    */
@@ -532,6 +540,7 @@ export class TextWorld {
 
   /**
    * Gets players room.
+   *
    * @param {Player} player
    * @returns {Room | null}
    */
@@ -546,6 +555,7 @@ export class TextWorld {
 
   /**
    * Gets the players description.
+   *
    * @param {Player} player
    * @returns {string}
    */
@@ -569,6 +579,7 @@ export class TextWorld {
 
   /**
    * Sets the players room to the zone start room.
+   *
    * @param {Player} player
    * @param {string} zone_name
    */
@@ -584,6 +595,7 @@ export class TextWorld {
 
   /**
    * Sets the players zone and room.
+   *
    * @param {Player} player
    * @param {string} zone_name
    * @param {string} room_name
@@ -607,6 +619,7 @@ export class TextWorld {
 
   /**
    * Sets an actors health.
+   *
    * @param {Actor} actor
    * @param {number} health
    */
@@ -619,18 +632,35 @@ export class TextWorld {
     }
   }
 
+  /**
+   * Increase an actors max health.
+   *
+   * @param {Actor} actor
+   * @param {number} amount
+   */
   increase_actor_max_heath(actor: Actor, amount: number) {
     if (actor.stats) {
       actor.stats.health.max += amount;
     }
   }
 
+  /**
+   * Sets an actors max health.
+   *
+   * @param {Actor} actor
+   */
   set_actor_health_to_max(actor: Actor) {
     if (actor.stats) {
       actor.stats.health.current = actor.stats.health.max;
     }
   }
 
+  /**
+   * Adds health to an actor.
+   *
+   * @param {Actor} actor
+   * @param {number} amount
+   */
   add_to_actor_health(actor: Actor, amount: number) {
     if (actor.stats) {
       actor.stats.health.current = Math.min(
@@ -640,10 +670,22 @@ export class TextWorld {
     }
   }
 
-  is_actor_health_full(actor: Actor) {
+  /**
+   * Checks if an actor's health is full.
+   *
+   * @param {Actor} actor
+   * @returns {boolean}
+   */
+  is_actor_health_full(actor: Actor): boolean {
     return actor.stats?.health.current === actor.stats?.health.max;
   }
 
+  /**
+   * Gets an actors health.
+   *
+   * @param actor
+   * @returns {number}
+   */
   get_actor_health(actor: Actor): number {
     return actor.stats?.health.current ?? 0;
   }
@@ -652,6 +694,12 @@ export class TextWorld {
   // QUEST //
   ///////////
 
+  /**
+   * Creates a new quest and adds it to the world.
+   *
+   * @param {string} name
+   * @param {string} description
+   */
   create_quest(name: string, description: string) {
     this.world.quests.push({
       id: crypto.randomUUID(),
@@ -662,6 +710,12 @@ export class TextWorld {
     });
   }
 
+  /**
+   * Gets a quest action.
+   *
+   * @param {string} quest_name
+   * @returns {QuestAction | null}
+   */
   get_quest_action(
     quest_name: string,
   ): QuestAction | null {
@@ -675,6 +729,13 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Gets a quest step action.
+   *
+   * @param {string} quest_name
+   * @param {string} name
+   * @returns {QuestStepAction | null}
+   */
   get_quest_step_action(
     quest_name: string,
     name: string,
@@ -689,6 +750,14 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Adds an action to a quest.
+   *
+   * @param {string} quest_name
+   * @param {QuestActionType} action_type
+   * @param {Action | null} action
+   * @throws {Error}
+   */
   add_quest_action(
     quest_name: string,
     action_type: QuestActionType,
@@ -728,6 +797,14 @@ export class TextWorld {
     }
   }
 
+  /**
+   * Adds a step to a quest.
+   *
+   * @param {string} quest_name
+   * @param {string} name
+   * @param {string} description
+   * @param {ActionDecision | null} action
+   */
   add_quest_step(
     quest_name: string,
     name: string,
@@ -764,6 +841,12 @@ export class TextWorld {
     }
   }
 
+  /**
+   * Gets a quest.
+   *
+   * @param {string} name
+   * @returns {Quest | null}
+   */
   get_quest(name: string): Quest | null {
     return (
       this.world.quests.find(
@@ -772,6 +855,13 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Gets a quest step.
+   *
+   * @param {string} quest_name
+   * @param {string} name
+   * @returns {QuestStep | null}
+   */
   get_quest_step(quest_name: string, name: string): QuestStep | null {
     const quest = this.get_quest(quest_name);
     return (
@@ -781,6 +871,13 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Pickup a quest.
+   *
+   * @param {Player} player
+   * @param {string} quest_name
+   * @returns {string}
+   */
   pickup_quest(player: Player, quest_name: string): string {
     if (player.quests.length >= active_quest_limit) {
       return `You can't have more than ${active_quest_limit} active quests at a time.`;
@@ -807,6 +904,13 @@ export class TextWorld {
     return result;
   }
 
+  /**
+   * Drop a quest.
+   *
+   * @param {Player} player
+   * @param {string} quest_name
+   * @returns {string}
+   */
   drop_quest(player: Player, quest_name: string): string {
     const quest = this.get_quest(quest_name);
 
@@ -822,6 +926,14 @@ export class TextWorld {
     return `You dropped the quest ${quest.name}.`;
   }
 
+  /**
+   * Check if a quest is complete.
+   *
+   * @param {Player} player
+   * @param {string} quest_name
+   * @returns {boolean}
+   * @throws {Error}
+   */
   is_quest_complete(player: Player, quest_name: string): boolean {
     const quest = this.get_quest(quest_name);
     if (!quest) {
@@ -866,6 +978,14 @@ export class TextWorld {
     return allStepsComplete;
   }
 
+  /**
+   * Get quest progress.
+   *
+   * @param {Player} player
+   * @param {Quest} quest_name
+   * @returns {string}
+   * @throws {Error}
+   */
   get_quest_progress(player: Player, quest_name: string): string {
     const quest = this.get_quest(quest_name);
 
@@ -901,6 +1021,12 @@ export class TextWorld {
     return result;
   }
 
+  /**
+   * Shows all quests player is currently on.
+   *
+   * @param {Player} player
+   * @returns {CommandResponse}
+   */
   show_quests(player: Player): CommandResponse {
     if (!player || player.quests.length === 0) {
       return {
@@ -932,6 +1058,12 @@ export class TextWorld {
   // NPC //
   /////////
 
+  /**
+   * Creates a new NPC and adds it to the world.
+   *
+   * @param {string} name
+   * @param {string} description
+   */
   create_npc(name: string, description: string) {
     this.world.npcs.push({
       id: crypto.randomUUID(),
@@ -945,6 +1077,11 @@ export class TextWorld {
     });
   }
 
+  /**
+   * Removes a new NPC from the world.
+   *
+   * @param {string} name
+   */
   remove_npc(name: string) {
     const npcLowerCaseName = name.toLowerCase();
     this.world.zones.forEach((zone) => {
@@ -960,6 +1097,12 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Gets an NPC.
+   *
+   * @param {string} name
+   * @returns {Actor | null}
+   */
   get_npc(name: string): Actor | null {
     return (
       this.world.npcs.find(
@@ -968,6 +1111,13 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Places an NPC in a zone and room.
+   *
+   * @param {string} zone_name
+   * @param {string} in_room_name
+   * @param {string} npc_name
+   */
   place_npc(zone_name: string, in_room_name: string, npc_name: string) {
     const in_room = this.get_room(zone_name, in_room_name);
     const npc = this.get_npc(npc_name);
@@ -981,6 +1131,14 @@ export class TextWorld {
     in_room.npcs.push(npc);
   }
 
+  /**
+   * Gets an NPC in a room.
+   *
+   * @param {string} zone_name
+   * @param {string} room_name
+   * @param {string} npc_name
+   * @returns {Actor | null}
+   */
   get_room_npc(
     zone_name: string,
     room_name: string,
@@ -1001,6 +1159,15 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Talk to an NPC.
+   *
+   * @param player
+   * @param input
+   * @param command
+   * @param args
+   * @returns {CommandResponse}
+   */
   talk_to_npc(
     player: Player,
     input: string,
@@ -1074,6 +1241,13 @@ export class TextWorld {
   // VENDOR //
   ////////////
 
+  /**
+   * Creates a new vendor and adds it to the world.
+   *
+   * @param {string} name
+   * @param {string} description
+   * @param {VendorItem[]} vendor_items
+   */
   create_vendor(name: string, description: string, vendor_items: VendorItem[]) {
     const vendor = {
       id: crypto.randomUUID(),
@@ -1127,6 +1301,14 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Purchase an item from a vendor.
+   *
+   * @param {Player} player
+   * @param {string} vendor_name
+   * @param {string} item_name
+   * @returns {string}
+   */
   purchase_from_vendor(
     player: Player,
     vendor_name: string,
@@ -1170,6 +1352,14 @@ export class TextWorld {
   // ITEM //
   //////////
 
+  /**
+   * Creates a new item and adds it to the world.
+   *
+   * @param {string} name
+   * @param {string} description
+   * @param {boolean} usable
+   * @param {Action | null} action
+   */
   create_item(
     name: string,
     description: string,
@@ -1193,6 +1383,12 @@ export class TextWorld {
     }
   }
 
+  /**
+   * Adds an item to a room that can be picked up by a player.
+   *
+   * @param player
+   * @param item_drops
+   */
   add_item_drops_to_room(player: Player, item_drops: Drop[]) {
     const current_room = this.get_player_room(player);
     if (!current_room) return;
@@ -1210,6 +1406,14 @@ export class TextWorld {
     });
   }
 
+  /**
+   * Gets an item in a room.
+   *
+   * @param {string} zone_name
+   * @param {string} room_name
+   * @param {string} item_name
+   * @returns {Drop | null}
+   */
   get_room_item(
     zone_name: string,
     room_name: string,
@@ -1230,6 +1434,14 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Places an item in a room.
+   *
+   * @param {string} zone_name
+   * @param {string} in_room_name
+   * @param {string} item_name
+   * @param {number} quantity
+   */
   place_item(
     zone_name: string,
     in_room_name: string,
@@ -1265,6 +1477,12 @@ export class TextWorld {
     }
   }
 
+  /**
+   * Gets an item.
+   *
+   * @param {string} name
+   * @returns {Item | null}
+   */
   get_item(name: string): Item | null {
     return (
       this.world.items.find(
@@ -1273,6 +1491,12 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Gets an item action.
+   *
+   * @param {string} name
+   * @returns {ItemAction | null}
+   */
   get_item_action(name: string): ItemAction | null {
     const item = this.get_item(name);
     if (!item) return null;
@@ -1285,12 +1509,27 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Checks if a player has an item.
+   *
+   * @param {Player} player
+   * @param {string} item_name
+   * @returns {boolean}
+   */
   has_item(player: Player, item_name: string): boolean {
     return player.items.some(
       (item) => item.name.toLowerCase() === item_name.toLowerCase(),
     );
   }
 
+  /**
+   * Checks if a player has an item in a certain quantity.
+   *
+   * @param {Player} player
+   * @param {string} item_name
+   * @param {number} quantity
+   * @returns {boolean}
+   */
   has_item_in_quantity(
     player: Player,
     item_name: string,
@@ -1303,6 +1542,13 @@ export class TextWorld {
     return item ? item.quantity >= quantity : false;
   }
 
+  /**
+   * Takes an item from a room.
+   *
+   * @param Playerplayer
+   * @param {string[]} args
+   * @returns {CommandResponse}
+   */
   take_item(player: Player, args: string[]): CommandResponse {
     const zone = this.get_player_zone(player);
     if (!zone) {
@@ -1359,6 +1605,12 @@ export class TextWorld {
     };
   }
 
+  /**
+   * Takes all items from a room.
+   *
+   * @param {Player} player
+   * @returns {CommandResponse}
+   */
   take_all_items(player: Player): CommandResponse {
     const current_room = this.get_player_zone(player)?.rooms.find(
       (room) => room.name === player.room,
@@ -1389,6 +1641,13 @@ export class TextWorld {
     };
   }
 
+  /**
+   * Uses an item.
+   *
+   * @param {Player} player
+   * @param {string[]} args
+   * @returns {CommandResponse}
+   */
   use_item(player: Player, args: string[]): CommandResponse {
     const possible_items = this.generate_combinations(args);
     const player_item = player.items.find((item) =>
@@ -1438,6 +1697,12 @@ export class TextWorld {
     };
   }
 
+  /**
+   * Removes an item from a player.
+   *
+   * @param {Player} player
+   * @param {string} item_name
+   */
   remove_player_item(player: Player, item_name: string) {
     const item_index = player.items.findIndex(
       (item) => item.name.toLowerCase() === item_name.toLowerCase(),
@@ -1452,12 +1717,24 @@ export class TextWorld {
     }
   }
 
+  /**
+   * Removes an item from the world.
+   *
+   * @param {string} item_name
+   */
   remove_item(item_name: string) {
     this.world.items = this.world.items.filter(
       (item) => item.name.toLowerCase() !== item_name.toLowerCase(),
     );
   }
 
+  /**
+   * Drops an item in a room.
+   *
+   * @param {Player} player
+   * @param {string[]} args
+   * @returns {CommandResponse}
+   */
   drop_item(player: Player, args: string[]): CommandResponse {
     const zone = this.get_player_zone(player);
     if (!zone) {
@@ -1508,6 +1785,12 @@ export class TextWorld {
     };
   }
 
+  /**
+   * Drops all items in a room.
+   *
+   * @param {Player} player
+   * @returns {CommandResponse}
+   */
   drop_all_items(player: Player): CommandResponse {
     const current_room = this.get_player_zone(player)?.rooms.find(
       (room) => room.name.toLowerCase() === player.room.toLowerCase(),
@@ -1527,19 +1810,28 @@ export class TextWorld {
     };
   }
 
-  show_item(player: Player, args: string[]): CommandResponse {
-    const possible_items = this.generate_combinations(args);
+  /**
+   * Shows items or quests depending on the arguments passed.
+   *
+   * @example show quests, show all, show item_name
+   *
+   * @param {Player} player
+   * @param {string[]} args
+   * @returns {CommandResponse}
+   */
+  show(player: Player, args: string[]): CommandResponse {
+    const possible_commands = this.generate_combinations(args);
 
-    if (possible_items.includes("all")) {
-      return this.show_all_items(player);
-    }
-
-    if (possible_items.includes("quests")) {
+    if (possible_commands.includes("quests")) {
       return this.show_quests(player);
     }
 
+    if (possible_commands.includes("all")) {
+      return this.show_all_items(player);
+    }
+
     const player_item = player.items.find((item) =>
-      possible_items.some(
+      possible_commands.some(
         (possible_item) =>
           item.name.toLowerCase() === possible_item.toLowerCase(),
       )
@@ -1567,6 +1859,12 @@ export class TextWorld {
     };
   }
 
+  /**
+   * Shows all items a player has.
+   *
+   * @param {Player} player
+   * @returns {CommandResponse}
+   */
   show_all_items(player: Player): CommandResponse {
     if (player.items.length === 0) {
       return {
@@ -1603,6 +1901,14 @@ export class TextWorld {
   // MOB //
   /////////
 
+  /**
+   * Creates a new mob and adds it to the world.
+   *
+   * @param {string} name
+   * @param {string} description
+   * @param {string} stats
+   * @param {Drop[]} items
+   */
   create_mob(name: string, description: string, stats: Stats, items: Drop[]) {
     const mob: Actor = {
       id: crypto.randomUUID(),
@@ -1617,6 +1923,12 @@ export class TextWorld {
     return mob;
   }
 
+  /**
+   * Gets a mob.
+   *
+   * @param {string} name
+   * @returns {Actor | null}
+   */
   get_mob(name: string): Actor | null {
     return (
       this.world.mobs.find(
@@ -1625,6 +1937,14 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Places a mob in a zone and room.
+   *
+   * @param {string} zone_name
+   * @param {string} in_room_name
+   * @param {string} mob_name
+   * @throws {Error}
+   */
   place_mob(zone_name: string, in_room_name: string, mob_name: string) {
     const in_room = this.get_room(zone_name, in_room_name);
     const mob = this.get_mob(mob_name);
@@ -1642,6 +1962,14 @@ export class TextWorld {
     in_room.mobs.push(structuredClone(mob));
   }
 
+  /**
+   * Gets a mob in a room.
+   *
+   * @param {string} zone_name
+   * @param {string} room_name
+   * @param {string} mob_name
+   * @returns {Actor | null}
+   */
   get_room_mob(
     zone_name: string,
     room_name: string,
@@ -1662,6 +1990,13 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Performs an attack between two actors.
+   *
+   * @param {Actor} attacker
+   * @param {Actor} defender
+   * @returns {string}
+   */
   perform_attack(attacker: Actor, defender: Actor): string {
     if (!attacker.stats || !defender.stats) {
       return "Cannot perform attack.";
@@ -1692,10 +2027,19 @@ export class TextWorld {
     return result;
   }
 
+  /**
+   * Initiates an attack between a player and a mob.
+   *
+   * @param {Player} player
+   * @param {string[]} args
+   * @param {boolean} should_mob_attack
+   * @returns {CommandResponse}
+   * @throws {Error}
+   */
   initiate_attack(
     player: Player,
     args: string[],
-    should_mob_attack = false,
+    should_mob_attack: boolean = false,
   ): CommandResponse {
     const zone = this.get_player_zone(player);
     if (!zone) {
@@ -1754,6 +2098,11 @@ export class TextWorld {
   // ZONE //
   //////////
 
+  /**
+   * Creates a new zone and adds it to the world.
+   *
+   * @param {string} name
+   */
   create_zone(name: string) {
     this.world.zones.push({
       name,
@@ -1761,10 +2110,21 @@ export class TextWorld {
     });
   }
 
+  /**
+   * Removes a zone from the world.
+   *
+   * @param {string} name
+   */
   remove_zone(name: string) {
     this.world.zones = this.world.zones.filter((zone) => zone.name !== name);
   }
 
+  /**
+   * Gets a zone.
+   *
+   * @param {string} zone_name
+   * @returns {Zone | null}
+   */
   get_zone(zone_name: string): Zone | null {
     return (
       this.world.zones.find(
@@ -1777,6 +2137,15 @@ export class TextWorld {
   // ROOM //
   //////////
 
+  /**
+   * Adds a description to a room.
+   *
+   * @param {string} zone_name
+   * @param {string} room_name
+   * @param {string} flag
+   * @param {string} description
+   * @throws {Error}
+   */
   add_room_description(
     zone_name: string,
     room_name: string,
@@ -1791,6 +2160,12 @@ export class TextWorld {
     }
   }
 
+  /**
+   * Removes room from a zone.
+   *
+   * @param {string} zone_name
+   * @param {string} room_name
+   */
   remove_room(zone_name: string, room_name: string) {
     const zone = this.get_zone(zone_name);
     if (zone) {
@@ -1798,7 +2173,17 @@ export class TextWorld {
     }
   }
 
-  get_room_command_action(zone_name: string, room_name: string) {
+  /**
+   * Gets a room command action.
+   *
+   * @param {string} zone_name
+   * @param {string} room_name
+   * @returns {RoomCommandActions | null}
+   */
+  get_room_command_action(
+    zone_name: string,
+    room_name: string,
+  ): RoomCommandActions | null {
     const room = this.get_room(zone_name, room_name);
     if (!room) return null;
 
@@ -1809,6 +2194,16 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Adds a command action to a room.
+   *
+   * @param {string} zone_name
+   * @param {string} room_name
+   * @param {string} name
+   * @param {string} description
+   * @param {string[]} synonyms
+   * @param {CommandParserAction} action
+   */
   add_room_command_action(
     zone_name: string,
     room_name: string,
@@ -1845,6 +2240,13 @@ export class TextWorld {
     }
   }
 
+  /**
+   * Removes a command action from a room.
+   *
+   * @param {string} zone_name
+   * @param {string} room_name
+   * @param {string} action_name
+   */
   remove_room_command_action(
     zone_name: string,
     room_name: string,
@@ -1862,6 +2264,14 @@ export class TextWorld {
     }
   }
 
+  /**
+   * Checks if a room has a command action.
+   *
+   * @param {string} zone_name
+   * @param {string} room_name
+   * @param {string} action_name
+   * @returns {boolean}
+   */
   has_room_command_action(
     zone_name: string,
     room_name: string,
@@ -1878,20 +2288,38 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Finds a room command action.
+   *
+   * @param {string[]} filtered_actions
+   * @param {string} zone_name
+   * @param {string} room_name
+   * @returns {CommandAction | null}
+   */
   find_room_command_action(
     filtered_actions: string[],
     zone_name: string,
     room_name: string,
-  ): CommandAction | undefined {
+  ): CommandAction | null {
     const room_command_actions = this.get_room_command_action(
       zone_name,
       room_name,
     );
     return room_command_actions?.command_actions.find((action) =>
       action.synonyms.some((synonym) => filtered_actions.includes(synonym))
-    );
+    ) || null;
   }
 
+  /**
+   * Creates an exit from one room to another.
+   *
+   * @param zone_name
+   * @param from_room_name
+   * @param exit_name
+   * @param to_room_name
+   * @param hidden
+   * @throws {Error}
+   */
   create_exit(
     zone_name: string,
     from_room_name: string,
@@ -1933,6 +2361,12 @@ export class TextWorld {
     });
   }
 
+  /**
+   * Gets the opposite exit name for the given exit name.
+   *
+   * @param {string} exit_name
+   * @returns {Exit | null}
+   */
   get_opposite_exit_name(exit_name: string): string | null {
     const opposites: { [key: string]: string } = {
       north: "south",
@@ -1943,6 +2377,14 @@ export class TextWorld {
     return opposites[exit_name] || null;
   }
 
+  /**
+   * Removes an exit from a room.
+   *
+   * @param {string} zone_name
+   * @param {string} from_room_name
+   * @param {string} exit_name
+   * @throws {Error}
+   */
   remove_exit(zone_name: string, from_room_name: string, exit_name: string) {
     const zone = this.get_zone(zone_name);
     if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
@@ -1961,6 +2403,15 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Gets an exit for a room.
+   *
+   * @param {string} zone_name
+   * @param {string} from_room_name
+   * @param {string} exit_name
+   * @returns {Exit}
+   * @throws {Error}
+   */
   get_exit(zone_name: string, from_room_name: string, exit_name: string): Exit {
     const zone = this.get_zone(zone_name);
     if (!zone) {
@@ -1988,6 +2439,12 @@ export class TextWorld {
     return exit;
   }
 
+  /**
+   * Gets a room description.
+   *
+   * @param {Player} player
+   * @returns {CommandResponse}
+   */
   get_room_description(player: Player): CommandResponse {
     const zone = this.get_player_zone(player);
     if (!zone) {
@@ -2038,7 +2495,14 @@ export class TextWorld {
     };
   }
 
-  switch_room(player: Player, command = ""): CommandResponse {
+  /**
+   * Switches player current room to a new room.
+   *
+   * @param {Player} player
+   * @param {string} command
+   * @returns {CommandResponse}
+   */
+  switch_room(player: Player, command: string = ""): CommandResponse {
     const zone = this.get_player_zone(player);
     if (!zone) {
       throw new Error("Player is not in a valid zone.");
@@ -2074,12 +2538,26 @@ export class TextWorld {
     return this.get_room_description(player);
   }
 
+  /**
+   * Checks if a room has actions.
+   *
+   * @param {string} room_name
+   * @returns {boolean}
+   */
   has_room_actions(room_name: string): boolean {
     return !!this.world_actions.room_actions.find(
       (action) => action.name === room_name,
     );
   }
 
+  /**
+   * Plots a map of the rooms.
+   *
+   * @param {Player} player
+   * @param {number} window_size
+   * @returns {CommandResponse}
+   * @throws {Error}
+   */
   plot_room_map(player: Player, window_size: number): CommandResponse {
     const zone = this.get_player_zone(player);
     if (!zone) {
@@ -2169,6 +2647,14 @@ export class TextWorld {
     };
   }
 
+  /**
+   * Creates a new room and adds it to a zone.
+   *
+   * @param {string} zone_name
+   * @param {string} name
+   * @param {string} description
+   * @param {Action | null} action
+   */
   create_room(
     zone_name: string,
     name: string,
@@ -2203,6 +2689,12 @@ export class TextWorld {
     }
   }
 
+  /**
+   * Sets a room as the starting room for a zone.
+   *
+   * @param {string} zone_name
+   * @param {string} room_name
+   */
   set_room_as_zone_starter(zone_name: string, room_name: string) {
     const room = this.get_room(zone_name, room_name);
     if (!room) {
@@ -2211,6 +2703,13 @@ export class TextWorld {
     room.zone_start = true;
   }
 
+  /**
+   * Adds an action to a room.
+   *
+   * @param {string} zone_name
+   * @param {string} room_name
+   * @param {Action} action
+   */
   add_room_action(zone_name: string, room_name: string, action: Action) {
     const room = this.get_room(zone_name, room_name);
     if (!room) {
@@ -2231,6 +2730,14 @@ export class TextWorld {
     }
   }
 
+  /**
+   * Gets a room.
+   *
+   * @param {string} zone_name
+   * @param {string} room_name
+   * @returns {Room | null}
+   * @throws {Error}
+   */
   get_room(zone_name: string, room_name: string): Room | null {
     const zone = this.get_zone(zone_name);
     if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
@@ -2242,12 +2749,24 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Gets the zone starting room.
+   *
+   * @param {string} zone_name
+   * @returns {Room | null}
+   */
   get_zone_starter_room(zone_name: string): Room | null {
     const zone = this.get_zone(zone_name);
     if (!zone) return null;
     return zone.rooms.find((room) => room.zone_start) ?? null;
   }
 
+  /**
+   * Inpects the current room for items and mobs.
+   *
+   * @param {Player} player
+   * @returns {CommandResponse}
+   */
   inspect_room(player: Player): CommandResponse {
     const current_room = this.get_player_zone(player)?.rooms.find(
       (room) => room.name.toLowerCase() === player.room.toLowerCase(),
@@ -2283,6 +2802,15 @@ export class TextWorld {
     };
   }
 
+  /**
+   * Looks at the current room or the player or an object in the room.
+   *
+   * @param {Player} player
+   * @param {string} input
+   * @param {string} command
+   * @param {string[]} args
+   * @returns {CommandResponse}
+   */
   look(
     player: Player,
     input: string,
@@ -2308,6 +2836,16 @@ export class TextWorld {
   // ROOM OBJECT //
   /////////////////
 
+  /**
+   * Creates a new room object and places it in a room.
+   *
+   * @param {string} zone_name
+   * @param {string} room_name
+   * @param {string} name
+   * @param {string} description
+   * @param {Dialog[] | null} dialog
+   * @throws {Error}
+   */
   create_and_place_room_object(
     zone_name: string,
     room_name: string,
@@ -2330,6 +2868,15 @@ export class TextWorld {
     });
   }
 
+  /**
+   * Gets a room object.
+   *
+   * @param {string} zone_name
+   * @param {string} room_name
+   * @param {string} object_name
+   * @returns {Actor | null}
+   * @throws {Error}
+   */
   get_room_object(
     zone_name: string,
     room_name: string,
@@ -2347,6 +2894,15 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Looks at a room or examines an object in the room.
+   *
+   * @param {Player} player
+   * @param {string} input
+   * @param {string} command
+   * @param {string[]} args
+   * @returns {CommandResponse}
+   */
   look_at_or_examine_object(
     player: Player,
     input: string,
@@ -2424,6 +2980,14 @@ export class TextWorld {
   // CRAFTING //
   //////////////
 
+  /**
+   * Creates a new recipe and adds it to the world.
+   *
+   * @param {string} name
+   * @param {string} description
+   * @param {Drop[]} ingredients
+   * @param {Drop} crafted_item
+   */
   create_recipe(
     name: string,
     description: string,
@@ -2439,6 +3003,12 @@ export class TextWorld {
     });
   }
 
+  /**
+   * Gets a recipe.
+   *
+   * @param {string} name
+   * @returns {Recipe | null}
+   */
   get_recipe(name: string): Recipe | null {
     return (
       this.world.recipes.find(
@@ -2447,6 +3017,13 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Learns a recipe.
+   *
+   * @param {Player} player
+   * @param {string} recipe_name
+   * @returns {string}
+   */
   learn_recipe(player: Player, recipe_name: string): string {
     const recipe = this.get_recipe(recipe_name);
     if (!recipe) return "That recipe does not exist.";
@@ -2460,6 +3037,13 @@ export class TextWorld {
     return `You learned the recipe for ${recipe.name}.`;
   }
 
+  /**
+   * Crafts an item using a recipe.
+   *
+   * @param {Player} player
+   * @param {string[]} args
+   * @returns {CommandResponse}
+   */
   craft_recipe(player: Player, args: string[]): CommandResponse {
     const recipe_names = this.generate_combinations(args);
     const recipe_name = recipe_names.find((name) =>
@@ -2509,6 +3093,14 @@ export class TextWorld {
   // MISC //
   //////////
 
+  /**
+   * Saves player progress to a database.
+   *
+   * @param {Player} player
+   * @param {string} database_name
+   * @param {string} slot_name
+   * @returns {Promise<CommandResponse>}
+   */
   async save_player_progress(
     player: Player,
     database_name: string,
@@ -2531,6 +3123,13 @@ export class TextWorld {
     };
   }
 
+  /**
+   * Loads player progress from a database.
+   *
+   * @param {string} database_name
+   * @param {string} slot_name
+   * @returns {Promise<PlayerProgress | null>}
+   */
   async load_player_progress(
     database_name: string,
     slot_name: string,
@@ -2544,19 +3143,35 @@ export class TextWorld {
     return null;
   }
 
-  get_random_number(upper = 100) {
+  /**
+   * Gets a random number.
+   *
+   * @param {number} upper
+   * @returns {number}
+   */
+  get_random_number(upper = 100): number {
     const nums = new Uint32Array(1);
     window.crypto.getRandomValues(nums);
     return nums[0] % (upper + 1);
   }
 
+  /**
+   * Creates a spawn location.
+   *
+   * @param {string} name
+   * @param {string} zone
+   * @param {string} room
+   * @param {number} interval
+   * @param {boolean} active
+   * @param {SpawnLocationAction} action
+   */
   create_spawn_location(
     name: string,
     zone: string,
     room: string,
     interval: number,
     active: boolean,
-    action: (spawn_location: SpawnLocation) => void,
+    action: SpawnLocationAction,
   ) {
     const spawn_location: SpawnLocation = {
       name,
@@ -2583,6 +3198,12 @@ export class TextWorld {
     this.world_actions.spawn_locations.push(spawn_location);
   }
 
+  /**
+   * Gets a spawn location.
+   *
+   * @param {string} name
+   * @returns {SpawnLocation | null}
+   */
   get_spawn_location(name: string): SpawnLocation | null {
     return (
       this.world_actions.spawn_locations.find(
@@ -2591,6 +3212,12 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Sets a spawn location as active or inactive.
+   *
+   * @param {string} name
+   * @param {boolean} active
+   */
   set_spawn_location_active(name: string, active: boolean) {
     const spawn_location = this.world_actions.spawn_locations.find(
       (location) => location.name === name,
@@ -2600,7 +3227,12 @@ export class TextWorld {
     }
   }
 
-  set_spawn_location_start(name: string) {
+  /**
+   * Starts a spawn location.
+   *
+   * @param {string} name
+   */
+  start_spawn_location(name: string) {
     const spawn_location = this.world_actions.spawn_locations.find(
       (location) => location.name === name,
     );
@@ -2609,6 +3241,11 @@ export class TextWorld {
     }
   }
 
+  /**
+   * Removes a spawn location.
+   *
+   * @param {string} name
+   */
   remove_spawn_location(name: string) {
     const spawn_location = this.world_actions.spawn_locations.find(
       (location) => location.name === name,
@@ -2623,6 +3260,14 @@ export class TextWorld {
     }
   }
 
+  /**
+   * Creates a new dialog for an NPC.
+   *
+   * @param {string} npc_name
+   * @param {string[]} trigger
+   * @param {string | null} response
+   * @param {CommandParserAction | null} action
+   */
   create_dialog(
     npc_name: string,
     trigger: string[],
@@ -2649,6 +3294,13 @@ export class TextWorld {
     }
   }
 
+  /**
+   * Creates a dialog action.
+   *
+   * @param {string} dialog_id
+   * @param {string[]} trigger
+   * @param {CommandParserAction} action
+   */
   create_dialog_action(
     dialog_id: string,
     trigger: string[],
@@ -2661,6 +3313,14 @@ export class TextWorld {
     });
   }
 
+  /**
+   * Gets a description for an entity.
+   *
+   * @param {Player} player
+   * @param {Entity} entity
+   * @param {string} flag
+   * @returns {string | null}
+   */
   get_description(player: Player, entity: Entity, flag: string): string | null {
     if (flag === "default" && player.flags.length > 0) {
       const matching_desc = player.flags
@@ -2678,6 +3338,15 @@ export class TextWorld {
     return description ? description.description : null;
   }
 
+  /**
+   * Creates a command action.
+   *
+   * @param {string} name
+   * @param {string} description
+   * @param {string[]} synonyms
+   * @param {CommandParserAction} action
+   * @returns {CommandAction}
+   */
   create_command_action(
     name: string,
     description: string,
@@ -2693,16 +3362,28 @@ export class TextWorld {
     };
   }
 
+  /**
+   * Finds a command action.
+   *
+   * @param {string[]} possible_actions
+   * @param {CommandAction[]} command_actions
+   * @returns
+   */
   find_command_action(
     possible_actions: string[],
     command_actions: CommandAction[],
-  ): CommandAction | undefined {
+  ): CommandAction | null {
     return command_actions.find((action) =>
       action.synonyms.some((synonym) => possible_actions.includes(synonym))
-    );
+    ) || null;
   }
 
-  reset_world() {
+  /**
+   * Resets the world.
+   *
+   * @returns {World}
+   */
+  reset_world(): World {
     const world: World = {
       zones: [],
       items: [],
@@ -2719,7 +3400,12 @@ export class TextWorld {
     return world;
   }
 
-  private reset_world_actions(): WorldActions {
+  /**
+   * Resets the world actions.
+   *
+   * @returns {World Actions}
+   */
+  reset_world_actions(): WorldActions {
     const world_actions: WorldActions = {
       spawn_locations: [],
       dialog_actions: [],
@@ -2733,6 +3419,12 @@ export class TextWorld {
     return world_actions;
   }
 
+  /**
+   * Converts a string to title case.
+   *
+   * @param {string} str
+   * @returns {string}
+   */
   to_title_case(str: string): string {
     return str
       .split(" ")
@@ -2744,6 +3436,14 @@ export class TextWorld {
       .join(" ");
   }
 
+  /**
+   * Calculates the experience needed for each level.
+   *
+   * @param starting_experience
+   * @param growth_rate
+   * @param num_levels
+   * @returns {Level[]}
+   */
   calculate_level_experience(
     starting_experience: number,
     growth_rate: number,
@@ -2755,6 +3455,14 @@ export class TextWorld {
     }));
   }
 
+  /**
+   * Generates all possible combinations of an array of strings. This is used
+   * to generate all possible commands from a user input for the purposes of
+   * matching them to command actions.
+   *
+   * @param input_array
+   * @returns {string[]}
+   */
   generate_combinations(input_array: string[]): string[] {
     const result: string[] = [];
 
@@ -2775,6 +3483,12 @@ export class TextWorld {
     return result;
   }
 
+  /**
+   * Gets help for all commands the player has access to.
+   *
+   * @param player
+   * @returns {CommandResponse}
+   */
   get_help(player: Player): CommandResponse {
     const command_actions = this.get_actor_health(player) <= 0
       ? this.player_dead_command_actions
@@ -2794,6 +3508,20 @@ export class TextWorld {
     };
   }
 
+  /**
+   * Creates a set of stats for an actor.
+   *
+   * @param health
+   * @param stamina
+   * @param magicka
+   * @param physical_damage
+   * @param physical_defense
+   * @param spell_damage
+   * @param spell_defense
+   * @param critical_chance
+   * @param progress
+   * @returns {Stats}
+   */
   create_stats(
     health: ResourceAmount,
     stamina: ResourceAmount,
@@ -2818,30 +3546,66 @@ export class TextWorld {
     };
   }
 
+  /**
+   * Sets the godmode flag for a player.
+   *
+   * @param {Player} player
+   */
   set_godmode(player: Player) {
     this.set_flag(player, "godmode");
   }
 
+  /**
+   * Removes the godmode flag for a player.
+   *
+   * @param {Player} player
+   */
   remove_godmode(player: Player) {
     this.remove_flag(player, "godmode");
   }
 
+  /**
+   * Sets a flag for a player.
+   *
+   * @param {Player} player
+   * @param {string} flag
+   */
   set_flag(player: Player, flag: string) {
     if (player && !player.flags.includes(flag)) {
       player.flags.push(flag);
     }
   }
 
-  has_flag(player: Player, flag: string) {
+  /**
+   * Checks if a player has a flag.
+   *
+   * @param {Player} player
+   * @param {string} flag
+   * @returns {boolean}
+   */
+  has_flag(player: Player, flag: string): boolean {
     return player && player.flags.includes(flag);
   }
 
+  /**
+   * Removes a flag from a player.
+   *
+   * @param {Player} player
+   * @param {string} flag
+   */
   remove_flag(player: Player, flag: string) {
     if (player && player.flags.includes(flag)) {
       player.flags = player.flags.filter((f) => f !== flag);
     }
   }
 
+  /**
+   * If player is in godmode, they can go to any room or zone.
+   *
+   * @param {Player} player
+   * @param {string[]} args
+   * @returns {CommandResponse}
+   */
   goto(player: Player, args: string[]): CommandResponse {
     if (!this.has_flag(player, "godmode")) {
       return {
@@ -2904,12 +3668,26 @@ export class TextWorld {
   //   return array1.filter(element => !array2.includes(element));
   // }
 
+  /**
+   * Filters out substrings from an array.
+   *
+   * @param {string[]} first_array
+   * @param {string[]} second_array
+   * @returns {string[]}
+   */
   filter_substrings(first_array: string[], second_array: string[]): string[] {
     return second_array.filter(
       (word) => !first_array.some((phrase) => phrase.includes(word)),
     );
   }
 
+  /**
+   * Parses a command from a player.
+   *
+   * @param {Player} player
+   * @param {string} input
+   * @returns {Promise<string>}
+   */
   async parse_command(player: Player, input: string): Promise<string> {
     const input_limit = Math.min(input_character_limit, input.length);
     input = input.substring(0, input_limit);
@@ -2929,8 +3707,8 @@ export class TextWorld {
       talk_to ? action.toLowerCase().includes(talk_to) : true
     );
 
-    let result: string | undefined;
-    let command_action: CommandAction | undefined;
+    let result: string | null = "";
+    let command_action: CommandAction | null;
 
     if (!this.has_flag(player, "disable_main_commands")) {
       command_action = this.find_command_action(
@@ -3017,32 +3795,40 @@ export class TextWorld {
   /**
    * Starts up a web socket server to process game commands.
    *
-   * Passing player here is temporary and will change once we implement
+   * Passing player_id here is temporary and will change once we fully implement
    * multiplayer.
    *
    * @param {number} port
-   * @param {Player} player
+   * @param {string} fix_me_player_id
    */
-  run_websocket_server(port: number, player: Player) {
-    const process_request = async (input = "") => {
-      const result: CommandResponse = JSON.parse(
-        await this.parse_command(player, input),
-      );
-
-      const final_response = {
-        id: crypto.randomUUID(),
-        input,
-        // FIXME: In order to support multiplayer we need to do something other
-        // than hardcoding the player here.
-        player: player,
-        result,
-        responseLines: result.response.split("\n"),
-        map: this.plot_room_map(player, 5).response,
-      };
-
-      console.log("Response: ", result.response);
-
-      return final_response;
+  run_websocket_server(port: number, fix_me_player_id: string) {
+    const process_request = async (game_message: GameMessage) => {
+      const player = this.get_player(game_message.player_id);
+      if (player) {
+        const result: CommandResponse = JSON.parse(
+          await this.parse_command(player, game_message.command),
+        );
+        const final_response = {
+          id: crypto.randomUUID(),
+          input: game_message.command,
+          player: player,
+          result,
+          responseLines: result.response.split("\n"),
+          map: this.plot_room_map(player, 5).response,
+        };
+        console.log("Response: ", result.response);
+        return final_response;
+      } else {
+        const final_response = {
+          id: crypto.randomUUID(),
+          input: game_message.command,
+          player: null,
+          response: "Player not found.",
+          responseLines: [],
+          map: "",
+        };
+        return final_response;
+      }
     };
 
     const ac = new AbortController();
@@ -3054,7 +3840,11 @@ export class TextWorld {
       (_req: Request) => {
         const { socket, response } = Deno.upgradeWebSocket(_req);
         socket.onopen = async () => {
-          socket.send(JSON.stringify(await process_request()));
+          const game_message: GameMessage = {
+            player_id: fix_me_player_id,
+            command: "",
+          };
+          socket.send(JSON.stringify(await process_request(game_message)));
         };
         socket.onmessage = async (e) => {
           if (e.data === "quit") {
@@ -3062,7 +3852,8 @@ export class TextWorld {
             socket.close();
             ac.abort();
           } else {
-            socket.send(JSON.stringify(await process_request(e.data)));
+            const game_message = JSON.parse(e.data);
+            socket.send(JSON.stringify(await process_request(game_message)));
           }
         };
         return response;

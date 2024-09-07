@@ -77,7 +77,7 @@ Deno.test("find_command_action_returns_the_correct_actions", () => {
     possibleActions4,
     commandActions,
   );
-  assertEquals(result4, undefined);
+  assertEquals(result4, null);
   textworld.reset_world();
 });
 
@@ -127,7 +127,7 @@ Deno.test("find_room_command_action_returns_the_correct_actions", () => {
     zoneName,
     roomName,
   );
-  assertEquals(result3, undefined);
+  assertEquals(result3, null);
   textworld.reset_world();
 });
 
@@ -1842,7 +1842,7 @@ Deno.test("can_spawn_item_in_room_using_spawn_location", () => {
       }
     },
   );
-  textworld.set_spawn_location_start("Test Spawner");
+  textworld.start_spawn_location("Test Spawner");
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.items.length, 1);
   assertEquals(room?.items[0].name, "Iron");
@@ -2515,7 +2515,7 @@ Deno.test("player_can_show_item", () => {
   textworld.create_item("Potion", "An ordinary potion", true);
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   textworld.take_item(player, ["Potion"]);
-  const result = textworld.show_item(player, ["Potion"]);
+  const result = textworld.show(player, ["Potion"]);
   assertEquals(result.response, "An ordinary potion");
   textworld.reset_world();
 });
