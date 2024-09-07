@@ -1,10 +1,11 @@
+import { CommandResponse } from "./command-response";
 import { Player } from "./player";
 
 export interface GameMessage {
   id: string;
   input: string;
   player: Player | null;
-  response: string;
+  result: CommandResponse;
   responseLines: string[];
   map: string | null;
 }

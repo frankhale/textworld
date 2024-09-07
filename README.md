@@ -2,8 +2,7 @@
 
 A text based role playing game engine written in TypeScript on Deno with an
 Angular frontend. This is still a work in progress but there is a lot here.
-There is a strong focus on test driven design although we don't currently have
-100% code coverage.
+There is a strong focus on test driven design.
 
 The current focus is more on the game engine and less on the little world that
 was created to play in. This will change as time moves on.
@@ -12,28 +11,25 @@ was created to play in. This will change as time moves on.
 
 ![Screenshot](screenshots/game.png)
 
-## TODO
+## Features
 
-- [x] Command line interface
+- [x] Web UI (Angular / Websockets)
 - [x] Parser
 - [x] Rooms/Zones
 - [x] Room/Zone movement
 - [x] Items (pickup, use, drop)
 - [x] Objects (look, examine)
 - [x] Crafting
-- [x] NPCs
-- [x] NPC interaction
+- [x] NPCs and interaction
 - [x] Vendors
 - [x] Quests
 - [x] Mapping
 - [x] Basic command help
-- [x] Combat
-- [x] Exposed through WebSocket server
-- [x] Exposed through command line interface
-- [x] Web UI
 - [x] Spawn Locations
 - [x] Save/Load (uses Deno KV)
+- [x] Combat (very basic)
 - [ ] Leveling
+- [ ] Multiplayer
 
 ## Run
 
@@ -41,8 +37,7 @@ NOTE: Because we are using Deno.Kv we need to pass the --unstable flag
 
 Backend:
 
-> deno run --unstable-kv --allow-read --allow-write --allow-net
-> .\textworld_game.ts
+> deno task run
 
 Frontend:
 
@@ -52,14 +47,15 @@ NOTE: Requires Node.js and Angular CLI
 
 > ng serve
 
-## Test
+## Testing
 
-NOTE: Because we are using Deno.Kv we need to pass the --unstable flag
+Run tests:
 
-> deno test --coverage --unstable-kv --allow-read --allow-write
-> .\textworld_tests.ts
+> deno task test
 
-> deno coverage --html
+Get coverage report:
+
+> deno task coverage
 
 ## Author(s)
 
@@ -67,4 +63,4 @@ Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 
 ## Date
 
-3 September 2024
+7 September 2024

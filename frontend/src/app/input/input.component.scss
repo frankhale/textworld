@@ -1,13 +1,13 @@
-.input-style {
+.input-content {
   position: absolute;
   bottom: 10px;
   width: calc(100vw - 15px);
-  // border: 1px solid red;
-  padding-left: 5px;
+  border-top: 1px dashed black;
+  margin-left: 5px;
+  padding-top: 5px;
 }
 
 .input {
   padding-left: 5px;
   width: calc(100vw - 50px);
-  // border: 1px solid orange;
 }

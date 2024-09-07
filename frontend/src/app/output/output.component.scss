@@ -1,15 +1,37 @@
-.output-style {
-  display: block;
-  margin: 10px;
-  overflow-y: auto;
+.header {
+  background-color: #000;
+  color: #fff;
+  padding-bottom: 10px;
+  text-align: center;
+  width: 100vw;
+  height: 25px;
+}
 
-  height: calc(100vh - 55px);
+.output-content {
+  margin-top: 10px;
+  margin-left: 10px;
+  overflow-y: auto;
+  height: calc(100vh - 90px);
   width: calc(100vw - 15px);
+}
+
+.right-content {
+  padding-left: 10px;
+  margin-top: 10px;
+  margin-left: 10px;
+  margin-right: 10px;
+  width: 500px;
+  border-left: dashed 1px black;
+  height: calc(100vh - 90px);
+}
+
+.player-info {
+  margin-left: 30px;
 }
 
 .command-text {
   font-style: italic;
-  color: rgb(117, 118, 120);
+  color: rgb(107, 108, 110);
 }
 
 .exits-text {
@@ -20,20 +42,16 @@
   color: rgb(210, 119, 34);
 }
 
+.mobs-text {
+  color: rgb(210, 0, 0);
+}
+
 .inventory-text {
   color: rgba(25, 101, 168, 0.81);
 }
 
 .output-container {
   display: flex;
-}
-
-.right-content {
-  padding-left: 10px;
-  margin-top: 15px;
-  margin-left: 10px;
-  width: 500px;
-  border-left: dashed 1px black;
 }
 
 .map {
