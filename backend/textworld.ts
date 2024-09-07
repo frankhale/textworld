@@ -573,14 +573,12 @@ export class TextWorld {
     }
   }
 
-  set_player_room(player: Player, zone_name: string, room_name: string) {
-    const room = this.get_room(zone_name, room_name);
-    if (room) {
-      player.zone = zone_name;
-      player.room = room_name;
-    }
-  }
-
+  /**
+   * Sets the players zone and room.
+   * @param {Player} player
+   * @param {string} zone_name
+   * @param {string} room_name
+   */
   set_player_zone_and_room(
     player: Player,
     zone_name: string,
@@ -598,9 +596,23 @@ export class TextWorld {
   // ACTOR //
   ///////////
 
+  /**
+   * Sets an actors health.
+   * @param {Actor} actor
+   * @param {number} health
+   */
   set_actor_health(actor: Actor, health: number) {
     if (actor.stats) {
       actor.stats.health.current = health;
+      if (actor.stats.health.current > actor.stats.health.max) {
+        actor.stats.health.current = actor.stats.health.max;
+      }
+    }
+  }
+
+  increase_actor_max_heath(actor: Actor, amount: number) {
+    if (actor.stats) {
+      actor.stats.health.max += amount;
     }
   }
 
@@ -880,12 +892,6 @@ export class TextWorld {
     return result;
   }
 
-  check_for_quest_completion(player: Player) {
-    player.quests.every((quest) => {
-      return this.is_quest_complete(player, quest);
-    });
-  }
-
   show_quests(player: Player): CommandResponse {
     if (!player || player.quests.length === 0) {
       return {
@@ -905,8 +911,6 @@ export class TextWorld {
             "default",
           )
         }`;
-      } else {
-        return `${player_quest} - Description not found.`;
       }
     });
 

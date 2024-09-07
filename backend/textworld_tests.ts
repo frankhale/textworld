@@ -3621,7 +3621,7 @@ Deno.test("can_set_players_room_to_another_room", () => {
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_room("Zone1", "Room2", "This is room 2");
   textworld.set_room_as_zone_starter("Zone1", "Room1");
-  textworld.set_player_room(player, "Zone1", "Room2");
+  textworld.set_player_zone_and_room(player, "Zone1", "Room2");
   assertEquals(player.zone, "Zone1");
   assertEquals(player.room, "Room2");
   textworld.reset_world();
