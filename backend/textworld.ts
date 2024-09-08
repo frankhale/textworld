@@ -1633,10 +1633,14 @@ export class TextWorld {
       }
     });
 
+    const items = current_room.items
+      .map((item) => `${item.name} (${item.quantity})`)
+      .join(", ");
+
     current_room.items = [];
 
     return {
-      response: "You took all items.",
+      response: `You took all items: ${items}`,
     };
   }
 

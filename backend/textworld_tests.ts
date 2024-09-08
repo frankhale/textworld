@@ -1189,7 +1189,7 @@ Deno.test("can_parse_command_take_all", async () => {
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   const result = JSON.parse(await textworld.parse_command(player, "take all"));
-  assertEquals(result.response, "You took all items.");
+  assertEquals(result.response, "You took all items: Sword (1), Potion (2)");
   assertEquals(player.items.length, 2);
   textworld.reset_world();
 });
