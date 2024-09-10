@@ -1,16 +1,19 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 7 September 2024
+// 9 September 2024
 
 // TODO:
 //
 // - Make room objects the same as NPCs and Mobs, you add them to the world and
 // then place them in a room.
-// - Add rest of the support for multiplayer
 // - Rooms now have a players array, this is for multiplayer support and will
 // need to be populated when players switch rooms or join the game.
 // - Add support for instancing (items, npcs, mobs, etc...) to support
 // multiplayer
+// - Player Progress saving/loading needs refactoring to work in a multiplayer
+// environment
+// - Implement leveling
+// - Implement race
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -92,6 +95,10 @@ export interface Actor extends Entity, Storage {
   race?: Race; // TODO: Currently not being used
 }
 
+export interface Instance {
+  zones: Zone[];
+}
+
 export interface Player extends Actor {
   score: number;
   gold: number;
@@ -100,6 +107,7 @@ export interface Player extends Actor {
   quests: string[];
   quests_completed: string[];
   known_recipes: string[];
+  instance: Instance;
 }
 
 export interface Recipe extends Entity {
@@ -144,11 +152,13 @@ export interface Room extends Entity, Storage {
   mobs: Actor[];
   objects: Actor[];
   players: Player[];
+  instance: boolean;
 }
 
 export interface Zone {
   name: string;
   rooms: Room[];
+  instance: boolean;
 }
 
 export interface World {
@@ -480,6 +490,9 @@ export class TextWorld {
       quests: [],
       quests_completed: [],
       known_recipes: [],
+      instance: {
+        zones: [],
+      },
     };
 
     this.world.players.push(player);
@@ -534,7 +547,10 @@ export class TextWorld {
    * @returns {Zone | null}
    */
   get_player_zone(player: Player): Zone | null {
-    return this.world.zones.find((zone) => zone.name === player.zone) || null;
+    return (
+      player.instance.zones.find((zone) => zone.name === player.zone) ||
+      this.world.zones.find((zone) => zone.name === player.zone) || null
+    );
   }
 
   /**
@@ -545,6 +561,7 @@ export class TextWorld {
    */
   get_player_room(player: Player): Room | null {
     const zone = this.get_player_zone(player);
+
     return (
       zone?.rooms.find(
         (room) => room.name.toLowerCase() === player.room.toLowerCase(),
@@ -1099,25 +1116,31 @@ export class TextWorld {
   /**
    * Gets an NPC.
    *
-   * @param {string} name
-   * @returns {Actor | null}
+   * @param {string} name - The name of the NPC to get.
+   * @returns {Actor | null} - The NPC or null if it does not exist.
    */
   get_npc(name: string): Actor | null {
     return (
-      this.world.npcs.find(
-        (npc) => npc.name.toLowerCase() === name.toLowerCase(),
-      ) || null
+      this.world.npcs.find((npc) =>
+        npc.name.toLowerCase() === name.toLowerCase()
+      ) ||
+      null
     );
   }
 
   /**
    * Places an NPC in a zone and room.
    *
-   * @param {string} zone_name
-   * @param {string} in_room_name
-   * @param {string} npc_name
+   * @param {string} zone_name - The name of the zone to place the NPC in.
+   * @param {string} in_room_name - The name of the room to place the NPC in.
+   * @param {string} npc_name - The name of the NPC to place.
+   * @param {Player | null} player - If player is not null, the NPC will be placed in the player's instance.
    */
-  place_npc(zone_name: string, in_room_name: string, npc_name: string) {
+  place_npc(
+    zone_name: string,
+    in_room_name: string,
+    npc_name: string,
+  ) {
     const in_room = this.get_room(zone_name, in_room_name);
     const npc = this.get_npc(npc_name);
 
@@ -1388,7 +1411,10 @@ export class TextWorld {
    * @param player
    * @param item_drops
    */
-  add_item_drops_to_room(player: Player, item_drops: Drop[]) {
+  add_item_drops_to_room(
+    player: Player,
+    item_drops: Drop[],
+  ) {
     const current_room = this.get_player_room(player);
     if (!current_room) return;
 
@@ -2110,7 +2136,28 @@ export class TextWorld {
     this.world.zones.push({
       name,
       rooms: [],
+      instance: false,
     });
+  }
+
+  /**
+   * Create an instanced zone for a player.
+   *
+   * @param player - The player to create the zone for.
+   * @param name - The name of the zone to create.
+   */
+  create_instanced_zone(player: Player, name: string) {
+    const zone = this.get_zone(name);
+    if (!zone) {
+      throw new Error(`Zone ${name} does not exist.`);
+    }
+
+    // If zone already exists in player instance then filter it out.
+    player.instance.zones = player.instance.zones.filter(
+      (z) => z.name.toLowerCase() !== name.toLowerCase(),
+    );
+
+    player.instance.zones.push(structuredClone(zone));
   }
 
   /**
@@ -2131,6 +2178,21 @@ export class TextWorld {
   get_zone(zone_name: string): Zone | null {
     return (
       this.world.zones.find(
+        (zone) => zone.name.toLowerCase() === zone_name.toLowerCase(),
+      ) || null
+    );
+  }
+
+  /**
+   * Gets a player's instance zone.
+   *
+   * @param {Player} player - The player to get the zone from.
+   * @param {string} zone_name - The name of the zone to get.
+   * @returns {Zone | null} - The zone or null if it does not exist.
+   */
+  get_instance_zone(player: Player, zone_name: string): Zone | null {
+    return (
+      player.instance.zones.find(
         (zone) => zone.name.toLowerCase() === zone_name.toLowerCase(),
       ) || null
     );
@@ -2681,6 +2743,7 @@ export class TextWorld {
       objects: [],
       exits: [],
       players: [],
+      instance: false,
     });
 
     // Add the action to the room actions if provided
@@ -2689,6 +2752,41 @@ export class TextWorld {
         name: id,
         actions: [action],
       });
+    }
+  }
+
+  /**
+   * Creates an instanced room for a player.
+   *
+   * @param {Player} player - The player to create the room for.
+   * @param {string} zone_name - The name of the zone to create the room in.
+   * @param {string} room_name - The name of the room to create.
+   */
+  create_instanced_room(player: Player, zone_name: string, room_name: string) {
+    const zone = this.get_zone(zone_name);
+    if (zone) {
+      const room = zone.rooms.find((r) =>
+        r.name.toLowerCase() === room_name.toLowerCase()
+      );
+
+      if (room) {
+        const instance_zone = this.get_instance_zone(player, zone_name);
+
+        if (instance_zone) {
+          instance_zone.rooms.filter((r) =>
+            r.name.toLowerCase() !== room_name.toLowerCase()
+          );
+        }
+
+        const instanced_room = structuredClone(room);
+        instanced_room.instance = true;
+
+        player.instance.zones.push({
+          name: zone.name,
+          rooms: [instanced_room],
+          instance: true,
+        });
+      }
     }
   }
 
@@ -2744,6 +2842,29 @@ export class TextWorld {
   get_room(zone_name: string, room_name: string): Room | null {
     const zone = this.get_zone(zone_name);
     if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
+
+    return (
+      zone.rooms.find(
+        (room) => room.name.toLowerCase() === room_name.toLowerCase(),
+      ) ?? null
+    );
+  }
+
+  /**
+   * Gets a player's instance room.
+   *
+   * @param {Player} player - The player to get the room from.
+   * @param {string} zone_name - The name of the zone to get the room from.
+   * @param {string} room_name - The name of the room to get.
+   * @returns {Room | null} - The room or null if it does not exist.
+   */
+  get_instance_room(
+    player: Player,
+    zone_name: string,
+    room_name: string,
+  ): Room | null {
+    const zone = this.get_instance_zone(player, zone_name);
+    if (!zone) return null;
 
     return (
       zone.rooms.find(
@@ -3808,6 +3929,7 @@ export class TextWorld {
     const process_request = async (game_message: GameMessage) => {
       const player = this.get_player(game_message.player_id);
       if (player) {
+        console.log(`${player.id}: ${game_message.command}`);
         const result: CommandResponse = JSON.parse(
           await this.parse_command(player, game_message.command),
         );
@@ -3819,9 +3941,9 @@ export class TextWorld {
           responseLines: result.response.split("\n"),
           map: this.plot_room_map(player, 5).response,
         };
-        console.log("Response: ", result.response);
         return final_response;
       } else {
+        console.log(`${game_message.player_id}: player not found`);
         const final_response = {
           id: crypto.randomUUID(),
           input: game_message.command,

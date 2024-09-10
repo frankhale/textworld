@@ -380,6 +380,41 @@ Deno.test("can_create_room", () => {
   textworld.reset_world();
 });
 
+Deno.test("can_create_instanced_room", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_instanced_room(player, "Zone1", "Room1");
+  const room = textworld.get_instance_room(player, "Zone1", "Room1");
+  assertEquals(room?.name, "Room1");
+  assertEquals(room?.instance, true);
+  textworld.reset_world();
+});
+
+Deno.test("can_create_instanced_room_with_item", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_instanced_room(player, "Zone1", "Room1");
+  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.add_item_drops_to_room(player, [{ name: "Sword", quantity: 1 }]);
+  const instanced_room = textworld.get_instance_room(player, "Zone1", "Room1");
+  assertEquals(instanced_room?.items.length, 1);
+  const non_instanced_room = textworld.get_room("Zone1", "Room1");
+  assertEquals(non_instanced_room?.items.length, 0);
+  textworld.reset_world();
+});
+
 Deno.test("cant_create_room_without_a_zone", () => {
   try {
     textworld.create_room("Zone1", "Room1", "This is room 1");
