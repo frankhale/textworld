@@ -389,9 +389,10 @@ Deno.test("can_create_instanced_room", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
+  const non_instanced_room = textworld.get_room("Zone1", "Room1");
+  assertEquals(non_instanced_room?.instance, false);
   textworld.create_instanced_room(player, "Zone1", "Room1");
   const room = textworld.get_instance_room(player, "Zone1", "Room1");
-  assertEquals(room?.name, "Room1");
   assertEquals(room?.instance, true);
   textworld.reset_world();
 });
