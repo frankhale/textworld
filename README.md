@@ -30,6 +30,7 @@ was created to play in. This will change as time moves on.
 - [x] Combat (very basic)
 - [ ] Leveling
 - [ ] Multiplayer
+- [ ] Instancing (zones, rooms, items, npcs, mobs)
 
 ## Run
 
@@ -63,4 +64,4 @@ Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 
 ## Date
 
-7 September 2024
+11 September 2024

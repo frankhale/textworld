@@ -1,11 +1,9 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 9 September 2024
+// 11 September 2024
 
 // TODO:
 //
-// - Make room objects the same as NPCs and Mobs, you add them to the world and
-// then place them in a room.
 // - Rooms now have a players array, this is for multiplayer support and will
 // need to be populated when players switch rooms or join the game.
 // - Add support for instancing (items, npcs, mobs, etc...) to support
@@ -14,6 +12,7 @@
 // environment
 // - Implement leveling
 // - Implement race
+// - Look at all exception throwing and make sure it's consistent
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -649,7 +648,8 @@ export class TextWorld {
   }
 
   /**
-   * Increase an actors max health.
+   * Increase an actors max health by amount. This adds to the current max
+   * health.
    *
    * @param {Actor} actor - The actor to increase the max health for.
    * @param {number} amount - The amount to increase the max health by.
@@ -704,6 +704,16 @@ export class TextWorld {
    */
   get_actor_health(actor: Actor): number {
     return actor.stats?.health.current ?? 0;
+  }
+
+  /**
+   * Gets an actors max health.
+   *
+   * @param actor - The actor to get the max health for.
+   * @returns {number} - The actors max health
+   */
+  get_actor_max_health(actor: Actor): number {
+    return actor.stats?.health.max ?? 0;
   }
 
   ///////////
@@ -1095,23 +1105,25 @@ export class TextWorld {
   }
 
   /**
-   * Removes a new NPC from the world.
+   * Removes a new NPC from a zone and room.
    *
    * @param {string} name - The name of the NPC to remove.
    */
-  remove_npc(name: string) {
-    const npcLowerCaseName = name.toLowerCase();
-    this.world.zones.forEach((zone) => {
-      zone.rooms.forEach((room) => {
+  remove_npc(
+    name: string,
+    zone_name: string | null = null,
+    room_name: string | null = null,
+  ) {
+    if (!zone_name || !room_name) {
+      this.world.npcs = this.world.npcs.filter((npc) => npc.name !== name);
+    } else {
+      const room = this.get_room(zone_name, room_name);
+      if (room) {
         room.npcs = room.npcs.filter(
-          (npc) => npc.name.toLowerCase() !== npcLowerCaseName,
+          (npc) => npc.name.toLowerCase() !== name.toLowerCase(),
         );
-      });
-    });
-
-    this.world.npcs = this.world.npcs.filter(
-      (npc) => npc.name.toLowerCase() !== npcLowerCaseName,
-    );
+      }
+    }
   }
 
   /**
@@ -1145,28 +1157,21 @@ export class TextWorld {
     player: Player | null = null,
   ) {
     const npc = this.get_npc(npc_name);
-
     if (!npc) {
       throw new Error(`NPC ${npc_name} does not exist.`);
     }
 
-    if (player && npc) {
-      const instance_room = this.get_instance_room(
-        player,
-        zone_name,
-        in_room_name,
+    const room = player
+      ? this.get_instance_room(player, zone_name, in_room_name)
+      : this.get_room(zone_name, in_room_name);
+
+    if (!room) {
+      throw new Error(
+        `Room ${in_room_name} does not exist in zone ${zone_name}.`,
       );
-
-      if (instance_room) {
-        instance_room.npcs.push(structuredClone(npc));
-      }
-    } else {
-      const in_room = this.get_room(zone_name, in_room_name);
-
-      if (in_room) {
-        in_room.npcs.push(structuredClone(npc));
-      }
     }
+
+    room.npcs.push(structuredClone(npc));
   }
 
   /**
@@ -1427,32 +1432,6 @@ export class TextWorld {
   }
 
   /**
-   * Adds an item to a room that can be picked up by a player.
-   *
-   * @param player - The player to add the item to.
-   * @param item_drops - The items to add to the room.
-   */
-  add_item_drops_to_room(
-    player: Player,
-    item_drops: Drop[],
-  ) {
-    const current_room = this.get_player_room(player);
-    if (!current_room) return;
-
-    item_drops.forEach((item_drop) => {
-      const room_item = current_room.items.find(
-        (room_item) => room_item.name === item_drop.name,
-      );
-
-      if (room_item) {
-        room_item.quantity += item_drop.quantity;
-      } else {
-        current_room.items.push({ ...item_drop });
-      }
-    });
-  }
-
-  /**
    * Gets an item in a room.
    *
    * @param {string} zone_name - The name of the zone to get the item from.
@@ -1487,12 +1466,13 @@ export class TextWorld {
    * @param {string} in_room_name - The name of the room to place the item in.
    * @param {string} item_name - The name of the item to place.
    * @param {number} quantity - The quantity of the item to place.
+   * @throws {Error} - If the zone or room does not exist.
    */
   place_item(
     zone_name: string,
     in_room_name: string,
     item_name: string,
-    quantity = 1,
+    quantity: number = 1,
   ) {
     const zone = this.get_zone(zone_name);
     if (!zone) {
@@ -1513,14 +1493,36 @@ export class TextWorld {
       (item) => item.name.toLowerCase() === item_name.toLowerCase(),
     );
 
-    if (room_item) {
-      room_item.quantity += quantity;
-    } else {
-      in_room.items.push({
-        name: item_name,
-        quantity,
-      });
-    }
+    room_item
+      ? room_item.quantity += quantity
+      : in_room.items.push({ name: item_name, quantity });
+  }
+
+  /**
+   * Adds items to a room that can be picked up by a player. If the player has
+   * an instance of the room, the items will be added to the instance.
+   *
+   * @param player - The player to add the item to.
+   * @param item_drops - The items to add to the room.
+   */
+  add_item_drops_to_players_current_room(
+    player: Player,
+    item_drops: Drop[],
+  ) {
+    const current_room = this.get_player_room(player);
+    if (!current_room) return;
+
+    item_drops.forEach((item_drop) => {
+      const room_item = current_room.items.find(
+        (room_item) => room_item.name === item_drop.name,
+      );
+
+      if (room_item) {
+        room_item.quantity += item_drop.quantity;
+      } else {
+        current_room.items.push({ ...item_drop });
+      }
+    });
   }
 
   /**
@@ -1993,23 +1995,31 @@ export class TextWorld {
    * @param {string} zone_name - The name of the zone to place the mob in.
    * @param {string} in_room_name - The name of the room to place the mob in.
    * @param {string} mob_name - The name of the mob to place.
+   * @param {Player | null} player - If player is not null, the mob will be placed in the player's instance.
    * @throws {Error} - If the mob does not exist or the room does not exist in the zone.
    */
-  place_mob(zone_name: string, in_room_name: string, mob_name: string) {
-    const in_room = this.get_room(zone_name, in_room_name);
+  place_mob(
+    zone_name: string,
+    in_room_name: string,
+    mob_name: string,
+    player: Player | null = null,
+  ) {
     const mob = this.get_mob(mob_name);
+    if (!mob) {
+      throw new Error(`MOB ${mob_name} does not exist.`);
+    }
 
-    if (!in_room) {
+    const room = player
+      ? this.get_instance_room(player, zone_name, in_room_name)
+      : this.get_room(zone_name, in_room_name);
+
+    if (!room) {
       throw new Error(
         `Room ${in_room_name} does not exist in zone ${zone_name}.`,
       );
     }
 
-    if (!mob) {
-      throw new Error(`MOB ${mob_name} does not exist.`);
-    }
-
-    in_room.mobs.push(structuredClone(mob));
+    room.mobs.push(structuredClone(mob));
   }
 
   /**
@@ -2127,7 +2137,7 @@ export class TextWorld {
     if (this.get_actor_health(mob) <= 0) {
       this.set_actor_health(mob, 0);
       if (mob.items.length > 0) {
-        this.add_item_drops_to_room(player, mob.items);
+        this.add_item_drops_to_players_current_room(player, mob.items);
         result += `\n${mob.name} dropped: ${
           mob.items
             .map((item) => item.name)
@@ -2996,19 +3006,12 @@ export class TextWorld {
    * @param {Dialog[] | null} dialog - The dialog of the room object.
    * @throws {Error} - If the room does not exist in the zone.
    */
-  create_and_place_room_object(
-    zone_name: string,
-    room_name: string,
+  create_object(
     name: string,
     description: string,
     dialog: Dialog[] | null = null,
   ) {
-    const room = this.get_room(zone_name, room_name);
-    if (!room) {
-      throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
-    }
-
-    room.objects.push({
+    this.world.objects.push({
       id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
@@ -3016,6 +3019,49 @@ export class TextWorld {
       dialog,
       flags: [],
     });
+  }
+
+  /**
+   * Places an object in a room.
+   *
+   * @param name - The name of the object to place.
+   * @param zone_name - The name of the zone to place the object in.
+   * @param room_name - The name of the room to place the object in.
+   * @throws {Error} - If the zone does not exist.
+   */
+  place_object(zone_name: string, in_room_name: string, object_name: string) {
+    const zone = this.get_zone(zone_name);
+    if (!zone) {
+      throw new Error(`Zone ${zone_name} does not exist.`);
+    }
+
+    const room = this.get_room(zone_name, in_room_name);
+    if (!room) {
+      throw new Error(
+        `Room ${in_room_name} does not exist in zone ${zone_name}.`,
+      );
+    }
+
+    const object = this.get_object(object_name);
+    if (!object) {
+      throw new Error(`Object ${name} does not exist.`);
+    }
+
+    room.objects.push(structuredClone(object));
+  }
+
+  /**
+   * Gets an object.
+   *
+   * @param name - The name of the object to remove.
+   * @returns {Actor | null} - The object or null if it does not exist.
+   */
+  get_object(name: string): Actor | null {
+    return (
+      this.world.objects.find(
+        (object) => object.name.toLowerCase() === name.toLowerCase(),
+      ) || null
+    );
   }
 
   /**

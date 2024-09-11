@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 7 September 2024
+// 11 September 2024
 
 import {
   assertEquals,
@@ -167,7 +167,7 @@ Deno.test("can_set_players_health_to_max", () => {
   textworld.reset_world();
 });
 
-Deno.test("can_add_health_to_players", () => {
+Deno.test("can_add_health_to_player", () => {
   const player = textworld.create_player(
     "Player",
     "You are a strong adventurer",
@@ -177,6 +177,33 @@ Deno.test("can_add_health_to_players", () => {
   textworld.set_actor_health(player, 2);
   textworld.add_to_actor_health(player, 3);
   assertEquals(textworld.get_actor_health(player), 5);
+  textworld.reset_world();
+});
+
+Deno.test("can_increase_player_max_health", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.increase_actor_max_heath(player, 20);
+  const result = textworld.get_actor_max_health(player);
+  assertEquals(result, 30);
+  textworld.reset_world();
+});
+
+Deno.test("cant_increase_actor_max_health_if_actor_does_not_have_stats", () => {
+  const actor: tw.Actor = {
+    id: crypto.randomUUID(),
+    name: "Actor",
+    descriptions: [],
+    flags: [],
+    items: [],
+  };
+  textworld.increase_actor_max_heath(actor, 20);
+  const result = textworld.get_actor_max_health(actor);
+  assertEquals(result, 0);
   textworld.reset_world();
 });
 
@@ -408,7 +435,10 @@ Deno.test("can_create_instanced_room_with_item", () => {
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_instanced_room(player, "Zone1", "Room1");
   textworld.create_item("Sword", "A sharp sword", false);
-  textworld.add_item_drops_to_room(player, [{ name: "Sword", quantity: 1 }]);
+  textworld.add_item_drops_to_players_current_room(player, [{
+    name: "Sword",
+    quantity: 1,
+  }]);
   const instanced_room = textworld.get_instance_room(player, "Zone1", "Room1");
   assertEquals(instanced_room?.items.length, 1);
   const non_instanced_room = textworld.get_room("Zone1", "Room1");
@@ -661,7 +691,7 @@ Deno.test("can_add_item_drops_to_room", () => {
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_item("Sword", "A sharp sword", false);
   textworld.create_item("Potion", "An ordinary potion", true);
-  textworld.add_item_drops_to_room(player, [
+  textworld.add_item_drops_to_players_current_room(player, [
     { name: "Sword", quantity: 1 },
     { name: "Potion", quantity: 2 },
   ]);
@@ -787,6 +817,13 @@ Deno.test("can_remove_npc", () => {
   textworld.remove_npc("Guard");
   const npc = textworld.get_npc("Guard");
   assertEquals(npc, null);
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_npc("Old Lady", "A sweet old lady");
+  textworld.place_npc("Zone1", "Room1", "Old Lady");
+  textworld.remove_npc("Old Lady", "Zone1", "Room1");
+  const room = textworld.get_room("Zone1", "Room1");
+  assertEquals(room?.npcs.length, 0);
   textworld.reset_world();
 });
 
@@ -923,12 +960,11 @@ Deno.test("can_set_and_remove_godmode_on_player", () => {
 Deno.test("can_create_room_object", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_and_place_room_object(
-    "Zone1",
-    "Room1",
+  textworld.create_object(
     "Fireplace",
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
   );
+  textworld.place_object("Zone1", "Room1", "Fireplace");
   const object = textworld.get_room_object("Zone1", "Room1", "Fireplace");
   assertEquals(object?.name, "Fireplace");
   assertEquals(
@@ -947,12 +983,11 @@ Deno.test("can_process_look_at_room_object", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_and_place_room_object(
-    "Zone1",
-    "Room1",
+  textworld.create_object(
     "Fireplace",
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
   );
+  textworld.place_object("Zone1", "Room1", "Fireplace");
   const result = textworld.look_at_or_examine_object(
     player,
     "look at fireplace",
@@ -975,9 +1010,7 @@ Deno.test("can_process_examine_room_object", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_and_place_room_object(
-    "Zone1",
-    "Room1",
+  textworld.create_object(
     "Fireplace",
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
@@ -988,6 +1021,7 @@ Deno.test("can_process_examine_room_object", () => {
       },
     ],
   );
+  textworld.place_object("Zone1", "Room1", "Fireplace");
   const result = textworld.look_at_or_examine_object(
     player,
     "examine fireplace fan flame",
@@ -1060,9 +1094,7 @@ Deno.test("can_parse_command_examine_room_object", async () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_and_place_room_object(
-    "Zone1",
-    "Room1",
+  textworld.create_object(
     "Fireplace",
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
@@ -1073,6 +1105,7 @@ Deno.test("can_parse_command_examine_room_object", async () => {
       },
     ],
   );
+  textworld.place_object("Zone1", "Room1", "Fireplace");
   const result = JSON.parse(
     await textworld.parse_command(
       player,
@@ -1337,12 +1370,11 @@ Deno.test("can_parse_command_look_at_object", async () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_and_place_room_object(
-    "Zone1",
-    "Room1",
+  textworld.create_object(
     "Sword",
     "A sharp sword",
   );
+  textworld.place_object("Zone1", "Room1", "Sword");
   const result = JSON.parse(
     await textworld.parse_command(player, "look at sword"),
   );
@@ -1359,9 +1391,7 @@ Deno.test("can_parse_command_examine_object", async () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_and_place_room_object(
-    "Zone1",
-    "Room1",
+  textworld.create_object(
     "Fireplace",
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
     [
@@ -1372,6 +1402,7 @@ Deno.test("can_parse_command_examine_object", async () => {
       },
     ],
   );
+  textworld.place_object("Zone1", "Room1", "Fireplace");
   const result = JSON.parse(
     await textworld.parse_command(
       player,
