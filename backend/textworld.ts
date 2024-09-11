@@ -1324,10 +1324,6 @@ export class TextWorld {
       ["purchase", "buy"],
       null,
       (player, input, _command, _args) => {
-        if (!input) {
-          return "You must specify an item to purchase.";
-        }
-
         const command_bits = input.split(" ");
         const trigger_word_index = command_bits.lastIndexOf("purchase") >= 0
           ? command_bits.lastIndexOf("purchase")
@@ -1360,8 +1356,8 @@ export class TextWorld {
     item_name: string,
   ): string {
     const npc = this.get_npc(vendor_name);
-    if (!npc || !npc.vendor_items) {
-      return "That vendor does not exist.";
+    if (!npc || !npc.vendor_items || !(npc.vendor_items?.length > 0)) {
+      return "That vendor does not exist or doesn't have items for sale.";
     }
 
     const vendor_item = npc.vendor_items.find(
@@ -1435,6 +1431,7 @@ export class TextWorld {
    * @param {string} room_name - The name of the room to get the item from.
    * @param {string} item_name - The name of the item to get.
    * @returns {Drop | null} - The item or null if it does not exist.
+   * @throws {Error} - If the zone or room does not exist.
    */
   get_room_item(
     zone_name: string,
@@ -1442,12 +1439,18 @@ export class TextWorld {
     item_name: string,
   ): Drop | null {
     const zone = this.get_zone(zone_name);
-    if (!zone) return null;
+    if (!zone) {
+      throw new Error(`Zone ${zone_name} does not exist.`);
+    }
 
     const room = zone.rooms.find(
       (room) => room.name.toLowerCase() === room_name.toLowerCase(),
     );
-    if (!room) return null;
+    if (!room) {
+      throw new Error(
+        `Room ${room_name} does not exist in zone ${zone_name}.`,
+      );
+    }
 
     return (
       room.items.find(
@@ -1492,6 +1495,25 @@ export class TextWorld {
   }
 
   /**
+   * Adds an item to a player.
+   *
+   * @param {Player} player - The player to add the item to.
+   * @param {string} item_name - The name of the item to add.
+   * @param {number} quantity - The quantity of the item to add.
+   */
+  add_item_to_player(player: Player, item_name: string, quantity: number = 1) {
+    const item = player.items.find(
+      (item) => item.name.toLowerCase() === item_name.toLowerCase(),
+    );
+
+    if (item) {
+      item.quantity += quantity;
+    } else {
+      player.items.push({ name: item_name, quantity });
+    }
+  }
+
+  /**
    * Gets an item.
    *
    * @param {string} name - The name of the item to get.
@@ -1510,10 +1532,13 @@ export class TextWorld {
    *
    * @param {string} name - The name of the item to get the action for.
    * @returns {ItemAction | null} - The item action or null if it does not exist.
+   * @throws {Error} - If the item does not exist.
    */
   get_item_action(name: string): ItemAction | null {
     const item = this.get_item(name);
-    if (!item) return null;
+    if (!item) {
+      throw new Error(`Item ${name} does not exist.`);
+    }
 
     return (
       this.world_actions.item_actions.find(

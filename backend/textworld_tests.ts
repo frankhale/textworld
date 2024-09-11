@@ -3,6 +3,7 @@
 // 11 September 2024
 
 import {
+  assert,
   assertEquals,
   assertNotEquals,
   assertStringIncludes,
@@ -152,6 +153,23 @@ Deno.test("can_get_player", () => {
   );
   const p1 = textworld.get_player(player.id!);
   assertEquals(p1?.name, "Player");
+  textworld.reset_world();
+});
+
+Deno.test("can_add_item_to_player", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.add_item_to_player(player, "Sword");
+  assertEquals(player.items.length, 1);
+  assertEquals(player.items[0].name, "Sword");
+  textworld.add_item_to_player(player, "Sword");
+  assertEquals(player.items[0].name, "Sword");
+  assertEquals(player.items[0].quantity, 2);
   textworld.reset_world();
 });
 
@@ -720,6 +738,25 @@ Deno.test("can_get_room_item", () => {
   textworld.reset_world();
 });
 
+Deno.test("cant_get_room_item_if_zone_does_not_exist", () => {
+  try {
+    textworld.get_room_item("Zone1", "Room1", "Sword");
+  } catch (e) {
+    assertEquals(e.message, "Zone Zone1 does not exist.");
+  }
+  textworld.reset_world();
+});
+
+Deno.test("cant_get_room_item_if_room_does_not_exist", () => {
+  textworld.create_zone("Zone1");
+  try {
+    textworld.get_room_item("Zone1", "Room1", "Sword");
+  } catch (e) {
+    assertEquals(e.message, "Room Room1 does not exist in zone Zone1.");
+  }
+  textworld.reset_world();
+});
+
 Deno.test("can_place_item_in_room", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
@@ -727,6 +764,28 @@ Deno.test("can_place_item_in_room", () => {
   textworld.place_item("Zone1", "Room1", "Sword");
   const item = textworld.get_room_item("Zone1", "Room1", "Sword");
   assertEquals(item?.name, "Sword");
+  textworld.reset_world();
+});
+
+Deno.test("cant_place_item_in_room_if_item_doesnt_exist", () => {
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  try {
+    textworld.place_item("Zone1", "Room1", "Sword");
+  } catch (e) {
+    assertEquals(e.message, "Item Sword does not exist.");
+  }
+  textworld.reset_world();
+});
+
+Deno.test("cant_place_item_in_room_if_room_doesnt_exist", () => {
+  textworld.create_zone("Zone1");
+  textworld.create_item("Sword", "A sharp sword", false);
+  try {
+    textworld.place_item("Zone1", "Room1", "Sword");
+  } catch (e) {
+    assertEquals(e.message, "Room Room1 does not exist in zone Zone1.");
+  }
   textworld.reset_world();
 });
 
@@ -1804,6 +1863,70 @@ Deno.test("can_parse_command_talk_to_vendor_and_purchase_item", async () => {
   textworld.reset_world();
 });
 
+Deno.test("can_parse_command_talk_to_vendor_and_purchase_item_with_synonmym", async () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  player.gold = 10;
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item(
+    "Fried Chicken & Roasted Vegetables",
+    "A delicious dinner of fried chicken and roasted vegetables.",
+    false,
+  );
+  textworld.create_vendor("Vendor1", "A friendly food vendor", [
+    { name: "Fried Chicken & Roasted Vegetables", price: 2 },
+  ]);
+  textworld.place_npc("Zone1", "Room1", "Vendor1");
+  const result = JSON.parse(
+    await textworld.parse_command(
+      player,
+      "talk to Vendor1 say purchase Fried Chicken & Roasted Vegetables",
+    ),
+  );
+  assertEquals(
+    result.response,
+    "You purchased Fried Chicken & Roasted Vegetables for 2 gold.",
+  );
+  textworld.reset_world();
+});
+
+Deno.test("can_parse_command_talk_to_vendor_and_handle_when_item_isnt_specified", async () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  player.gold = 10;
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item(
+    "Fried Chicken & Roasted Vegetables",
+    "A delicious dinner of fried chicken and roasted vegetables.",
+    false,
+  );
+  textworld.create_vendor("Vendor1", "A friendly food vendor", [
+    { name: "Fried Chicken & Roasted Vegetables", price: 2 },
+  ]);
+  textworld.place_npc("Zone1", "Room1", "Vendor1");
+  const result = JSON.parse(
+    await textworld.parse_command(
+      player,
+      "talk to Vendor1 say buy",
+    ),
+  );
+  assertEquals(
+    result.response,
+    "You must specify an item to purchase.",
+  );
+  textworld.reset_world();
+});
+
 Deno.test("can_parse_command_map", async () => {
   const player = textworld.create_player(
     "Player",
@@ -2729,6 +2852,90 @@ Deno.test("player_can_purchase_from_vendor", () => {
   assertEquals(player.gold, 8);
   assertEquals(player.items.length, 1);
 
+  textworld.reset_world();
+});
+
+Deno.test("player_can_purchase_from_vendor_if_also_having_same_item", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  player.gold = 10;
+  textworld.add_item_to_player(player, "Fried Chicken & Roasted Vegetables", 1);
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item("Fried Chicken & Roasted Vegetables", "", false);
+  textworld.create_vendor("Vendor1", "A friendly food vendor", [
+    { name: "Fried Chicken & Roasted Vegetables", price: 2 },
+  ]);
+  textworld.place_npc("Zone1", "Room1", "Vendor1");
+  const result = textworld.purchase_from_vendor(
+    player,
+    "Vendor1",
+    "Fried Chicken & Roasted Vegetables",
+  );
+  assertEquals(
+    result,
+    "You purchased Fried Chicken & Roasted Vegetables for 2 gold.",
+  );
+  assertEquals(player.gold, 8);
+  assertEquals(player.items.length, 1);
+  assertEquals(player.items[0].name, "Fried Chicken & Roasted Vegetables");
+  assertEquals(player.items[0].quantity, 2);
+  textworld.reset_world();
+});
+
+Deno.test("player_cant_purchase_from_vendor_that_doesnt_have_items_for_sale", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  player.gold = 10;
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item("Fried Chicken & Roasted Vegetables", "", false);
+  textworld.create_vendor("Vendor1", "A friendly food vendor", []);
+  textworld.place_npc("Zone1", "Room1", "Vendor1");
+  const result = textworld.purchase_from_vendor(
+    player,
+    "Vendor1",
+    "Fried Chicken & Roasted Vegetables",
+  );
+  assertEquals(
+    "That vendor does not exist or doesn't have items for sale.",
+    result,
+  );
+  textworld.reset_world();
+});
+
+Deno.test("player_cant_purchase_item_from_vendor_if_not_enough_gold", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  player.gold = 1;
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item("Fried Chicken & Roasted Vegetables", "", false);
+  textworld.create_vendor("Vendor1", "A friendly food vendor", [
+    { name: "Fried Chicken & Roasted Vegetables", price: 2 },
+  ]);
+  textworld.place_npc("Zone1", "Room1", "Vendor1");
+  const result = textworld.purchase_from_vendor(
+    player,
+    "Vendor1",
+    "Fried Chicken & Roasted Vegetables",
+  );
+  assertEquals(
+    result,
+    "You don't have enough gold to purchase Fried Chicken & Roasted Vegetables.",
+  );
   textworld.reset_world();
 });
 
