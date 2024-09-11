@@ -991,6 +991,49 @@ Deno.test("can_place_npc_in_room", () => {
   textworld.reset_world();
 });
 
+Deno.test("cant_place_npc_in_room_if_npc_doesnt_exist", () => {
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  try {
+    textworld.place_npc("Zone1", "Room1", "Guard");
+  } catch (e) {
+    assertEquals(e.message, "NPC Guard does not exist.");
+  }
+  textworld.reset_world();
+});
+
+Deno.test("cant_place_npc_in_room_if_room_doesnt_exist", () => {
+  textworld.create_zone("Zone1");
+  textworld.create_npc("Guard", "A strong guard");
+  try {
+    textworld.place_npc("Zone1", "Room1", "Guard");
+  } catch (e) {
+    assertEquals(e.message, "Room Room1 does not exist in zone Zone1.");
+  }
+  textworld.reset_world();
+});
+
+Deno.test("cant_get_room_npc_if_room_doesnt_exist", () => {
+  textworld.create_zone("Zone1");
+  try {
+    textworld.get_room_npc("Zone1", "Room1", "Guard");
+  } catch (e) {
+    assertEquals(e.message, "Room Room1 does not exist in zone Zone1.");
+  }
+  textworld.reset_world();
+});
+
+Deno.test("cant_get_room_npc_if_npc_doesnt_exist", () => {
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  try {
+    textworld.get_room_npc("Zone1", "Room1", "Guard");
+  } catch (e) {
+    assertEquals(e.message, "NPC Guard does not exist.");
+  }
+  textworld.reset_world();
+});
+
 Deno.test("can_set_and_remove_godmode_on_player", () => {
   const player = textworld.create_player(
     "Player",
@@ -3286,6 +3329,33 @@ Deno.test("player_can_talk_to_npc", () => {
   textworld.reset_world();
 });
 
+Deno.test("player_can_talk_to_npc_and_say_something_npc_doesnt_understand", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_npc("Big Guard", "A strong guard");
+  textworld.create_dialog(
+    "Big Guard",
+    ["Hello"],
+    null,
+    null,
+  );
+  textworld.place_npc("Zone1", "Room1", "Big Guard");
+  const result = textworld.talk_to_npc(
+    player,
+    "talk to Big Guard say Goodbye",
+    "talk to",
+    ["talk", "to", "Big", "Guard", "say", "hello"],
+  );
+  assertEquals(result.response, "hmm...");
+  textworld.reset_world();
+});
+
 Deno.test("player_cant_talk_to_npc_that_doesnt_exist", () => {
   const player = textworld.create_player(
     "Player",
@@ -3302,6 +3372,45 @@ Deno.test("player_cant_talk_to_npc_that_doesnt_exist", () => {
     ["talk", "to", "Big", "Guard", "say", "Hello"],
   );
   assertEquals(result.response, "That NPC does not exist.");
+  textworld.reset_world();
+});
+
+Deno.test("player_cant_talk_to_npc_if_room_doesnt_exist", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_npc("Big Guard", "A strong guard");
+  textworld.create_dialog(
+    "Big Guard",
+    ["Hello"],
+    "Hello citizen, make sure you mind the law!",
+    null,
+  );
+  textworld.place_npc("Zone1", "Room1", "Big Guard");
+  let result = textworld.talk_to_npc(
+    player,
+    "talk to Big Guard say Hello",
+    "talk to",
+    ["talk", "to", "Big", "Guard", "say", "Hello"],
+  );
+  assertEquals(result.response, "Hello citizen, make sure you mind the law!");
+  player.zone = "Zone2";
+  player.room = "Room2";
+  try {
+    result = textworld.talk_to_npc(
+      player,
+      "talk to Big Guard say Goodbye",
+      "talk to",
+      ["talk", "to", "Big", "Guard", "say", "Goodbye"],
+    );
+  } catch (e) {
+    assertEquals(e.message, "Player is not in a valid zone or room.");
+  }
   textworld.reset_world();
 });
 

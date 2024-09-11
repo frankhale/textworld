@@ -6,8 +6,6 @@
 //
 // - Rooms now have a players array, this is for multiplayer support and will
 // need to be populated when players switch rooms or join the game.
-// - Add support for instancing (items, npcs, mobs, etc...) to support
-// multiplayer
 // - Player Progress saving/loading needs refactoring to work in a multiplayer
 // environment
 // - Implement leveling
@@ -1181,19 +1179,20 @@ export class TextWorld {
    * @param {string} room_name - The name of the room to get the NPC from.
    * @param {string} npc_name - The name of the NPC to get.
    * @returns {Actor | null} - The NPC or null if it does not exist.
+   * @throws {Error} - If the room does not exist in the zone.
    */
   get_room_npc(
     zone_name: string,
     room_name: string,
     npc_name: string,
   ): Actor | null {
-    const zone = this.get_zone(zone_name);
-    if (!zone) return null;
+    const room = this.get_room(zone_name, room_name);
 
-    const room = zone.rooms.find(
-      (room) => room.name.toLowerCase() === room_name.toLowerCase(),
-    );
-    if (!room) return null;
+    if (!room) {
+      throw new Error(
+        `Room ${room_name} does not exist in zone ${zone_name}.`,
+      );
+    }
 
     return (
       room.npcs.find(
@@ -1218,11 +1217,6 @@ export class TextWorld {
     command: string,
     args: string[],
   ): CommandResponse {
-    const zone = this.get_player_zone(player);
-    if (!zone) {
-      throw new Error("Player is not in a valid zone.");
-    }
-
     if (args.length === 0) {
       return {
         response: "You must specify an NPC to talk to.",
@@ -1233,9 +1227,7 @@ export class TextWorld {
     const current_room = this.get_player_room(player);
 
     if (!current_room) {
-      return {
-        response: "You are not in a valid room.",
-      };
+      throw new Error("Player is not in a valid zone or room.");
     }
 
     const npc = this.world.npcs.find((npc) =>
@@ -1260,8 +1252,13 @@ export class TextWorld {
       };
     }
 
-    const dialog = npc.dialog.find((dialog) =>
-      dialog.trigger.some((trigger) => possible_triggers.includes(trigger))
+    const dialog = npc.dialog.find((d) =>
+      d.trigger.some((trigger) =>
+        possible_triggers.some(
+          (possibleTrigger) =>
+            possibleTrigger.toLowerCase() === trigger.toLowerCase(),
+        )
+      )
     );
 
     if (!dialog) {

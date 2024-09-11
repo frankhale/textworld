@@ -28,9 +28,9 @@ was created to play in. This will change as time moves on.
 - [x] Spawn Locations
 - [x] Save/Load (uses Deno KV)
 - [x] Combat (very basic)
+- [x] Instancing (zones, rooms, items, npcs, mobs)
 - [ ] Leveling
 - [ ] Multiplayer
-- [ ] Instancing (zones, rooms, items, npcs, mobs)
 
 ## Run
 
