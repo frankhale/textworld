@@ -1466,6 +1466,7 @@ export class TextWorld {
    * @param {string} in_room_name - The name of the room to place the item in.
    * @param {string} item_name - The name of the item to place.
    * @param {number} quantity - The quantity of the item to place.
+   * @param {Player | null} player - If player is not null, the item will be placed in the player's instance.
    * @throws {Error} - If the zone or room does not exist.
    */
   place_item(
@@ -1473,56 +1474,24 @@ export class TextWorld {
     in_room_name: string,
     item_name: string,
     quantity: number = 1,
+    player: Player | null = null,
   ) {
-    const zone = this.get_zone(zone_name);
-    if (!zone) {
-      throw new Error(`Zone ${zone_name} does not exist.`);
+    const item = this.get_item(item_name);
+    if (!item) {
+      throw new Error(`Item ${item_name} does not exist.`);
     }
 
-    const in_room = zone.rooms.find(
-      (room) => room.name.toLowerCase() === in_room_name.toLowerCase(),
-    );
+    const room = player
+      ? this.get_instance_room(player, zone_name, in_room_name)
+      : this.get_room(zone_name, in_room_name);
 
-    if (!in_room) {
+    if (!room) {
       throw new Error(
         `Room ${in_room_name} does not exist in zone ${zone_name}.`,
       );
     }
 
-    const room_item = in_room.items.find(
-      (item) => item.name.toLowerCase() === item_name.toLowerCase(),
-    );
-
-    room_item
-      ? room_item.quantity += quantity
-      : in_room.items.push({ name: item_name, quantity });
-  }
-
-  /**
-   * Adds items to a room that can be picked up by a player. If the player has
-   * an instance of the room, the items will be added to the instance.
-   *
-   * @param player - The player to add the item to.
-   * @param item_drops - The items to add to the room.
-   */
-  add_item_drops_to_players_current_room(
-    player: Player,
-    item_drops: Drop[],
-  ) {
-    const current_room = this.get_player_room(player);
-    if (!current_room) return;
-
-    item_drops.forEach((item_drop) => {
-      const room_item = current_room.items.find(
-        (room_item) => room_item.name === item_drop.name,
-      );
-
-      if (room_item) {
-        room_item.quantity += item_drop.quantity;
-      } else {
-        current_room.items.push({ ...item_drop });
-      }
-    });
+    room.items.push({ name: item_name, quantity });
   }
 
   /**
@@ -2137,7 +2106,15 @@ export class TextWorld {
     if (this.get_actor_health(mob) <= 0) {
       this.set_actor_health(mob, 0);
       if (mob.items.length > 0) {
-        this.add_item_drops_to_players_current_room(player, mob.items);
+        mob.items.forEach((item) => {
+          this.place_item(
+            zone.name,
+            current_room.name,
+            item.name,
+            item.quantity,
+          );
+        });
+
         result += `\n${mob.name} dropped: ${
           mob.items
             .map((item) => item.name)
@@ -3027,24 +3004,28 @@ export class TextWorld {
    * @param name - The name of the object to place.
    * @param zone_name - The name of the zone to place the object in.
    * @param room_name - The name of the room to place the object in.
-   * @throws {Error} - If the zone does not exist.
+   * @param {Player | null} player - If player is not null, the NPC will be placed in the player's instance.
+   * @throws {Error} - If the object, zone or room does not exist.
    */
-  place_object(zone_name: string, in_room_name: string, object_name: string) {
-    const zone = this.get_zone(zone_name);
-    if (!zone) {
-      throw new Error(`Zone ${zone_name} does not exist.`);
+  place_object(
+    zone_name: string,
+    in_room_name: string,
+    object_name: string,
+    player: Player | null = null,
+  ) {
+    const object = this.get_object(object_name);
+    if (!object) {
+      throw new Error(`Object ${object_name} does not exist.`);
     }
 
-    const room = this.get_room(zone_name, in_room_name);
+    const room = player
+      ? this.get_instance_room(player, zone_name, in_room_name)
+      : this.get_room(zone_name, in_room_name);
+
     if (!room) {
       throw new Error(
         `Room ${in_room_name} does not exist in zone ${zone_name}.`,
       );
-    }
-
-    const object = this.get_object(object_name);
-    if (!object) {
-      throw new Error(`Object ${name} does not exist.`);
     }
 
     room.objects.push(structuredClone(object));

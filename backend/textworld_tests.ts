@@ -435,14 +435,64 @@ Deno.test("can_create_instanced_room_with_item", () => {
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_instanced_room(player, "Zone1", "Room1");
   textworld.create_item("Sword", "A sharp sword", false);
-  textworld.add_item_drops_to_players_current_room(player, [{
-    name: "Sword",
-    quantity: 1,
-  }]);
+  textworld.place_item("Zone1", "Room1", "Sword", 1, player);
   const instanced_room = textworld.get_instance_room(player, "Zone1", "Room1");
   assertEquals(instanced_room?.items.length, 1);
   const non_instanced_room = textworld.get_room("Zone1", "Room1");
   assertEquals(non_instanced_room?.items.length, 0);
+  textworld.reset_world();
+});
+
+Deno.test("can_create_instanced_room_with_mob", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_instanced_room(player, "Zone1", "Room1");
+  textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_stats(
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      15,
+      8,
+      5,
+      2,
+      0.05,
+      { level: 1, xp: 0 },
+    ),
+    [],
+  );
+  textworld.place_mob("Zone1", "Room1", "Goblin", player);
+  const instanced_room = textworld.get_instance_room(player, "Zone1", "Room1");
+  assertEquals(instanced_room?.mobs.length, 1);
+  const non_instanced_room = textworld.get_room("Zone1", "Room1");
+  assertEquals(non_instanced_room?.mobs.length, 0);
+  textworld.reset_world();
+});
+
+Deno.test("create_instanced_room_with_npc", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_instanced_room(player, "Zone1", "Room1");
+  textworld.create_npc("Guard", "A strong guard");
+  textworld.place_npc("Zone1", "Room1", "Guard", player);
+  const instanced_room = textworld.get_instance_room(player, "Zone1", "Room1");
+  assertEquals(instanced_room?.npcs.length, 1);
+  const non_instanced_room = textworld.get_room("Zone1", "Room1");
+  assertEquals(non_instanced_room?.npcs.length, 0);
   textworld.reset_world();
 });
 
@@ -691,11 +741,10 @@ Deno.test("can_add_item_drops_to_room", () => {
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_item("Sword", "A sharp sword", false);
   textworld.create_item("Potion", "An ordinary potion", true);
-  textworld.add_item_drops_to_players_current_room(player, [
-    { name: "Sword", quantity: 1 },
-    { name: "Potion", quantity: 2 },
-  ]);
-  const room = textworld.get_room("Zone1", "Room1");
+  textworld.create_instanced_room(player, "Zone1", "Room1");
+  textworld.place_item("Zone1", "Room1", "Sword", 1, player);
+  textworld.place_item("Zone1", "Room1", "Potion", 2, player);
+  const room = textworld.get_player_room(player);
   assertEquals(room?.items.length, 2);
   assertEquals(room?.items[0].name, "Sword");
   assertEquals(room?.items[1].name, "Potion");
