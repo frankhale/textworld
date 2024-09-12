@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 11 September 2024
+// 12 September 2024
 
 import {
   assert,
@@ -15,7 +15,7 @@ const textworld = new tw.TextWorld();
 
 Deno.test("can_get_random_number", () => {
   const result = textworld.get_random_number(10);
-  assert(result >= 1 && result <= 10);
+  assert(result >= 0 && result <= 10);
   textworld.reset_world();
 });
 
@@ -1700,7 +1700,7 @@ Deno.test("can_parse_incorrect_command_to_talk_to_npc", async () => {
   );
   textworld.place_npc("Zone1", "Room1", "Guard");
   const result = JSON.parse(await textworld.parse_command(player, "talk to"));
-  assertEquals(result.response, "You must specify an NPC to talk to.");
+  assertEquals(result.response, "hmm...");
   textworld.reset_world();
 });
 
@@ -1986,7 +1986,7 @@ Deno.test("can_parse_malformed_command", async () => {
   );
   textworld.create_zone("Zone1");
   let result = JSON.parse(await textworld.parse_command(player, "talk to"));
-  assertEquals(result.response, "You must specify an NPC to talk to.");
+  assertEquals(result.response, "hmm...");
   result = JSON.parse(await textworld.parse_command(player, "foobar"));
   assertEquals(result.response, "I don't understand that command.");
   result = JSON.parse(await textworld.parse_command(player, "show"));
@@ -3266,7 +3266,7 @@ Deno.test("player_can_complete_quest_with_multiple_steps", () => {
     return false;
   });
   textworld.pickup_quest(player, "Quest1");
-  const gem_result = textworld.talk_to_npc(
+  const gem_result = textworld.talk_to_actor(
     player,
     "talk to Old Woman take gem",
     "talk to",
@@ -3545,14 +3545,14 @@ Deno.test("player_can_talk_to_npc", () => {
     null,
   );
   textworld.place_npc("Zone1", "Room1", "Big Guard");
-  let result = textworld.talk_to_npc(
+  let result = textworld.talk_to_actor(
     player,
     "talk to Big Guard say Hello",
     "talk to",
     ["talk", "to", "Big", "Guard", "say", "Hello"],
   );
   assertEquals(result.response, "Hello citizen, make sure you mind the law!");
-  result = textworld.talk_to_npc(
+  result = textworld.talk_to_actor(
     player,
     "talk to Big Guard say Goodbye",
     "talk to",
@@ -3579,7 +3579,7 @@ Deno.test("player_can_talk_to_npc_and_say_something_npc_doesnt_understand", () =
     null,
   );
   textworld.place_npc("Zone1", "Room1", "Big Guard");
-  const result = textworld.talk_to_npc(
+  const result = textworld.talk_to_actor(
     player,
     "talk to Big Guard say Goodbye",
     "talk to",
@@ -3598,13 +3598,13 @@ Deno.test("player_cant_talk_to_npc_that_doesnt_exist", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  const result = textworld.talk_to_npc(
+  const result = textworld.talk_to_actor(
     player,
     "talk to Big Guard say Hello",
     "talk to",
     ["talk", "to", "Big", "Guard", "say", "Hello"],
   );
-  assertEquals(result.response, "That NPC does not exist.");
+  assertEquals(result.response, "hmm...");
   textworld.reset_world();
 });
 
@@ -3625,7 +3625,7 @@ Deno.test("player_cant_talk_to_npc_if_room_doesnt_exist", () => {
     null,
   );
   textworld.place_npc("Zone1", "Room1", "Big Guard");
-  let result = textworld.talk_to_npc(
+  let result = textworld.talk_to_actor(
     player,
     "talk to Big Guard say Hello",
     "talk to",
@@ -3635,7 +3635,7 @@ Deno.test("player_cant_talk_to_npc_if_room_doesnt_exist", () => {
   player.zone = "Zone2";
   player.room = "Room2";
   try {
-    result = textworld.talk_to_npc(
+    result = textworld.talk_to_actor(
       player,
       "talk to Big Guard say Goodbye",
       "talk to",
@@ -3666,7 +3666,7 @@ Deno.test("player_can_talk_to_vendor_and_list_items", () => {
     { name: "Fried Chicken & Roasted Vegetables", price: 2 },
   ]);
   textworld.place_npc("Zone1", "Room1", "Vendor1");
-  const result = textworld.talk_to_npc(
+  const result = textworld.talk_to_actor(
     player,
     "talk to Vendor1 say items",
     "talk to",
@@ -3698,7 +3698,7 @@ Deno.test("player_can_talk_to_vendor_and_purchase_item", () => {
     { name: "Fried Chicken & Roasted Vegetables", price: 2 },
   ]);
   textworld.place_npc("Zone1", "Room1", "Vendor1");
-  const result = textworld.talk_to_npc(
+  const result = textworld.talk_to_actor(
     player,
     "talk to Vendor1 buy Fried Chicken & Roasted Vegetables",
     "talk to",
@@ -3722,13 +3722,13 @@ Deno.test("player_can_talk_to_npc_without_dialog", () => {
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_npc("Big Guard", "A strong guard");
   textworld.place_npc("Zone1", "Room1", "Big Guard");
-  const result = textworld.talk_to_npc(
+  const result = textworld.talk_to_actor(
     player,
     "talk to Big Guard say Hello",
     "talk to",
     ["talk", "to", "Big", "Guard", "say", "Hello"],
   );
-  assertEquals(result.response, "Big Guard does not want to talk to you.");
+  assertEquals(result.response, "hmm...");
   textworld.reset_world();
 });
 

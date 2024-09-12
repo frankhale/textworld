@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 11 September 2024
+// 12 September 2024
 
 // TODO:
 //
@@ -11,6 +11,7 @@
 // - Implement leveling
 // - Implement race
 // - Look at all exception throwing and make sure it's consistent
+// - Can only look at or examine room objects. Need more ways to interact with them.
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -26,9 +27,9 @@ export type CommandParserAction = (
 ) => string | Promise<string>;
 export type SpawnLocationAction = (spawn_location: SpawnLocation) => void;
 
-///////////////////////////////
-// CORE GAME DATA STRUCTURES //
-///////////////////////////////
+//////////
+// CORE //
+//////////
 
 export interface Description {
   flag: string;
@@ -184,9 +185,9 @@ export interface PlayerProgress {
   world: World;
 }
 
-//////////////////////
-// RESPONSE OBJECTS //
-//////////////////////
+//////////////
+// RESPONSE //
+//////////////
 
 export interface CommandResponse {
   response: string;
@@ -196,9 +197,9 @@ export interface CommandResponse {
   objects?: string;
 }
 
-////////////////////
-// ACTION OBJECTS //
-////////////////////
+/////////////
+// ACTIONS //
+/////////////
 
 export interface QuestAction extends Parent {
   start: Action | null;
@@ -335,7 +336,7 @@ export class TextWorld {
       "Talk to an NPC or Vendor.",
       ["talk to", "tt"],
       (player, input, command, args) =>
-        JSON.stringify(this.talk_to_npc(player, input, command, args)),
+        JSON.stringify(this.talk_to_actor(player, input, command, args)),
     ),
     this.create_command_action(
       "goto action",
@@ -1202,7 +1203,7 @@ export class TextWorld {
   }
 
   /**
-   * Talk to an NPC.
+   * Talk to an Actor.
    *
    * @param player - The player to talk to the NPC.
    * @param input - The input from the player.
@@ -1211,74 +1212,50 @@ export class TextWorld {
    * @returns {CommandResponse} - The response object.
    * @throws {Error} - If the player is not in a valid zone or room.
    */
-  talk_to_npc(
+  talk_to_actor(
     player: Player,
     input: string,
     command: string,
     args: string[],
   ): CommandResponse {
     if (args.length === 0) {
-      return {
-        response: "You must specify an NPC to talk to.",
-      };
+      return { response: "hmm..." };
     }
 
     const possible_triggers = this.generate_combinations(args);
     const current_room = this.get_player_room(player);
-
     if (!current_room) {
       throw new Error("Player is not in a valid zone or room.");
     }
 
-    const npc = this.world.npcs.find((npc) =>
-      possible_triggers.some(
-        (trigger) => npc.name.toLowerCase() === trigger.toLowerCase(),
+    const actor_in_room = current_room.npcs.find((npc) =>
+      possible_triggers.some((trigger) =>
+        npc.name.toLowerCase() === trigger.toLowerCase()
       )
     );
 
-    const npc_in_room = current_room.npcs.find(
-      (room_npc) => room_npc.name.toLowerCase() === npc?.name.toLowerCase(),
-    );
-
-    if (!npc || !npc_in_room) {
-      return {
-        response: "That NPC does not exist.",
-      };
-    }
-
-    if (!npc.dialog) {
-      return {
-        response: `${npc.name} does not want to talk to you.`,
-      };
-    }
-
-    const dialog = npc.dialog.find((d) =>
+    const dialog = actor_in_room?.dialog?.find((d) =>
       d.trigger.some((trigger) =>
-        possible_triggers.some(
-          (possibleTrigger) =>
-            possibleTrigger.toLowerCase() === trigger.toLowerCase(),
+        possible_triggers.some((possibleTrigger) =>
+          possibleTrigger.toLowerCase() === trigger.toLowerCase()
         )
       )
     );
 
-    if (!dialog) {
-      return {
-        response: "hmm...",
-      };
+    if (!actor_in_room || !dialog) {
+      return { response: "hmm..." };
     }
 
     const dialog_action = this.world_actions.dialog_actions.find(
-      (action) => action.trigger === dialog.trigger,
+      (action) =>
+        action.name === dialog.name &&
+        action.trigger.every((value, index) => value === dialog.trigger[index]),
     );
 
-    if (dialog_action) {
-      return {
-        response: dialog_action.action(player, input, command, args) as string,
-      };
-    }
-
     return {
-      response: dialog.response || "hmm...",
+      response: dialog_action
+        ? dialog_action.action(player, input, command, args) as string
+        : dialog.response || "hmm...",
     };
   }
 
@@ -2989,9 +2966,6 @@ export class TextWorld {
 
   /**
    * Creates a new room object and places it in a room.
-   *
-   * @param {string} zone_name - The name of the zone to create the room object in.
-   * @param {string} room_name - The name of the room to place the room object in.
    * @param {string} name - The name of the room object.
    * @param {string} description - The description of the room object.
    * @param {Dialog[] | null} dialog - The dialog of the room object.
@@ -3100,13 +3074,6 @@ export class TextWorld {
     command: string,
     args: string[],
   ): CommandResponse {
-    const zone = this.get_player_zone(player);
-    if (!zone) {
-      return {
-        response: "That object does not exist.",
-      };
-    }
-
     const possible_triggers = this.generate_combinations(args);
     const current_room = this.get_player_room(player);
 
@@ -3340,7 +3307,7 @@ export class TextWorld {
    * @param {number} upper - The upper limit of the random number.
    * @returns {number} - The random number.
    */
-  get_random_number(upper = 100): number {
+  get_random_number(upper: number = 100): number {
     const nums = new Uint32Array(1);
     window.crypto.getRandomValues(nums);
     return nums[0] % (upper + 1);
