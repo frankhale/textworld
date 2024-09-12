@@ -1589,18 +1589,10 @@ export class TextWorld {
    * @returns {CommandResponse} - The response object.
    */
   take_item(player: Player, args: string[]): CommandResponse {
-    const zone = this.get_player_zone(player);
-    if (!zone) {
-      return {
-        response: "That item does not exist.",
-      };
-    }
+    const current_room = this.get_player_room(player);
 
-    const current_room = zone.rooms.find((room) => room.name === player.room);
     if (!current_room) {
-      return {
-        response: "That item does not exist.",
-      };
+      throw new Error("Player is not in a valid room.");
     }
 
     const possible_items = this.generate_combinations(args);

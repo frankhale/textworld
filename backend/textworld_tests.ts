@@ -13,6 +13,12 @@ import * as tw from "./textworld.ts";
 
 const textworld = new tw.TextWorld();
 
+Deno.test("can_get_random_number", () => {
+  const result = textworld.get_random_number(10);
+  assert(result >= 1 && result <= 10);
+  textworld.reset_world();
+});
+
 Deno.test("can_create_zone", () => {
   textworld.create_zone("Zone1");
   const zone = textworld.get_zone("Zone1");
@@ -1985,8 +1991,11 @@ Deno.test("can_parse_malformed_command", async () => {
   assertEquals(result.response, "I don't understand that command.");
   result = JSON.parse(await textworld.parse_command(player, "show"));
   assertEquals(result.response, "That item does not exist.");
-  result = JSON.parse(await textworld.parse_command(player, "take"));
-  assertEquals(result.response, "That item does not exist.");
+  try {
+    JSON.parse(await textworld.parse_command(player, "take"));
+  } catch (e) {
+    assertEquals(e.message, "Player is not in a valid room.");
+  }
   result = JSON.parse(await textworld.parse_command(player, "use"));
   assertEquals(result.response, "That item does not exist.");
   result = JSON.parse(await textworld.parse_command(player, "drop"));
@@ -2001,6 +2010,20 @@ Deno.test("can_parse_malformed_command", async () => {
   assertEquals(result.response, "There is nothing else of interest here.");
   result = JSON.parse(await textworld.parse_command(player, "north"));
   assertEquals(result.response, "You can't go that way.");
+});
+
+Deno.test("can_parse_empty_command", async () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  const result = JSON.parse(await textworld.parse_command(player, ""));
+  assertEquals(result.response, "This is room 1");
+  textworld.reset_world();
 });
 
 Deno.test("can_parse_command_craft", async () => {
@@ -2107,7 +2130,7 @@ Deno.test("can_spawn_item_in_room_using_spawn_location", () => {
     "Zone1",
     "Room1",
     0,
-    true,
+    false,
     (spawn_location: tw.SpawnLocation) => {
       const item = textworld.get_room_item(
         spawn_location.zone,
@@ -2124,6 +2147,9 @@ Deno.test("can_spawn_item_in_room_using_spawn_location", () => {
       }
     },
   );
+  const null_spawn_location = textworld.get_spawn_location("");
+  assertEquals(null_spawn_location, null);
+  textworld.set_spawn_location_active("Test Spawner", true);
   textworld.start_spawn_location("Test Spawner");
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.items.length, 1);
@@ -4133,8 +4159,12 @@ Deno.test("can_calculate_level_experience", () => {
 });
 
 Deno.test("can_convert_string_to_title_case", () => {
-  const result = textworld.to_title_case("hello world");
+  let result = textworld.to_title_case("hello world");
   assertEquals(result, "Hello World");
+  result = textworld.to_title_case("hello");
+  assertEquals(result, "Hello");
+  result = textworld.to_title_case("");
+  assertEquals(result, "");
 });
 
 Deno.test("can_get_description_of_room", () => {
