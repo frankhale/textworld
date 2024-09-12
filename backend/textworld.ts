@@ -336,7 +336,7 @@ export class TextWorld {
       "Talk to an NPC or Vendor.",
       ["talk to", "tt"],
       (player, input, command, args) =>
-        JSON.stringify(this.talk_to_actor(player, input, command, args)),
+        JSON.stringify(this.interact_with_actor(player, input, command, args)),
     ),
     this.create_command_action(
       "goto action",
@@ -1203,16 +1203,16 @@ export class TextWorld {
   }
 
   /**
-   * Talk to an Actor.
+   * Interact with an Actor.
    *
-   * @param player - The player to talk to the NPC.
+   * @param player - The player.
    * @param input - The input from the player.
    * @param command - The command from the player.
    * @param args - The arguments from the player.
    * @returns {CommandResponse} - The response object.
    * @throws {Error} - If the player is not in a valid zone or room.
    */
-  talk_to_actor(
+  interact_with_actor(
     player: Player,
     input: string,
     command: string,
@@ -1228,9 +1228,11 @@ export class TextWorld {
       throw new Error("Player is not in a valid zone or room.");
     }
 
-    const actor_in_room = current_room.npcs.find((npc) =>
+    const actor_in_room = [...current_room.npcs, ...current_room.objects].find((
+      actor,
+    ) =>
       possible_triggers.some((trigger) =>
-        npc.name.toLowerCase() === trigger.toLowerCase()
+        actor.name.toLowerCase() === trigger.toLowerCase()
       )
     );
 
