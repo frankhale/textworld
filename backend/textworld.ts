@@ -11,7 +11,6 @@
 // - Implement leveling
 // - Implement race
 // - Look at all exception throwing and make sure it's consistent
-// - Can only look at or examine room objects. Need more ways to interact with them.
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -1557,7 +1556,11 @@ export class TextWorld {
       (item) => item.name.toLowerCase() === item_name.toLowerCase(),
     );
 
-    return item ? item.quantity >= quantity : false;
+    if (item && item.quantity >= quantity) {
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -2983,8 +2986,8 @@ export class TextWorld {
       name,
       descriptions: [{ flag: "default", description }],
       items: [],
-      dialog,
       flags: [],
+      dialog,
     });
   }
 

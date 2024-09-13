@@ -2574,9 +2574,11 @@ Deno.test("player_can_take_item_and_it_stacks_in_inventory", () => {
   textworld.take_item(player, ["Potion"]);
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_item(player, ["Potion"]);
-  const result = textworld.has_item_in_quantity(player, "Potion", 2);
+  let result = textworld.has_item_in_quantity(player, "Potion", 2);
   assertEquals(result, true);
-
+  // Exercise the else condition on has_item_in_quantity
+  result = textworld.has_item_in_quantity(player, "Potion", 100);
+  assertEquals(result, false);
   textworld.reset_world();
 });
 
