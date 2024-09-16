@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 15 September 2024
+// 16 September 2024
 
 import {
   assert,
@@ -1741,7 +1741,6 @@ Deno.test("can_parse_command_talk_to_npc_and_get_item", async () => {
   textworld.create_dialog(
     "Old_woman",
     ["hello", "hi"],
-    undefined,
     (player, _input, _command, _args) => {
       if (textworld.has_flag(player, "took_gem")) {
         return "Hi, how are you?";
@@ -1753,7 +1752,6 @@ Deno.test("can_parse_command_talk_to_npc_and_get_item", async () => {
   textworld.create_dialog(
     "Old_woman",
     ["take"],
-    undefined,
     (player, _input, _command, args) => {
       if (args.length !== 0) {
         if (!textworld.has_flag(player, "took_gem")) {
@@ -3205,7 +3203,7 @@ Deno.test("player_can_complete_quest_with_multiple_steps", () => {
   });
   textworld.create_exit("Zone1", "Room1", "north", "Room2");
   textworld.create_npc("Old Woman", "An ordinary old woman");
-  textworld.create_dialog("Old Woman", ["hello", "hi"], undefined, (player) => {
+  textworld.create_dialog("Old Woman", ["hello", "hi"], (player) => {
     if (textworld.has_flag(player, "took_gem")) {
       return "Hi, how are you?";
     } else {
@@ -3216,7 +3214,6 @@ Deno.test("player_can_complete_quest_with_multiple_steps", () => {
   textworld.create_dialog(
     "Old Woman",
     ["take"],
-    undefined,
     (player, _input, _command, args) => {
       if (args.length !== 0) {
         if (!textworld.has_flag(player, "took_gem")) {
@@ -3573,13 +3570,14 @@ Deno.test("player_can_talk_to_npc_and_say_something_npc_doesnt_understand", () =
   textworld.create_dialog(
     "Big Guard",
     ["Hello"],
+    "Hello citizen, make sure you mind the law!",
   );
   textworld.place_npc("Zone1", "Room1", "Big Guard");
   const result = textworld.interact_with_actor(
     player,
     "talk to Big Guard say Goodbye",
     "talk to",
-    ["talk", "to", "Big", "Guard", "say", "hello"],
+    ["talk", "to", "Big", "Guard", "say", "fizzbuzz"],
   );
   assertEquals(result.response, "hmm...");
   textworld.reset_world();
@@ -4003,7 +4001,6 @@ Deno.test("dialog_actions_work_after_loading_player_progress", async () => {
   textworld.create_dialog(
     "Guard",
     ["hello"],
-    undefined,
     (_player, _input, _command, _args) => "this is a dialog action",
   );
   textworld.place_npc("Zone1", "Room1", "Guard");

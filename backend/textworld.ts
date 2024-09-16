@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 15 September 2024
+// 16 September 2024
 
 // TODO:
 //
@@ -434,13 +434,14 @@ export class TextWorld {
    * @param {string} description - The description of the player.
    * @param {string} zone_name - The name of the zone to place the player in.
    * @param {string} room_name - The name of the room to place the player in.
+   * @returns {Player} - The player object.
    */
   create_player(
     name: string,
     description: string,
     zone_name: string,
     room_name: string,
-  ) {
+  ): Player {
     const stats = this.create_stats(
       { current: 10, max: 10 },
       { current: 10, max: 10 },
@@ -520,7 +521,7 @@ export class TextWorld {
    *
    * @param {Player} player - The player to remove.
    */
-  remove_player(player: Player) {
+  remove_player(player: Player): void {
     this.world.players = this.world.players.filter(
       (p) => p.name !== player.name,
     );
@@ -585,7 +586,7 @@ export class TextWorld {
    * @param {Player} player - The player to set the room for.
    * @param {string} zone_name - The name of the zone to set the room to.
    */
-  set_player_room_to_zone_start(player: Player, zone_name: string) {
+  set_player_room_to_zone_start(player: Player, zone_name: string): void {
     const room = this.get_zone_starter_room(zone_name);
     if (room) {
       player.zone = zone_name;
@@ -606,7 +607,7 @@ export class TextWorld {
     player: Player,
     zone_name: string,
     room_name: string,
-  ) {
+  ): void {
     const room = this.get_room(zone_name, room_name);
 
     if (room) {
@@ -625,7 +626,7 @@ export class TextWorld {
    * @param {Actor} actor - The actor to set the health for.
    * @param {number} health - The health to set.
    */
-  set_actor_health(actor: Actor, health: number) {
+  set_actor_health(actor: Actor, health: number): void {
     if (actor.stats) {
       actor.stats.health.current = health;
       if (actor.stats.health.current > actor.stats.health.max) {
@@ -641,7 +642,7 @@ export class TextWorld {
    * @param {Actor} actor - The actor to increase the max health for.
    * @param {number} amount - The amount to increase the max health by.
    */
-  increase_actor_max_heath(actor: Actor, amount: number) {
+  increase_actor_max_heath(actor: Actor, amount: number): void {
     if (actor.stats) {
       actor.stats.health.max += amount;
     }
@@ -652,7 +653,7 @@ export class TextWorld {
    *
    * @param {Actor} actor - The actor to set the max health for.
    */
-  set_actor_health_to_max(actor: Actor) {
+  set_actor_health_to_max(actor: Actor): void {
     if (actor.stats) {
       actor.stats.health.current = actor.stats.health.max;
     }
@@ -664,7 +665,7 @@ export class TextWorld {
    * @param {Actor} actor - The actor to add health to.
    * @param {number} amount - The amount of health to add.
    */
-  add_to_actor_health(actor: Actor, amount: number) {
+  add_to_actor_health(actor: Actor, amount: number): void {
     if (actor.stats) {
       actor.stats.health.current = Math.min(
         actor.stats.health.current + amount,
@@ -713,7 +714,7 @@ export class TextWorld {
    * @param {string} name - The name of the quest.
    * @param {string} description - The description of the quest.
    */
-  create_quest(name: string, description: string) {
+  create_quest(name: string, description: string): void {
     this.world.quests.push({
       id: crypto.randomUUID(),
       name,
@@ -774,7 +775,7 @@ export class TextWorld {
     quest_name: string,
     action_type: QuestActionType,
     action?: Action,
-  ) {
+  ): void {
     const quest = this.get_quest(quest_name);
     if (!quest) {
       throw new Error(`Quest ${quest_name} does not exist.`);
@@ -821,7 +822,7 @@ export class TextWorld {
     name: string,
     description: string,
     action: ActionDecision | null = null,
-  ) {
+  ): void {
     const quest = this.get_quest(quest_name);
     if (!quest) {
       throw new Error(`Quest ${quest_name} does not exist.`);
@@ -1074,16 +1075,21 @@ export class TextWorld {
    *
    * @param {string} name - The name of the NPC.
    * @param {string} description - The description of the NPC.
+   * @returns {Actor} - The NPC object.
    */
-  create_npc(name: string, description: string) {
-    this.world.npcs.push({
+  create_npc(name: string, description: string): Actor {
+    const npc: Actor = {
       id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
       items: [],
       killable: false,
       flags: [],
-    });
+    };
+
+    this.world.npcs.push(npc);
+
+    return npc;
   }
 
   /**
@@ -1095,7 +1101,7 @@ export class TextWorld {
     name: string,
     zone_name: string | null = null,
     room_name: string | null = null,
-  ) {
+  ): void {
     if (!zone_name || !room_name) {
       this.world.npcs = this.world.npcs.filter((npc) => npc.name !== name);
     } else {
@@ -1137,7 +1143,7 @@ export class TextWorld {
     in_room_name: string,
     npc_name: string,
     player: Player | null = null,
-  ) {
+  ): void {
     const npc = this.get_npc(npc_name);
     if (!npc) {
       throw new Error(`NPC ${npc_name} does not exist.`);
@@ -1255,7 +1261,11 @@ export class TextWorld {
    * @param {string} description - The description of the vendor.
    * @param {VendorItem[]} vendor_items - The items the vendor has for sale.
    */
-  create_vendor(name: string, description: string, vendor_items: VendorItem[]) {
+  create_vendor(
+    name: string,
+    description: string,
+    vendor_items: VendorItem[],
+  ): void {
     const vendor = {
       id: crypto.randomUUID(),
       name,
@@ -1272,7 +1282,6 @@ export class TextWorld {
     this.create_dialog(
       name,
       ["items"],
-      undefined,
       (_player, _input, _command, _args) => {
         const items = vendor_items.map(
           (vendor_item) => `${vendor_item.name} (${vendor_item.price} gold)`,
@@ -1284,7 +1293,6 @@ export class TextWorld {
     this.create_dialog(
       name,
       ["purchase", "buy"],
-      undefined,
       (player, input, _command, _args) => {
         const command_bits = input.split(" ");
         const trigger_word_index = command_bits.lastIndexOf("purchase") >= 0
@@ -1398,7 +1406,11 @@ export class TextWorld {
    * @param level - The level to set.
    * @param value - The value to set.
    */
-  set_item_level_and_value(item_name: string, level: number, value: number) {
+  set_item_level_and_value(
+    item_name: string,
+    level: number,
+    value: number,
+  ): void {
     const item = this.get_item(item_name);
     if (item) {
       item.level = level;
@@ -1457,7 +1469,7 @@ export class TextWorld {
     item_name: string,
     quantity: number = 1,
     player: Player | null = null,
-  ) {
+  ): void {
     const item = this.get_item(item_name);
     if (!item) {
       throw new Error(`Item ${item_name} does not exist.`);
@@ -1483,7 +1495,11 @@ export class TextWorld {
    * @param {string} item_name - The name of the item to add.
    * @param {number} quantity - The quantity of the item to add.
    */
-  add_item_to_player(player: Player, item_name: string, quantity: number = 1) {
+  add_item_to_player(
+    player: Player,
+    item_name: string,
+    quantity: number = 1,
+  ): void {
     const item = player.items.find(
       (item) => item.name.toLowerCase() === item_name.toLowerCase(),
     );
@@ -1724,7 +1740,7 @@ export class TextWorld {
    * @param {Player} player - The player to remove the item from.
    * @param {string} item_name - The name of the item to remove.
    */
-  remove_player_item(player: Player, item_name: string) {
+  remove_player_item(player: Player, item_name: string): void {
     const item_index = player.items.findIndex(
       (item) => item.name.toLowerCase() === item_name.toLowerCase(),
     );
@@ -1743,7 +1759,7 @@ export class TextWorld {
    *
    * @param {string} item_name - The name of the item to remove.
    */
-  remove_item(item_name: string) {
+  remove_item(item_name: string): void {
     this.world.items = this.world.items.filter(
       (item) => item.name.toLowerCase() !== item_name.toLowerCase(),
     );
@@ -1929,8 +1945,14 @@ export class TextWorld {
    * @param {string} description - The description of the mob.
    * @param {string} stats - The stats of the mob.
    * @param {Drop[]} items - The items the mob has.
+   * @returns {Actor} - The created mob.
    */
-  create_mob(name: string, description: string, stats: Stats, items: Drop[]) {
+  create_mob(
+    name: string,
+    description: string,
+    stats: Stats,
+    items: Drop[],
+  ): Actor {
     const mob: Actor = {
       id: crypto.randomUUID(),
       name,
@@ -1972,7 +1994,7 @@ export class TextWorld {
     in_room_name: string,
     mob_name: string,
     player: Player | null = null,
-  ) {
+  ): void {
     const mob = this.get_mob(mob_name);
     if (!mob) {
       throw new Error(`MOB ${mob_name} does not exist.`);
@@ -2140,7 +2162,7 @@ export class TextWorld {
    *
    * @param {string} name - The name of the zone.
    */
-  create_zone(name: string) {
+  create_zone(name: string): void {
     this.world.zones.push({
       name,
       rooms: [],
@@ -2154,7 +2176,7 @@ export class TextWorld {
    * @param player - The player to create the zone for.
    * @param name - The name of the zone to create.
    */
-  create_instanced_zone(player: Player, name: string) {
+  create_instanced_zone(player: Player, name: string): void {
     const zone = this.get_zone(name);
     if (!zone) {
       throw new Error(`Zone ${name} does not exist.`);
@@ -2173,7 +2195,7 @@ export class TextWorld {
    *
    * @param {string} name - The name of the zone to remove.
    */
-  remove_zone(name: string) {
+  remove_zone(name: string): void {
     this.world.zones = this.world.zones.filter((zone) => zone.name !== name);
   }
 
@@ -2224,7 +2246,7 @@ export class TextWorld {
     room_name: string,
     flag: string,
     description: string,
-  ) {
+  ): void {
     const room = this.get_room(zone_name, room_name);
     if (room) {
       room.descriptions.push({ flag, description });
@@ -2239,7 +2261,7 @@ export class TextWorld {
    * @param {string} zone_name - The name of the zone to remove the room from.
    * @param {string} room_name - The name of the room to remove.
    */
-  remove_room(zone_name: string, room_name: string) {
+  remove_room(zone_name: string, room_name: string): void {
     const zone = this.get_zone(zone_name);
     if (zone) {
       zone.rooms = zone.rooms.filter((room) => room.name !== room_name);
@@ -2285,7 +2307,7 @@ export class TextWorld {
     description: string,
     synonyms: string[],
     action: CommandParserAction,
-  ) {
+  ): void {
     const room = this.get_room(zone_name, room_name);
     if (!room) {
       throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
@@ -2325,7 +2347,7 @@ export class TextWorld {
     zone_name: string,
     room_name: string,
     action_name: string,
-  ) {
+  ): void {
     const room_command_actions = this.get_room_command_action(
       zone_name,
       room_name,
@@ -2400,7 +2422,7 @@ export class TextWorld {
     exit_name: string,
     to_room_name: string,
     hidden = false,
-  ) {
+  ): void {
     const zone = this.get_zone(zone_name);
     if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
 
@@ -2459,7 +2481,11 @@ export class TextWorld {
    * @param {string} exit_name - The name of the exit to remove.
    * @throws {Error} - If the zone, room, or exit name does not exist.
    */
-  remove_exit(zone_name: string, from_room_name: string, exit_name: string) {
+  remove_exit(
+    zone_name: string,
+    from_room_name: string,
+    exit_name: string,
+  ): void {
     const zone = this.get_zone(zone_name);
     if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
 
@@ -2729,6 +2755,7 @@ export class TextWorld {
    * @param {string} name - The name of the room.
    * @param {string} description - The description of the room.
    * @param {Action | null} action - The action to add to the room.
+   * @returns {Room} - The created room.
    * @throws {Error} - If the zone does not exist.
    */
   create_room(
@@ -2736,14 +2763,14 @@ export class TextWorld {
     name: string,
     description: string,
     action: Action | null = null,
-  ) {
+  ): Room {
     const zone = this.get_zone(zone_name);
     if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
 
     const id = name;
 
     // Create the new room and add it to the zone
-    zone.rooms.push({
+    const room = {
       id,
       name,
       descriptions: [{ flag: "default", description }],
@@ -2755,7 +2782,9 @@ export class TextWorld {
       exits: [],
       players: [],
       instance: false,
-    });
+    };
+
+    zone.rooms.push(room);
 
     // Add the action to the room actions if provided
     if (action) {
@@ -2764,6 +2793,8 @@ export class TextWorld {
         actions: [action],
       });
     }
+
+    return room;
   }
 
   /**
@@ -2772,8 +2803,13 @@ export class TextWorld {
    * @param {Player} player - The player to create the room for.
    * @param {string} zone_name - The name of the zone to create the room in.
    * @param {string} room_name - The name of the room to create.
+   * @returns {Room | null} - The created room or null if it does not exist.
    */
-  create_instanced_room(player: Player, zone_name: string, room_name: string) {
+  create_instanced_room(
+    player: Player,
+    zone_name: string,
+    room_name: string,
+  ): Room | null {
     const zone = this.get_zone(zone_name);
     if (zone) {
       const room = zone.rooms.find((r) =>
@@ -2797,8 +2833,12 @@ export class TextWorld {
           rooms: [instanced_room],
           instance: true,
         });
+
+        return instanced_room;
       }
     }
+
+    return null;
   }
 
   /**
@@ -2808,7 +2848,7 @@ export class TextWorld {
    * @param {string} room_name - The name of the room to set as the starting room.
    * @throws {Error} - If the room does not exist in the zone.
    */
-  set_room_as_zone_starter(zone_name: string, room_name: string) {
+  set_room_as_zone_starter(zone_name: string, room_name: string): void {
     const room = this.get_room(zone_name, room_name);
     if (!room) {
       throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
@@ -2824,7 +2864,7 @@ export class TextWorld {
    * @param {Action} action - The action to add.
    * @throws {Error} - If the room does not exist in the zone.
    */
-  add_room_action(zone_name: string, room_name: string, action: Action) {
+  add_room_action(zone_name: string, room_name: string, action: Action): void {
     const room = this.get_room(zone_name, room_name);
     if (!room) {
       throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
@@ -2978,6 +3018,7 @@ export class TextWorld {
    * @param {string} name - The name of the room object.
    * @param {string} description - The description of the room object.
    * @param {Dialog[] | null} dialog - The dialog of the room object.
+   * @returns {Actor} - The created room object.
    * @throws {Error} - If the room does not exist in the zone.
    */
   create_object(
@@ -2985,14 +3026,18 @@ export class TextWorld {
     description: string,
     dialog?: Dialog[],
   ) {
-    this.world.objects.push({
+    const object = {
       id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
       items: [],
       flags: [],
       dialog,
-    });
+    };
+
+    this.world.objects.push(object);
+
+    return object;
   }
 
   /**
@@ -3009,7 +3054,7 @@ export class TextWorld {
     in_room_name: string,
     object_name: string,
     player: Player | null = null,
-  ) {
+  ): void {
     const object = this.get_object(object_name);
     if (!object) {
       throw new Error(`Object ${object_name} does not exist.`);
@@ -3160,7 +3205,7 @@ export class TextWorld {
     description: string,
     ingredients: Drop[],
     crafted_item: Drop,
-  ) {
+  ): void {
     this.world.recipes.push({
       id: crypto.randomUUID(),
       name,
@@ -3331,6 +3376,7 @@ export class TextWorld {
    * @param {number} interval - The interval to spawn at.
    * @param {boolean} active - Whether the spawn location is active.
    * @param {SpawnLocationAction} action - The action to run when spawning.
+   * @returns {SpawnLocation} - The created spawn location.
    */
   create_spawn_location(
     name: string,
@@ -3339,7 +3385,7 @@ export class TextWorld {
     interval: number,
     active: boolean,
     action: SpawnLocationAction,
-  ) {
+  ): SpawnLocation {
     const spawn_location: SpawnLocation = {
       name,
       zone,
@@ -3363,6 +3409,8 @@ export class TextWorld {
     };
 
     this.world_actions.spawn_locations.push(spawn_location);
+
+    return spawn_location;
   }
 
   /**
@@ -3385,7 +3433,7 @@ export class TextWorld {
    * @param {string} name - The name of the spawn location.
    * @param {boolean} active - Whether the spawn location is active.
    */
-  set_spawn_location_active(name: string, active: boolean) {
+  set_spawn_location_active(name: string, active: boolean): void {
     const spawn_location = this.world_actions.spawn_locations.find(
       (location) => location.name === name,
     );
@@ -3399,7 +3447,7 @@ export class TextWorld {
    *
    * @param {string} name - The name of the spawn location.
    */
-  start_spawn_location(name: string) {
+  start_spawn_location(name: string): void {
     const spawn_location = this.world_actions.spawn_locations.find(
       (location) => location.name === name,
     );
@@ -3413,7 +3461,7 @@ export class TextWorld {
    *
    * @param {string} name - The name of the spawn location.
    */
-  remove_spawn_location(name: string) {
+  remove_spawn_location(name: string): void {
     const spawn_location = this.world_actions.spawn_locations.find(
       (location) => location.name === name,
     );
@@ -3432,14 +3480,12 @@ export class TextWorld {
    *
    * @param {string} npc_name - The name of the NPC to create the dialog for.
    * @param {string[]} trigger - The trigger for the dialog.
-   * @param {string | null} response - The response for the dialog.
-   * @param {CommandParserAction | null} action - The action for the dialog.
+   * @param {string | CommandParserAction} responseOrAction - The response or action for the dialog.
    */
   create_dialog(
     npc_name: string,
     trigger: string[],
-    response?: string,
-    action?: CommandParserAction,
+    responseOrAction: string | CommandParserAction,
   ): void {
     const npc = this.get_npc(npc_name);
     if (!npc) return;
@@ -3450,14 +3496,19 @@ export class TextWorld {
       npc.dialog = [];
     }
 
+    let response = undefined;
+    if (typeof responseOrAction === "string") {
+      response = responseOrAction;
+    }
+
     npc.dialog.push({
       name: dialog_id,
       trigger,
       response,
     });
 
-    if (action) {
-      this.create_dialog_action(dialog_id, trigger, action);
+    if (responseOrAction instanceof Function) {
+      this.create_dialog_action(dialog_id, trigger, responseOrAction);
     }
   }
 
@@ -3472,7 +3523,7 @@ export class TextWorld {
     dialog_id: string,
     trigger: string[],
     action: CommandParserAction,
-  ) {
+  ): void {
     this.world_actions.dialog_actions.push({
       name: dialog_id,
       trigger,
@@ -3718,7 +3769,7 @@ export class TextWorld {
    *
    * @param {Player} player - The player to set the godmode flag for.
    */
-  set_godmode(player: Player) {
+  set_godmode(player: Player): void {
     this.set_flag(player, "godmode");
   }
 
@@ -3727,7 +3778,7 @@ export class TextWorld {
    *
    * @param {Player} player - The player to remove the godmode flag for.
    */
-  remove_godmode(player: Player) {
+  remove_godmode(player: Player): void {
     this.remove_flag(player, "godmode");
   }
 
@@ -3737,7 +3788,7 @@ export class TextWorld {
    * @param {Player} player - The player to set the flag for.
    * @param {string} flag - The flag to set.
    */
-  set_flag(player: Player, flag: string) {
+  set_flag(player: Player, flag: string): void {
     if (player && !player.flags.includes(flag)) {
       player.flags.push(flag);
     }
@@ -3760,7 +3811,7 @@ export class TextWorld {
    * @param {Player} player - The player to remove the flag from.
    * @param {string} flag - The flag to remove.
    */
-  remove_flag(player: Player, flag: string) {
+  remove_flag(player: Player, flag: string): void {
     if (player && player.flags.includes(flag)) {
       player.flags = player.flags.filter((f) => f !== flag);
     }
@@ -3968,7 +4019,7 @@ export class TextWorld {
    * @param {number} port - The port to run the server on.
    * @param {string} fix_me_player_id - The hard coded player ID.
    */
-  run_websocket_server(port: number, fix_me_player_id: string) {
+  run_websocket_server(port: number, fix_me_player_id: string): void {
     const process_request = async (game_message: GameMessage) => {
       const player = this.get_player(game_message.player_id);
       if (player) {
