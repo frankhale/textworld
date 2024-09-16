@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 12 September 2024
+// 15 September 2024
 
 import {
   assert,
@@ -907,7 +907,6 @@ Deno.test("can_create_npc_with_dialog", () => {
     "Guard",
     ["Hello"],
     "Hello citizen, make sure you mind the law!",
-    null,
   );
   const npc = textworld.get_npc("Guard");
   assertEquals(npc?.name, "Guard");
@@ -1696,7 +1695,6 @@ Deno.test("can_parse_incorrect_command_to_talk_to_npc", async () => {
     "Guard",
     ["hello"],
     "Hello citizen, make sure you mind the law!",
-    null,
   );
   textworld.place_npc("Zone1", "Room1", "Guard");
   const result = JSON.parse(await textworld.parse_command(player, "talk to"));
@@ -1718,7 +1716,6 @@ Deno.test("can_parse_command_talk_to_npc", async () => {
     "Guard",
     ["hello"],
     "Hello citizen, make sure you mind the law!",
-    null,
   );
   textworld.place_npc("Zone1", "Room1", "Guard");
   const result = JSON.parse(
@@ -1744,7 +1741,7 @@ Deno.test("can_parse_command_talk_to_npc_and_get_item", async () => {
   textworld.create_dialog(
     "Old_woman",
     ["hello", "hi"],
-    null,
+    undefined,
     (player, _input, _command, _args) => {
       if (textworld.has_flag(player, "took_gem")) {
         return "Hi, how are you?";
@@ -1756,7 +1753,7 @@ Deno.test("can_parse_command_talk_to_npc_and_get_item", async () => {
   textworld.create_dialog(
     "Old_woman",
     ["take"],
-    null,
+    undefined,
     (player, _input, _command, args) => {
       if (args.length !== 0) {
         if (!textworld.has_flag(player, "took_gem")) {
@@ -3208,7 +3205,7 @@ Deno.test("player_can_complete_quest_with_multiple_steps", () => {
   });
   textworld.create_exit("Zone1", "Room1", "north", "Room2");
   textworld.create_npc("Old Woman", "An ordinary old woman");
-  textworld.create_dialog("Old Woman", ["hello", "hi"], null, (player) => {
+  textworld.create_dialog("Old Woman", ["hello", "hi"], undefined, (player) => {
     if (textworld.has_flag(player, "took_gem")) {
       return "Hi, how are you?";
     } else {
@@ -3219,7 +3216,7 @@ Deno.test("player_can_complete_quest_with_multiple_steps", () => {
   textworld.create_dialog(
     "Old Woman",
     ["take"],
-    null,
+    undefined,
     (player, _input, _command, args) => {
       if (args.length !== 0) {
         if (!textworld.has_flag(player, "took_gem")) {
@@ -3544,7 +3541,6 @@ Deno.test("player_can_talk_to_npc", () => {
     "Big Guard",
     ["Hello"],
     "Hello citizen, make sure you mind the law!",
-    null,
   );
   textworld.place_npc("Zone1", "Room1", "Big Guard");
   let result = textworld.interact_with_actor(
@@ -3577,8 +3573,6 @@ Deno.test("player_can_talk_to_npc_and_say_something_npc_doesnt_understand", () =
   textworld.create_dialog(
     "Big Guard",
     ["Hello"],
-    null,
-    null,
   );
   textworld.place_npc("Zone1", "Room1", "Big Guard");
   const result = textworld.interact_with_actor(
@@ -3624,7 +3618,6 @@ Deno.test("player_cant_talk_to_npc_if_room_doesnt_exist", () => {
     "Big Guard",
     ["Hello"],
     "Hello citizen, make sure you mind the law!",
-    null,
   );
   textworld.place_npc("Zone1", "Room1", "Big Guard");
   let result = textworld.interact_with_actor(
@@ -4010,7 +4003,7 @@ Deno.test("dialog_actions_work_after_loading_player_progress", async () => {
   textworld.create_dialog(
     "Guard",
     ["hello"],
-    null,
+    undefined,
     (_player, _input, _command, _args) => "this is a dialog action",
   );
   textworld.place_npc("Zone1", "Room1", "Guard");

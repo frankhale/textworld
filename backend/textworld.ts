@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 12 September 2024
+// 15 September 2024
 
 // TODO:
 //
@@ -10,6 +10,7 @@
 // environment
 // - Implement leveling
 // - Implement race
+// - Add a value to all items, implement selling items to vendors
 // - Look at all exception throwing and make sure it's consistent
 
 export const player_progress_db_name = "game_saves.db";
@@ -26,10 +27,12 @@ export type CommandParserAction = (
 ) => string | Promise<string>;
 export type SpawnLocationAction = (spawn_location: SpawnLocation) => void;
 
-//////////
-// CORE //
-//////////
+export interface GameMessage {
+  player_id: string;
+  command: string;
+}
 
+// Core Interfaces
 export interface Description {
   flag: string;
   description: string;
@@ -39,18 +42,12 @@ export interface Id {
   id: string;
 }
 
-export interface Entity extends Id {
+export interface Named {
   name: string;
+}
+
+export interface Entity extends Id, Named {
   descriptions: Description[];
-}
-
-export interface Parent {
-  name: string;
-}
-
-export interface GameMessage {
-  player_id: string;
-  command: string;
 }
 
 export interface Storage {
@@ -74,8 +71,7 @@ export interface Stats {
   progress: Level;
 }
 
-export interface Race {
-  name: string;
+export interface Race extends Named {
   dexterity: number;
   constitution: number;
   intelligence: number;
@@ -84,12 +80,12 @@ export interface Race {
 }
 
 export interface Actor extends Entity, Storage {
-  dialog?: Dialog[] | null;
-  vendor_items?: VendorItem[] | null;
+  dialog?: Dialog[];
+  vendor_items?: VendorItem[];
   killable?: boolean;
   flags: string[];
   stats?: Stats;
-  race?: Race; // TODO: Currently not being used
+  race?: Race;
 }
 
 export interface Instance {
@@ -117,28 +113,27 @@ export interface Level {
   xp: number;
 }
 
-export interface VendorItem {
-  name: string;
+export interface VendorItem extends Named {
   price: number;
 }
 
-export interface Dialog extends Parent {
+export interface Dialog extends Named {
   trigger: string[];
-  response: string | null;
+  response?: string;
 }
 
 export interface Item extends Entity {
   usable: boolean;
+  level: number;
+  value: number;
 }
 
-export interface Exit {
-  name: string;
+export interface Exit extends Named {
   location: string;
   hidden: boolean;
 }
 
-export interface Drop {
-  name: string;
+export interface Drop extends Named {
   quantity: number;
 }
 
@@ -170,24 +165,22 @@ export interface World {
   level_data: Level[];
 }
 
-export interface QuestStep extends Entity {
+export interface CompletableEntity extends Entity {
   complete: boolean;
 }
 
-export interface Quest extends Entity {
-  complete: boolean;
-  steps: QuestStep[] | null;
+export interface Quest extends CompletableEntity {
+  steps?: QuestStep[];
 }
+
+export interface QuestStep extends CompletableEntity {}
 
 export interface PlayerProgress {
   player: Player;
   world: World;
 }
 
-//////////////
-// RESPONSE //
-//////////////
-
+// Response Interface
 export interface CommandResponse {
   response: string;
   exits?: string;
@@ -196,45 +189,41 @@ export interface CommandResponse {
   objects?: string;
 }
 
-/////////////
-// ACTIONS //
-/////////////
+// Actions Interfaces
+type QuestActionType = "Start" | "End";
 
-export interface QuestAction extends Parent {
-  start: Action | null;
-  end: Action | null;
+export interface QuestAction extends Named {
+  start?: Action;
+  end?: Action;
 }
 
-export interface QuestStepAction extends Parent {
+export interface QuestStepAction extends Named {
   action: ActionDecision;
 }
 
-type QuestActionType = "Start" | "End";
-
-export interface CommandAction extends Entity, Parent {
+export interface CommandAction extends Entity {
   synonyms: string[];
   action: CommandParserAction;
 }
 
-export interface DialogAction extends Parent {
+export interface DialogAction extends Named {
   trigger: string[];
   action: CommandParserAction;
 }
 
-export interface ItemAction extends Parent {
+export interface ItemAction extends Named {
   action: Action;
 }
 
-export interface RoomAction extends Parent {
-  actions: Action[] | null;
+export interface RoomAction extends Named {
+  actions?: Action[];
 }
 
-export interface RoomCommandActions extends Parent {
+export interface RoomCommandActions extends Named {
   command_actions: CommandAction[];
 }
 
-export interface SpawnLocation {
-  name: string;
+export interface SpawnLocation extends Named {
   zone: string;
   room: string;
   interval: number;
@@ -730,7 +719,6 @@ export class TextWorld {
       name,
       descriptions: [{ flag: "default", description }],
       complete: false,
-      steps: null,
     });
   }
 
@@ -785,7 +773,7 @@ export class TextWorld {
   add_quest_action(
     quest_name: string,
     action_type: QuestActionType,
-    action: Action | null,
+    action?: Action,
   ) {
     const quest = this.get_quest(quest_name);
     if (!quest) {
@@ -799,8 +787,6 @@ export class TextWorld {
     if (!quest_action) {
       quest_action = {
         name: quest_name,
-        start: null,
-        end: null,
       };
       this.world_actions.quest_actions.push(quest_action);
     } else {
@@ -1096,8 +1082,6 @@ export class TextWorld {
       descriptions: [{ flag: "default", description }],
       items: [],
       killable: false,
-      dialog: null,
-      vendor_items: null,
       flags: [],
     });
   }
@@ -1288,7 +1272,7 @@ export class TextWorld {
     this.create_dialog(
       name,
       ["items"],
-      null,
+      undefined,
       (_player, _input, _command, _args) => {
         const items = vendor_items.map(
           (vendor_item) => `${vendor_item.name} (${vendor_item.price} gold)`,
@@ -1300,7 +1284,7 @@ export class TextWorld {
     this.create_dialog(
       name,
       ["purchase", "buy"],
-      null,
+      undefined,
       (player, input, _command, _args) => {
         const command_bits = input.split(" ");
         const trigger_word_index = command_bits.lastIndexOf("purchase") >= 0
@@ -1378,18 +1362,21 @@ export class TextWorld {
    * @param {string} description - The description of the item.
    * @param {boolean} usable - Whether the item is usable.
    * @param {Action | null} action - The action to perform when the item is used.
+   * @returns {Item} - The created item.
    */
   create_item(
     name: string,
     description: string,
     usable: boolean,
     action: Action | null = null,
-  ) {
+  ): Item {
     const item = {
       id: crypto.randomUUID(),
       name,
       descriptions: [{ flag: "default", description }],
       usable,
+      level: 1,
+      value: 1,
     };
 
     this.world.items.push(item);
@@ -1399,6 +1386,23 @@ export class TextWorld {
         name,
         action,
       });
+    }
+
+    return item;
+  }
+
+  /**
+   * Sets the level and value of an item.
+   *
+   * @param item_name - The name of the item to set the level and value for.
+   * @param level - The level to set.
+   * @param value - The value to set.
+   */
+  set_item_level_and_value(item_name: string, level: number, value: number) {
+    const item = this.get_item(item_name);
+    if (item) {
+      item.level = level;
+      item.value = value;
     }
   }
 
@@ -2979,7 +2983,7 @@ export class TextWorld {
   create_object(
     name: string,
     description: string,
-    dialog: Dialog[] | null = null,
+    dialog?: Dialog[],
   ) {
     this.world.objects.push({
       id: crypto.randomUUID(),
@@ -3434,9 +3438,9 @@ export class TextWorld {
   create_dialog(
     npc_name: string,
     trigger: string[],
-    response: string | null,
-    action: CommandParserAction | null,
-  ) {
+    response?: string,
+    action?: CommandParserAction,
+  ): void {
     const npc = this.get_npc(npc_name);
     if (!npc) return;
 
