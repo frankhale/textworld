@@ -1832,6 +1832,36 @@ Deno.test("can_parse_command_talk_to_vendor_and_list_items", async () => {
   textworld.reset_world();
 });
 
+Deno.test("can_parse_command_talk_to_vendor_and_sell_item", async () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  player.gold = 10;
+  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.set_item_level_and_value("Sword", 5, 25);
+  textworld.add_item_to_player(player, "Sword", 2);
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_vendor("Vendor1", "A friendly vendor", []);
+  textworld.place_npc("Zone1", "Room1", "Vendor1");
+  const result = JSON.parse(
+    await textworld.parse_command(
+      player,
+      "talk to Vendor1 say sell Sword 2",
+    ),
+  );
+  assertEquals(
+    result.response,
+    "You sold '2' of 'Sword' for a value of '50'.",
+  );
+  assertEquals(player.gold, 60);
+  assertEquals(textworld.has_item_in_quantity(player, "Sword", 2), false);
+  textworld.reset_world();
+});
+
 Deno.test("can_parse_command_talk_to_vendor_and_purchase_item", async () => {
   const player = textworld.create_player(
     "Player",

@@ -10,7 +10,7 @@
 // environment
 // - Implement leveling
 // - Implement race
-// - Add a value to all items, implement selling items to vendors
+// - Implement selling items to vendors
 // - Look at all exception throwing and make sure it's consistent
 
 export const player_progress_db_name = "game_saves.db";
@@ -1310,6 +1310,51 @@ export class TextWorld {
         return this.purchase_from_vendor(player, name, item_name);
       },
     );
+
+    this.create_dialog(
+      name,
+      ["sell"],
+      (player, input, _command, _args) => {
+        const command_bits = input.split(" ");
+        const trigger_word_index = command_bits.lastIndexOf("sell");
+
+        if (
+          trigger_word_index === -1 ||
+          trigger_word_index === command_bits.length - 1
+        ) {
+          return "You must specify an item to sell.";
+        }
+
+        // get last word in command_bits and check to see if it is a number
+        const quantity = parseInt(command_bits[command_bits.length - 1], 10);
+        if (isNaN(quantity)) {
+          return "You must specify a quantity to sell.";
+        }
+
+        const item_name = command_bits.slice(
+          trigger_word_index + 1,
+          trigger_word_index + 2,
+        ).join(" ");
+
+        const has_item = this.has_item_in_quantity(player, item_name, quantity);
+
+        if (!has_item) {
+          return `You don't have ${quantity} of ${item_name} to sell.`;
+        }
+
+        const item = this.get_item(item_name);
+
+        if (!item) {
+          return "That item does not exist.";
+        }
+
+        const total_value = item.value * quantity;
+        player.gold += total_value;
+        this.remove_player_item(player, item_name, quantity);
+
+        return `You sold '${quantity}' of '${item_name}' for a value of '${total_value}'.`;
+      },
+    );
   }
 
   /**
@@ -1735,20 +1780,29 @@ export class TextWorld {
   }
 
   /**
-   * Removes an item from a player.
+   * Removes an item from a player. If the item quantity is 0, the item is
+   * removed from the player. If the item quantity is greater than 0, the
+   * quantity is decremented by 1.
    *
    * @param {Player} player - The player to remove the item from.
    * @param {string} item_name - The name of the item to remove.
    */
-  remove_player_item(player: Player, item_name: string): void {
+  remove_player_item(
+    player: Player,
+    item_name: string,
+    quantity: number = 1,
+  ): void {
     const item_index = player.items.findIndex(
       (item) => item.name.toLowerCase() === item_name.toLowerCase(),
     );
 
     if (item_index !== -1) {
-      player.items[item_index].quantity--;
+      player.items[item_index].quantity -= quantity;
 
-      if (player.items[item_index].quantity === 0) {
+      if (
+        player.items[item_index].quantity === 0 ||
+        player.items[item_index].quantity < 0
+      ) {
         player.items.splice(item_index, 1);
       }
     }
