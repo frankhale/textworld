@@ -71,7 +71,7 @@ export interface Stats {
   progress: Level;
 }
 
-export interface Race extends Named {
+export interface Race extends Entity {
   dexterity: number;
   constitution: number;
   intelligence: number;
@@ -147,7 +147,7 @@ export interface Room extends Entity, Storage {
   instance: boolean;
 }
 
-export interface Zone {
+export interface Zone extends Entity {
   name: string;
   rooms: Room[];
   instance: boolean;
@@ -165,15 +165,15 @@ export interface World {
   level_data: Level[];
 }
 
-export interface CompletableEntity extends Entity {
+export interface Completable extends Entity {
   complete: boolean;
 }
 
-export interface Quest extends CompletableEntity {
+export interface Quest extends Completable {
   steps?: QuestStep[];
 }
 
-export interface QuestStep extends CompletableEntity {}
+export interface QuestStep extends Completable {}
 
 export interface PlayerProgress {
   player: Player;
@@ -458,7 +458,9 @@ export class TextWorld {
       id: crypto.randomUUID(),
       race: {
         // FIXME: Don't hard code this
+        id: crypto.randomUUID(),
         name: "Human",
+        descriptions: [{ flag: "default", description: "A human." }],
         dexterity: 1,
         constitution: 1,
         intelligence: 1,
@@ -2216,8 +2218,13 @@ export class TextWorld {
    *
    * @param {string} name - The name of the zone.
    */
-  create_zone(name: string): void {
+  create_zone(name: string, description: string = ""): void {
     this.world.zones.push({
+      id: crypto.randomUUID(),
+      descriptions: [{
+        flag: "default",
+        description: description.length === 0 ? name : description,
+      }],
       name,
       rooms: [],
       instance: false,
@@ -2883,6 +2890,8 @@ export class TextWorld {
         instanced_room.instance = true;
 
         player.instance.zones.push({
+          id: zone.id,
+          descriptions: zone.descriptions,
           name: zone.name,
           rooms: [instanced_room],
           instance: true,
