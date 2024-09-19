@@ -38,15 +38,12 @@ export interface Description {
   description: string;
 }
 
-export interface Id {
-  id: string;
-}
-
 export interface Named {
   name: string;
 }
 
-export interface Entity extends Id, Named {
+export interface Entity extends Named {
+  id: string;
   descriptions: Description[];
 }
 
