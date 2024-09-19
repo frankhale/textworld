@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 7 September 2024
+// 16 September 2024
 
 import * as tw from "./textworld.ts";
 
@@ -144,7 +144,6 @@ function create_npcs() {
     "Charlotte",
     ["hello", "hi"],
     "Have you seen Wilbur? I've been looking around everywhere for him...",
-    null,
   );
 }
 

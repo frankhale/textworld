@@ -49,10 +49,6 @@ export class OutputComponent {
   getCssClass(message: string): string {
     if (message.startsWith("command:")) {
       return "command-text";
-    } else if (message.startsWith("Exits:")) {
-      return "exits-text";
-    } else if (message.startsWith("NPCs:")) {
-      return "npcs-text";
     } else if (message.startsWith("Inventory:")) {
       return "inventory-text";
     }

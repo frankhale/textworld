@@ -28,6 +28,7 @@ was created to play in. This will change as time moves on.
 - [x] Spawn Locations
 - [x] Save/Load (uses Deno KV)
 - [x] Combat (very basic)
+- [x] Instancing (zones, rooms, items, npcs, mobs)
 - [ ] Leveling
 - [ ] Multiplayer
 
@@ -63,4 +64,4 @@ Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 
 ## Date
 
-7 September 2024
+12 September 2024
