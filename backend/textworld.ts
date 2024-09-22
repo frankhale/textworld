@@ -8,9 +8,9 @@
 // need to be populated when players switch rooms or join the game.
 // - Player Progress saving/loading needs refactoring to work in a multiplayer
 // environment
+// - Implement flag actions
 // - Implement leveling
 // - Implement race
-// - Implement selling items to vendors
 // - Look at all exception throwing and make sure it's consistent
 
 export const player_progress_db_name = "game_saves.db";
@@ -201,11 +201,11 @@ export interface DialogAction extends Named {
   action: CommandParserAction;
 }
 
-export interface ItemAction extends Named {
+export interface NamedAction extends Named {
   action: Action;
 }
 
-export interface RoomAction extends Named {
+export interface NamedActions extends Named {
   actions?: Action[];
 }
 
@@ -226,8 +226,9 @@ export interface SpawnLocation extends Named {
 export interface WorldActions {
   spawn_locations: SpawnLocation[];
   dialog_actions: DialogAction[];
-  item_actions: ItemAction[];
-  room_actions: RoomAction[];
+  flag_actions: NamedAction[];
+  item_actions: NamedAction[];
+  room_actions: NamedActions[];
   room_command_actions: RoomCommandActions[];
   quest_actions: QuestAction[];
   quest_step_actions: QuestStepAction[];
@@ -1244,6 +1245,14 @@ export class TextWorld {
   // VENDOR //
   ////////////
 
+  dialog_contains_trigger(triggers: string[], words: string[]): number {
+    return words.findIndex((word) => triggers.includes(word));
+  }
+
+  dialog_remove_trigger(triggers: string[], words: string[]): string[] {
+    return words.filter((word) => !triggers.includes(word));
+  }
+
   /**
    * Creates a new vendor and adds it to the world.
    *
@@ -1284,18 +1293,18 @@ export class TextWorld {
       name,
       ["purchase", "buy"],
       (player, _input, _command, args) => {
-        const trigger_word_index = args.lastIndexOf("purchase") >= 0
-          ? args.lastIndexOf("purchase")
-          : args.lastIndexOf("buy");
+        const trigger_index = this.dialog_contains_trigger(
+          ["purchase", "buy"],
+          args,
+        );
+        const item_name = trigger_index !== -1
+          ? args.slice(trigger_index + 1).join(" ")
+          : "";
 
-        if (
-          trigger_word_index === -1 ||
-          trigger_word_index === args.length - 1
-        ) {
+        if (!item_name.trim()) {
           return "You must specify an item to purchase.";
         }
 
-        const item_name = args.slice(trigger_word_index + 1).join(" ");
         return this.purchase_from_vendor(player, name, item_name);
       },
     );
@@ -1304,12 +1313,8 @@ export class TextWorld {
       name,
       ["sell"],
       (player, _input, _command, args) => {
-        const trigger_word_index = args.lastIndexOf("sell");
-
-        if (
-          trigger_word_index === -1 ||
-          trigger_word_index === args.length - 1
-        ) {
+        const trigger_index = this.dialog_contains_trigger(["sell"], args);
+        if (trigger_index === -1) {
           return "You must specify an item to sell.";
         }
 
@@ -1319,11 +1324,7 @@ export class TextWorld {
           return "You must specify a quantity to sell.";
         }
 
-        const item_name = args.slice(
-          trigger_word_index + 1,
-          trigger_word_index + 2,
-        ).join(" ");
-
+        const item_name = args.slice(trigger_index + 1, -1).join(" ");
         const has_item = this.has_item_in_quantity(player, item_name, quantity);
 
         if (!has_item) {
@@ -1562,10 +1563,10 @@ export class TextWorld {
    * Gets an item action.
    *
    * @param {string} name - The name of the item to get the action for.
-   * @returns {ItemAction | null} - The item action or null if it does not exist.
+   * @returns {NamedAction | null} - The item action or null if it does not exist.
    * @throws {Error} - If the item does not exist.
    */
-  get_item_action(name: string): ItemAction | null {
+  get_item_action(name: string): NamedAction | null {
     const item = this.get_item(name);
     if (!item) {
       throw new Error(`Item ${name} does not exist.`);
@@ -3361,6 +3362,41 @@ export class TextWorld {
   //////////
 
   /**
+   * Adds a flag action.
+   *
+   * @param {string} name - The name of the flag action.
+   * @param {Action} action - The action to add.
+   */
+  add_flag_action(name: string, action: Action): void {
+    const flag_action = this.world_actions.flag_actions.find(
+      (flag) => flag.name === name,
+    );
+
+    if (flag_action) {
+      flag_action.action = action;
+    } else {
+      this.world_actions.flag_actions.push({
+        name,
+        action,
+      });
+    }
+  }
+
+  /**
+   * Gets a flag action.
+   *
+   * @param {string} name - The name of the flag action to remove.
+   * @returns {Action | null} - The flag action or null if it does not exist.
+   */
+  get_flag_action(name: string): Action | null {
+    const flag_action = this.world_actions.flag_actions.find(
+      (flag) => flag.name === name,
+    );
+
+    return flag_action ? flag_action.action : null;
+  }
+
+  /**
    * Saves player progress to a database.
    *
    * @param {Player} player - The player to save progress for.
@@ -3682,6 +3718,7 @@ export class TextWorld {
     const world_actions: WorldActions = {
       spawn_locations: [],
       dialog_actions: [],
+      flag_actions: [],
       item_actions: [],
       room_actions: [],
       room_command_actions: [],
