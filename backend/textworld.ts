@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 16 September 2024
+// 21 September 2024
 
 // TODO:
 //
@@ -26,11 +26,6 @@ export type CommandParserAction = (
   args: string[],
 ) => string | Promise<string>;
 export type SpawnLocationAction = (spawn_location: SpawnLocation) => void;
-
-export interface GameMessage {
-  player_id: string;
-  command: string;
-}
 
 // Core Interfaces
 export interface Description {
@@ -85,10 +80,6 @@ export interface Actor extends Entity, Storage {
   race?: Race;
 }
 
-export interface Instance {
-  zones: Zone[];
-}
-
 export interface Player extends Actor {
   score: number;
   gold: number;
@@ -97,7 +88,7 @@ export interface Player extends Actor {
   quests: string[];
   quests_completed: string[];
   known_recipes: string[];
-  instance: Instance;
+  instance: Zone[];
 }
 
 export interface Recipe extends Entity {
@@ -134,47 +125,49 @@ export interface Drop extends Named {
   quantity: number;
 }
 
-export interface Room extends Entity, Storage {
-  zone_start: boolean;
+export interface ActorContainer {
   npcs: Actor[];
-  exits: Exit[];
   mobs: Actor[];
   objects: Actor[];
   players: Player[];
+}
+
+export interface Room extends Entity, Storage, ActorContainer {
+  exits: Exit[];
   instance: boolean;
 }
 
 export interface Zone extends Entity {
-  name: string;
   rooms: Room[];
   instance: boolean;
+  starting_room?: string;
 }
 
-export interface World {
+export interface World extends ActorContainer {
   zones: Zone[];
   items: Item[];
   recipes: Recipe[];
-  npcs: Actor[];
-  mobs: Actor[];
-  objects: Actor[];
-  players: Player[];
   quests: Quest[];
   level_data: Level[];
 }
 
-export interface Completable extends Entity {
+export interface Quest extends Entity {
+  steps?: QuestStep[];
   complete: boolean;
 }
 
-export interface Quest extends Completable {
-  steps?: QuestStep[];
+export interface QuestStep extends Entity {
+  complete: boolean;
 }
-
-export interface QuestStep extends Completable {}
 
 export interface PlayerProgress {
   player: Player;
   world: World;
+}
+
+export interface GameMessage {
+  player_id: string;
+  command: string;
 }
 
 // Response Interface
@@ -476,9 +469,7 @@ export class TextWorld {
       quests: [],
       quests_completed: [],
       known_recipes: [],
-      instance: {
-        zones: [],
-      },
+      instance: [],
     };
 
     this.world.players.push(player);
@@ -534,7 +525,7 @@ export class TextWorld {
    */
   get_player_zone(player: Player): Zone | null {
     return (
-      player.instance.zones.find((zone) => zone.name === player.zone) ||
+      player.instance.find((zone) => zone.name === player.zone) ||
       this.world.zones.find((zone) => zone.name === player.zone) || null
     );
   }
@@ -1292,20 +1283,19 @@ export class TextWorld {
     this.create_dialog(
       name,
       ["purchase", "buy"],
-      (player, input, _command, _args) => {
-        const command_bits = input.split(" ");
-        const trigger_word_index = command_bits.lastIndexOf("purchase") >= 0
-          ? command_bits.lastIndexOf("purchase")
-          : command_bits.lastIndexOf("buy");
+      (player, _input, _command, args) => {
+        const trigger_word_index = args.lastIndexOf("purchase") >= 0
+          ? args.lastIndexOf("purchase")
+          : args.lastIndexOf("buy");
 
         if (
           trigger_word_index === -1 ||
-          trigger_word_index === command_bits.length - 1
+          trigger_word_index === args.length - 1
         ) {
           return "You must specify an item to purchase.";
         }
 
-        const item_name = command_bits.slice(trigger_word_index + 1).join(" ");
+        const item_name = args.slice(trigger_word_index + 1).join(" ");
         return this.purchase_from_vendor(player, name, item_name);
       },
     );
@@ -1313,24 +1303,23 @@ export class TextWorld {
     this.create_dialog(
       name,
       ["sell"],
-      (player, input, _command, _args) => {
-        const command_bits = input.split(" ");
-        const trigger_word_index = command_bits.lastIndexOf("sell");
+      (player, _input, _command, args) => {
+        const trigger_word_index = args.lastIndexOf("sell");
 
         if (
           trigger_word_index === -1 ||
-          trigger_word_index === command_bits.length - 1
+          trigger_word_index === args.length - 1
         ) {
           return "You must specify an item to sell.";
         }
 
         // get last word in command_bits and check to see if it is a number
-        const quantity = parseInt(command_bits[command_bits.length - 1], 10);
+        const quantity = parseInt(args[args.length - 1], 10);
         if (isNaN(quantity)) {
           return "You must specify a quantity to sell.";
         }
 
-        const item_name = command_bits.slice(
+        const item_name = args.slice(
           trigger_word_index + 1,
           trigger_word_index + 2,
         ).join(" ");
@@ -1351,7 +1340,7 @@ export class TextWorld {
         player.gold += total_value;
         this.remove_player_item(player, item_name, quantity);
 
-        return `You sold '${quantity}' of '${item_name}' for a value of '${total_value}'.`;
+        return `You sold '${quantity}' of '${item.name}' for a value of '${total_value}'.`;
       },
     );
   }
@@ -2241,11 +2230,11 @@ export class TextWorld {
     }
 
     // If zone already exists in player instance then filter it out.
-    player.instance.zones = player.instance.zones.filter(
+    player.instance = player.instance.filter(
       (z) => z.name.toLowerCase() !== name.toLowerCase(),
     );
 
-    player.instance.zones.push(structuredClone(zone));
+    player.instance.push(structuredClone(zone));
   }
 
   /**
@@ -2280,7 +2269,7 @@ export class TextWorld {
    */
   get_instance_zone(player: Player, zone_name: string): Zone | null {
     return (
-      player.instance.zones.find(
+      player.instance.find(
         (zone) => zone.name.toLowerCase() === zone_name.toLowerCase(),
       ) || null
     );
@@ -2886,7 +2875,7 @@ export class TextWorld {
         const instanced_room = structuredClone(room);
         instanced_room.instance = true;
 
-        player.instance.zones.push({
+        player.instance.push({
           id: zone.id,
           descriptions: zone.descriptions,
           name: zone.name,
@@ -2909,11 +2898,17 @@ export class TextWorld {
    * @throws {Error} - If the room does not exist in the zone.
    */
   set_room_as_zone_starter(zone_name: string, room_name: string): void {
+    const zone = this.get_zone(zone_name);
     const room = this.get_room(zone_name, room_name);
+
+    if (!zone) {
+      throw new Error(`Zone ${zone_name} does not exist.`);
+    }
     if (!room) {
       throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
     }
-    room.zone_start = true;
+
+    zone.starting_room = room_name;
   }
 
   /**
@@ -2995,7 +2990,7 @@ export class TextWorld {
   get_zone_starter_room(zone_name: string): Room | null {
     const zone = this.get_zone(zone_name);
     if (!zone) return null;
-    return zone.rooms.find((room) => room.zone_start) ?? null;
+    return zone.rooms.find((room) => zone.starting_room == room.name) ?? null;
   }
 
   /**
