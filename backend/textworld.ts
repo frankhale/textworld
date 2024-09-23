@@ -1309,7 +1309,7 @@ export class TextWorld {
       name,
       ["sell"],
       (player, _input, _command, args) => {
-        const trigger_index = this.dialog_contains_trigger(["sell"], args);        
+        const trigger_index = this.dialog_contains_trigger(["sell"], args);
         const quantity = parseInt(args[args.length - 1], 10);
         if (isNaN(quantity)) {
           return "You must specify a quantity to sell.";
@@ -1682,7 +1682,7 @@ export class TextWorld {
 
     current_room.items.forEach((room_item) => {
       const player_item = player.items.find(
-        (pitem) => pitem.name.toLowerCase() === room_item.name.toLowerCase(),
+        (item) => item.name.toLowerCase() === room_item.name.toLowerCase(),
       );
 
       if (player_item) {
@@ -1755,7 +1755,7 @@ export class TextWorld {
     }
 
     return {
-      response: result,
+      response: result || "You used the item but nothing happened.",
     };
   }
 
@@ -1807,13 +1807,6 @@ export class TextWorld {
    * @returns {CommandResponse} - The response object.
    */
   drop_item(player: Player, args: string[]): CommandResponse {
-    const zone = this.get_player_zone(player);
-    if (!zone) {
-      return {
-        response: "That item does not exist.",
-      };
-    }
-
     const possible_items = this.generate_combinations(args);
 
     if (possible_items.includes("all")) {
@@ -1833,16 +1826,8 @@ export class TextWorld {
       };
     }
 
-    const current_room = zone.rooms.find(
-      (room) => room.name.toLowerCase() === player.room.toLowerCase(),
-    );
-    if (!current_room) {
-      return {
-        response: "You are not in a valid room.",
-      };
-    }
-
-    current_room.items.push({
+    const current_room = this.get_player_room(player);
+    current_room?.items.push({
       name: player_item.name,
       quantity: player_item.quantity,
     });

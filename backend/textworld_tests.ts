@@ -714,16 +714,24 @@ Deno.test("can_create_item_with_action", () => {
     "Zone1",
     "Room1",
   );
+  textworld.create_item("Sword", "A sharp sword", false);
   textworld.create_item("Potion", "A potion", true, (_player) => {
     return "You drank the potion but nothing happened.";
   });
   const item = textworld.get_item("Potion");
   assertEquals(item?.name, "Potion");
-  const item_action = textworld.get_item_action("Potion");
+  const result = textworld.get_item_action("Potion");
   assertEquals(
-    item_action?.action(player),
+    result?.action(player),
     "You drank the potion but nothing happened.",
   );
+  try {
+    textworld.get_item_action("Foobar");
+  } catch (e) {
+    assertEquals(e.message, "Item Foobar does not exist.");
+  }
+  const result2 = textworld.get_item_action("Sword");
+  assertEquals(result2, null);
   textworld.reset_world();
 });
 
@@ -2569,11 +2577,13 @@ Deno.test("player_can_take_item", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item("Cane", "A wooden cane", false);
   textworld.create_item("Sword", "A sharp sword", false);
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.take_item(player, ["Sword"]);
   assertEquals(player.items.length, 1);
-
+  const result = textworld.take_item(player, ["Cane"]);
+  assertEquals(result?.response, "That item does not exist.");
   textworld.reset_world();
 });
 
@@ -2592,7 +2602,8 @@ Deno.test("player_can_take_all_items", () => {
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_all_items(player);
   assertEquals(player.items.length, 2);
-
+  const result = textworld.take_all_items(player);
+  assertEquals(result?.response, "There are no items to take.");
   textworld.reset_world();
 });
 
@@ -2628,11 +2639,14 @@ Deno.test("player_can_take_item_and_it_stacks_in_inventory", () => {
   textworld.take_item(player, ["Potion"]);
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_item(player, ["Potion"]);
-  let result = textworld.has_item_in_quantity(player, "Potion", 2);
+  const result = textworld.has_item_in_quantity(player, "Potion", 2);
   assertEquals(result, true);
+  textworld.place_item("Zone1", "Room1", "Potion", 5);
+  const result2 = textworld.take_all_items(player);
+  assertEquals(result2.response, "You took all items: Potion (5)");
   // Exercise the else condition on has_item_in_quantity
-  result = textworld.has_item_in_quantity(player, "Potion", 100);
-  assertEquals(result, false);
+  const result3 = textworld.has_item_in_quantity(player, "Potion", 100);
+  assertEquals(result3, false);
   textworld.reset_world();
 });
 
@@ -2665,6 +2679,8 @@ Deno.test("player_can_drop_all_items", () => {
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_item("Sword", "A sharp sword", false);
   textworld.create_item("Potion", "A potion", true);
+  const result = textworld.drop_all_items(player);
+  assertEquals(result.response, "You have no items to drop.");
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_all_items(player);
@@ -2682,13 +2698,26 @@ Deno.test("player_can_use_item", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item("Glove", "A glove", true, (_player) => {
+    return "";
+  });
+  textworld.create_item("Cane", "A wooden cane", true, (_player) => {
+    return "";
+  });
   textworld.create_item("Potion", "A potion", true, (_player) => {
     return "You drank the potion but nothing happened.";
   });
   textworld.place_item("Zone1", "Room1", "Potion");
-  textworld.take_item(player, ["Potion"]);
+  textworld.place_item("Zone1", "Room1", "Cane");
+  textworld.place_item("Zone1", "Room1", "Glove");
+  textworld.take_all_items(player);
   const result = textworld.use_item(player, ["Potion"]);
   assertEquals(result.response, "You drank the potion but nothing happened.");
+  const result2 = textworld.use_item(player, ["Cane"]);
+  assertEquals(result2.response, "You used the item but nothing happened.");
+  textworld.reset_world_actions();
+  const result3 = textworld.use_item(player, ["Glove"]);
+  assertEquals(result3.response, "You used the item but nothing happened.");
   textworld.reset_world();
 });
 
