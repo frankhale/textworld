@@ -8,7 +8,6 @@
 // need to be populated when players switch rooms or join the game.
 // - Player Progress saving/loading needs refactoring to work in a multiplayer
 // environment
-// - Implement flag actions
 // - Implement leveling
 // - Implement race
 // - Look at all exception throwing and make sure it's consistent
@@ -1249,9 +1248,9 @@ export class TextWorld {
     return words.findIndex((word) => triggers.includes(word));
   }
 
-  dialog_remove_trigger(triggers: string[], words: string[]): string[] {
-    return words.filter((word) => !triggers.includes(word));
-  }
+  // dialog_remove_trigger(triggers: string[], words: string[]): string[] {
+  //   return words.filter((word) => !triggers.includes(word));
+  // }
 
   /**
    * Creates a new vendor and adds it to the world.
@@ -1297,10 +1296,7 @@ export class TextWorld {
           ["purchase", "buy"],
           args,
         );
-        const item_name = trigger_index !== -1
-          ? args.slice(trigger_index + 1).join(" ")
-          : "";
-
+        const item_name = args.slice(trigger_index + 1).join(" ");
         if (!item_name.trim()) {
           return "You must specify an item to purchase.";
         }
@@ -1313,12 +1309,7 @@ export class TextWorld {
       name,
       ["sell"],
       (player, _input, _command, args) => {
-        const trigger_index = this.dialog_contains_trigger(["sell"], args);
-        if (trigger_index === -1) {
-          return "You must specify an item to sell.";
-        }
-
-        // get last word in command_bits and check to see if it is a number
+        const trigger_index = this.dialog_contains_trigger(["sell"], args);        
         const quantity = parseInt(args[args.length - 1], 10);
         if (isNaN(quantity)) {
           return "You must specify a quantity to sell.";

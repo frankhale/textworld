@@ -1859,6 +1859,35 @@ Deno.test("can_parse_command_talk_to_vendor_and_sell_item", async () => {
   );
   assertEquals(player.gold, 60);
   assertEquals(textworld.has_item_in_quantity(player, "Sword", 2), false);
+  textworld.add_item_to_player(player, "Sword", 1);
+  const result2 = JSON.parse(
+    await textworld.parse_command(
+      player,
+      "talk to Vendor1 say sell Sword",
+    ),
+  );
+  assertEquals(
+    result2.response,
+    "You must specify a quantity to sell.",
+  );
+  const result3 = JSON.parse(
+    await textworld.parse_command(
+      player,
+      "talk to Vendor1 say sell Sword 10",
+    ),
+  );
+  assertEquals(
+    result3.response,
+    "You don't have 10 of sword to sell.",
+  );
+  textworld.remove_item("Sword"); // This shouldn't really happen
+  const result4 = JSON.parse(
+    await textworld.parse_command(
+      player,
+      "talk to Vendor1 say sell Sword 1",
+    ),
+  );
+  assertEquals(result4.response, "That item does not exist.");
   textworld.reset_world();
 });
 
@@ -3610,6 +3639,19 @@ Deno.test("player_can_talk_to_npc_and_say_something_npc_doesnt_understand", () =
     ["talk", "to", "Big", "Guard", "say", "fizzbuzz"],
   );
   assertEquals(result.response, "hmm...");
+
+  const malformed_npc = textworld.create_npc("Witch", "A mysterious witch");
+  malformed_npc.dialog = [
+    { name: crypto.randomUUID(), trigger: ["hello"], response: undefined },
+  ];
+  textworld.place_npc("Zone1", "Room1", "Witch");
+  const result2 = textworld.interact_with_actor(
+    player,
+    "talk to Witch say Hello",
+    "talk to",
+    ["talk", "to", "Witch", "say", "Hello"],
+  );
+  assertEquals(result2.response, "hmm...");
   textworld.reset_world();
 });
 
