@@ -2910,6 +2910,18 @@ Deno.test("player_can_show_item", () => {
   textworld.take_item(player, ["Potion"]);
   const result = textworld.show(player, ["Potion"]);
   assertEquals(result.response, "An ordinary potion");
+  textworld.remove_item("Potion");
+  const result2 = textworld.show(player, ["Potion"]);
+  assertEquals(result2.response, "That item does not exist.");
+  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.place_item("Zone1", "Room1", "Sword");
+  textworld.take_item(player, ["Sword"]);
+  const item = textworld.get_item("Sword");
+  if (item) {
+    item.descriptions = [];
+  }
+  const result3 = textworld.show(player, ["Sword"]);
+  assertEquals(result3.response, "No description available.");
   textworld.reset_world();
 });
 
@@ -2920,6 +2932,8 @@ Deno.test("player_can_show_all_items", () => {
     "Zone1",
     "Room1",
   );
+  const result = textworld.show_all_items(player);
+  assertEquals(result.response, "You have no items to show.");
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_item("Sword", "A sharp sword", false);
@@ -2927,9 +2941,9 @@ Deno.test("player_can_show_all_items", () => {
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   textworld.take_all_items(player);
-  const result = textworld.show_all_items(player);
+  const result2 = textworld.show_all_items(player);
   assertEquals(
-    result.response,
+    result2.response,
     "Sword - A sharp sword\n\nPotion - An ordinary potion",
   );
 

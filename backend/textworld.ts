@@ -1899,13 +1899,11 @@ export class TextWorld {
       };
     }
 
-    const item = this.world.items.find(
-      (item) => item.name.toLowerCase() === player_item.name.toLowerCase(),
-    );
+    const item = this.get_item(player_item.name);
 
     if (!item) {
       return {
-        response: "That item does not exist in the world.",
+        response: "That item does not exist.",
       };
     }
 
