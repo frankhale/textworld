@@ -2196,12 +2196,12 @@ export class TextWorld {
   }
 
   /**
-   * Create an instanced zone for a player.
+   * Create an instance zone for a player.
    *
    * @param player - The player to create the zone for.
    * @param name - The name of the zone to create.
    */
-  create_instanced_zone(player: Player, name: string): void {
+  create_instance_zone(player: Player, name: string): void {
     const zone = this.get_zone(name);
     if (!zone) {
       throw new Error(`Zone ${name} does not exist.`);
@@ -2212,9 +2212,9 @@ export class TextWorld {
       (z) => z.name.toLowerCase() !== name.toLowerCase(),
     );
 
-    const instanced_zone = structuredClone(zone);
-    instanced_zone.instance = true;
-    player.instance.push(instanced_zone);
+    const instance_zone = structuredClone(zone);
+    instance_zone.instance = true;
+    player.instance.push(instance_zone);
   }
 
   /**
@@ -2822,14 +2822,14 @@ export class TextWorld {
   }
 
   /**
-   * Creates an instanced room for a player.
+   * Creates an instance room for a player.
    *
    * @param {Player} player - The player to create the room for.
    * @param {string} zone_name - The name of the zone to create the room in.
    * @param {string} room_name - The name of the room to create.
    * @returns {Room | null} - The created room or null if it does not exist.
    */
-  create_instanced_room(
+  create_instance_room(
     player: Player,
     zone_name: string,
     room_name: string,
@@ -2842,25 +2842,25 @@ export class TextWorld {
 
       if (room) {
         const instance_zone = this.get_instance_zone(player, zone_name);
-        const instanced_room = structuredClone(room);
-        instanced_room.instance = true;
+        const instance_room = structuredClone(room);
+        instance_room.instance = true;
 
         if (instance_zone) {
           instance_zone.rooms.filter((r) =>
             r.name.toLowerCase() !== room_name.toLowerCase()
           );
-          instance_zone.rooms.push(instanced_room);
+          instance_zone.rooms.push(instance_room);
         } else {
           player.instance.push({
             id: zone.id,
             descriptions: zone.descriptions,
             name: zone.name,
-            rooms: [instanced_room],
+            rooms: [instance_room],
             instance: true,
           });
         }
 
-        return instanced_room;
+        return instance_room;
       }
     }
 
@@ -2876,11 +2876,11 @@ export class TextWorld {
    */
   set_room_as_zone_starter(zone_name: string, room_name: string): void {
     const zone = this.get_zone(zone_name);
-    const room = this.get_room(zone_name, room_name);
-
     if (!zone) {
       throw new Error(`Zone ${zone_name} does not exist.`);
     }
+
+    const room = this.get_room(zone_name, room_name);
     if (!room) {
       throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
     }
@@ -2914,6 +2914,21 @@ export class TextWorld {
         actions: [action],
       });
     }
+  }
+
+  /**
+   * Gets a room's actions.
+   *
+   * @param zone_name - The name of the zone to get the room actions from.
+   * @param room_name - The name of the room to remove the action from.
+   * @returns {NamedActions | null}
+   */
+  get_room_actions(room_name: string): NamedActions | null {
+    const room_actions = this.world_actions.room_actions.find(
+      (action_obj) => action_obj.name.toLowerCase() === room_name.toLowerCase(),
+    );
+
+    return room_actions || null;
   }
 
   /**
@@ -2987,7 +3002,7 @@ export class TextWorld {
       };
     }
 
-    const items_string = current_room.items.length > 0
+    const items = current_room.items.length > 0
       ? `Items: ${
         current_room.items
           .map((item) => `${item.name} (${item.quantity})`)
@@ -2995,15 +3010,15 @@ export class TextWorld {
       }`
       : "There is nothing else of interest here.";
 
-    const mobs_string = current_room.mobs.length > 0
+    const mobs = current_room.mobs.length > 0
       ? `Mobs: ${current_room.mobs.map((mob) => mob.name).join(", ")}`
       : "";
 
     return {
       response: `You inspect the room and found:\n\n${
         [
-          mobs_string,
-          items_string,
+          mobs,
+          items,
         ]
           .filter(Boolean)
           .join("\n")
