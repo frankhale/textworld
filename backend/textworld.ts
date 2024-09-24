@@ -1949,7 +1949,7 @@ export class TextWorld {
       .filter(Boolean);
 
     return {
-      response: items_description.length > 0
+      response: (items_description && items_description.length > 0)
         ? items_description.join("\n\n")
         : "You have no items to show.",
     };
@@ -2074,18 +2074,17 @@ export class TextWorld {
       return "Cannot perform attack.";
     }
 
-    const is_critical_hit =
-      Math.random() < (attacker.stats.critical_chance ?? 0);
-    const attacker_damage = (attacker.stats.physical_damage ?? 0) *
+    const is_critical_hit = Math.random() < attacker.stats.critical_chance;
+    const attacker_damage = attacker.stats.physical_damage *
       (is_critical_hit ? 2 : 1);
     const damage_dealt = Math.max(
       0,
-      attacker_damage - (defender.stats.physical_defense ?? 0),
+      attacker_damage - defender.stats.physical_defense,
     );
 
     defender.stats.health.current = Math.max(
       0,
-      (defender.stats.health.current ?? 0) - damage_dealt,
+      defender.stats.health.current - damage_dealt,
     );
 
     let result =
@@ -2213,7 +2212,9 @@ export class TextWorld {
       (z) => z.name.toLowerCase() !== name.toLowerCase(),
     );
 
-    player.instance.push(structuredClone(zone));
+    const instanced_zone = structuredClone(zone);
+    instanced_zone.instance = true;
+    player.instance.push(instanced_zone);
   }
 
   /**

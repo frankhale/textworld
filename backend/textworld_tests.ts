@@ -23,6 +23,34 @@ Deno.test("can_create_zone", () => {
   textworld.create_zone("Zone1");
   const zone = textworld.get_zone("Zone1");
   assertEquals(zone?.name, "Zone1");
+  textworld.create_zone("Zone2", "This is zone 2");
+  const zone2 = textworld.get_zone("Zone2");
+  assertEquals(zone2?.name, "Zone2");
+  textworld.reset_world();
+});
+
+Deno.test("can_create_instance_zone", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_instanced_zone(player, "Zone1");
+  const zone = textworld.get_player_zone(player);
+  assertEquals(zone?.name, "Zone1");
+  assertEquals(zone?.instance, true);
+  // Replace the instance zone with a new instance zone
+  textworld.create_instanced_zone(player, "Zone1");
+  const zone2 = textworld.get_player_zone(player);
+  assertEquals(zone2?.name, "Zone1");
+  try {
+    textworld.create_instanced_zone(player, "InvalidZone");
+  } catch (e) {
+    assertEquals(e.message, "Zone InvalidZone does not exist.");
+  }
   textworld.reset_world();
 });
 
@@ -573,6 +601,16 @@ Deno.test("can_create_alternate_room_description", () => {
   );
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.descriptions.length, 2);
+  try {
+    textworld.add_room_description(
+      "Zone1",
+      "Room2",
+      "room2-alt",
+      "This is room 2",
+    );
+  } catch (e) {
+    assertEquals(e.message, "Room Room2 does not exist in zone Zone1.");
+  }
   textworld.reset_world();
 });
 
@@ -874,6 +912,17 @@ Deno.test("can_place_mob_in_room", () => {
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.mobs.length, 1);
   assertEquals(room?.mobs[0].name, "Goblin");
+  try {
+    textworld.place_mob("Zone1", "Room1", "Moblin");
+  } catch (e) {
+    assertEquals(e.message, "MOB Moblin does not exist.");
+  }
+  textworld.remove_room("Zone1", "Room1");
+  try {
+    textworld.place_mob("Zone1", "Room1", "Goblin");
+  } catch (e) {
+    assertEquals(e.message, "Room Room1 does not exist in zone Zone1.");
+  }
   textworld.reset_world();
 });
 
@@ -899,6 +948,12 @@ Deno.test("can_get_room_mob", () => {
   textworld.place_mob("Zone1", "Room1", "Goblin");
   const mob = textworld.get_room_mob("Zone1", "Room1", "Goblin");
   assertEquals(mob?.name, "Goblin");
+  const mob2 = textworld.get_room_mob("Zone1", "Room1", "Moblin");
+  assertEquals(mob2, null);
+  const mob3 = textworld.get_room_mob("Zone2", "Room1", "Goblin");
+  assertEquals(mob3, null);
+  const mob4 = textworld.get_room_mob("Zone1", "Room2", "Goblin");
+  assertEquals(mob4, null);
   textworld.reset_world();
 });
 
@@ -966,6 +1021,21 @@ Deno.test("can_add_room_command_action", () => {
     "xyzzy action",
   );
   assertEquals(has_room_action, true);
+  const result = textworld.get_room_command_action("Zone1", "InvalidRoom");
+  assertEquals(result, null);
+  try {
+    textworld.add_room_command_action(
+      "Zone1",
+      "InvalidRoom",
+      "xyzzy action",
+      "You recited the magical word XYZZY!!!",
+      ["xyzzy"],
+      (_player: tw.Player, _input: string, _command: string, _args: string[]) =>
+        "How dare you utter the magical word XYZZY!",
+    );
+  } catch (e) {
+    assertEquals(e.message, "Room InvalidRoom does not exist in zone Zone1.");
+  }
   textworld.reset_world();
 });
 
@@ -2260,6 +2330,19 @@ Deno.test("can_remove_spawn_location", () => {
   textworld.reset_world();
 });
 
+Deno.test("player_cannot_attack_npc", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  const npc = textworld.create_npc("Old man", "A wise old man");
+  const result = textworld.perform_attack(player, npc);
+  assertStringIncludes(result, "Cannot perform attack.");
+  textworld.reset_world();
+});
+
 Deno.test("mob_can_attack_player", () => {
   const player = textworld.create_player(
     "Player",
@@ -2338,7 +2421,7 @@ Deno.test("player_can_attack_mob", () => {
     "Goblin",
     "A small goblin",
     textworld.create_stats(
-      { current: 10, max: 10 },
+      { current: 100, max: 100 },
       { current: 10, max: 10 },
       { current: 10, max: 10 },
       15,
@@ -2385,6 +2468,53 @@ Deno.test("player_can_kill_mob", () => {
   const result = textworld.perform_attack(player, mob);
   assertStringIncludes(result, "Player attacks Goblin");
   assertStringIncludes(result, "Goblin has been defeated!");
+  textworld.reset_world();
+});
+
+Deno.test("player_can_initate_attack_on_mob", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_stats(
+      { current: 100, max: 100 },
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      15,
+      8,
+      5,
+      2,
+      0.05,
+      { level: 1, xp: 0 },
+    ),
+    [],
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.place_mob("Zone1", "Room1", "Goblin");
+  const result = textworld.initiate_attack(player, ["goblin"]);
+  assertStringIncludes(result.response, "Player attacks Goblin");
+  player.zone = "InvalidZone";
+  try {
+    textworld.initiate_attack(player, ["goblin"]);
+  } catch (e) {
+    assertEquals(e.message, "Player is not in a valid zone.");
+  }
+  player.zone = "Zone1";
+  player.room = "InvalidRoom";
+  try {
+    textworld.initiate_attack(player, ["goblin"]);
+  } catch (e) {
+    assertEquals(e.message, "Player is not in a valid room.");
+  }
+  player.room = "Room1";
+  const result2 = textworld.initiate_attack(player, ["zombie"]);
+  assertStringIncludes(result2.response, "That mob does not exist.");
   textworld.reset_world();
 });
 
@@ -2473,7 +2603,7 @@ Deno.test("player_can_kill_mob_and_pickup_look", () => {
   textworld.reset_world();
 });
 
-Deno.test("player_attack_mob_and_mob_attack_player", () => {
+Deno.test("player_can_attack_mob_and_mob_can_attack_player", () => {
   const player = textworld.create_player(
     "Player",
     "You are a strong adventurer",
@@ -2965,7 +3095,10 @@ Deno.test("player_can_show_all_items", () => {
     result2.response,
     "Sword - A sharp sword\n\nPotion - An ordinary potion",
   );
-
+  player.items.length = 0;
+  player.items.push({ name: "Foo", quantity: 1 });
+  const result3 = textworld.show_all_items(player);
+  assertEquals(result3.response, "You have no items to show.");
   textworld.reset_world();
 });
 
