@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 21 September 2024
+// 23 September 2024
 
 // TODO:
 //
@@ -111,6 +111,7 @@ export interface Dialog extends Named {
 
 export interface Item extends Entity {
   usable: boolean;
+  consumable: boolean;
   level: number;
   value: number;
 }
@@ -1401,6 +1402,7 @@ export class TextWorld {
     name: string,
     description: string,
     usable: boolean,
+    consumable: boolean,
     action: Action | null = null,
   ): Item {
     const item = {
@@ -1408,6 +1410,7 @@ export class TextWorld {
       name,
       descriptions: [{ flag: "default", description }],
       usable,
+      consumable,
       level: 1,
       value: 1,
     };
@@ -1743,9 +1746,10 @@ export class TextWorld {
     const result = item_action?.action(player) ??
       "You used the item but nothing happened.";
 
-    if (this.has_flag(player, "prevent_item_consumption")) {
-      this.remove_flag(player, "prevent_item_consumption");
-    } else {
+    // if (this.has_flag(player, "prevent_item_consumption")) {
+    //   this.remove_flag(player, "prevent_item_consumption");
+    // } else {
+    if (item_definition.consumable) {
       player_item.quantity--;
       if (player_item.quantity === 0) {
         player.items = player.items.filter(
