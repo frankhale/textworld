@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 23 September 2024
+// 24 September 2024
 
 // TODO:
 //
@@ -2571,6 +2571,7 @@ export class TextWorld {
    *
    * @param {Player} player - The player to get the description for.
    * @returns {CommandResponse} - The response object.
+   * @throws {Error} - If the player is not in a valid zone or room.
    */
   get_room_description(player: Player): CommandResponse {
     const zone = this.get_player_zone(player);
@@ -2582,9 +2583,7 @@ export class TextWorld {
       (room) => room.name.toLowerCase() === player.room.toLowerCase(),
     );
     if (!current_room) {
-      return {
-        response: "You can't see anything.",
-      };
+      throw new Error("Player is not in a valid room.");
     }
 
     const exits = current_room.exits
@@ -2636,7 +2635,7 @@ export class TextWorld {
       throw new Error("Player is not in a valid zone.");
     }
 
-    let current_room = zone.rooms.find((room) => room.name === player.room);
+    let current_room = this.get_player_room(player);
     const has_command = command.length > 0;
 
     if (
@@ -2659,8 +2658,7 @@ export class TextWorld {
       if (exit.hidden) exit.hidden = false;
       player.room = exit.location;
 
-      current_room = zone.rooms.find((room) => room.name === player.room) ||
-        current_room;
+      current_room = this.get_player_room(player);
     }
 
     return this.get_room_description(player);
@@ -2686,7 +2684,7 @@ export class TextWorld {
    * @returns {CommandResponse} - The response object.
    * @throws {Error} - If the player is not in a valid zone.
    */
-  plot_room_map(player: Player, window_size: number): CommandResponse {
+  plot_room_map(player: Player, window_size: number = 5): CommandResponse {
     const zone = this.get_player_zone(player);
     if (!zone) {
       throw new Error("Player is not in a valid zone.");
@@ -2734,8 +2732,7 @@ export class TextWorld {
       room.exits.forEach((exit) => {
         if (exit.hidden) return;
 
-        const [dx, dy] = direction_to_coords[exit.name] || [];
-        if (dx === undefined || dy === undefined) return;
+        const [dx, dy] = direction_to_coords[exit.name];
 
         const neighbor_room = rooms.find((r) => r.name === exit.location);
         if (neighbor_room) {
@@ -2845,23 +2842,23 @@ export class TextWorld {
 
       if (room) {
         const instance_zone = this.get_instance_zone(player, zone_name);
+        const instanced_room = structuredClone(room);
+        instanced_room.instance = true;
 
         if (instance_zone) {
           instance_zone.rooms.filter((r) =>
             r.name.toLowerCase() !== room_name.toLowerCase()
           );
+          instance_zone.rooms.push(instanced_room);
+        } else {
+          player.instance.push({
+            id: zone.id,
+            descriptions: zone.descriptions,
+            name: zone.name,
+            rooms: [instanced_room],
+            instance: true,
+          });
         }
-
-        const instanced_room = structuredClone(room);
-        instanced_room.instance = true;
-
-        player.instance.push({
-          id: zone.id,
-          descriptions: zone.descriptions,
-          name: zone.name,
-          rooms: [instanced_room],
-          instance: true,
-        });
 
         return instanced_room;
       }
