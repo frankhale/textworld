@@ -4049,8 +4049,8 @@ Deno.test("player_can_craft_recipe", () => {
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_item("Iron", "A piece of iron", false, false);
   textworld.create_item("Wood", "A piece of wood", false, false);
-  textworld.place_item("Zone1", "Room1", "Iron", 4);
-  textworld.place_item("Zone1", "Room1", "Wood", 4);
+  textworld.place_item("Zone1", "Room1", "Iron", 2);
+  textworld.place_item("Zone1", "Room1", "Wood", 1);
   textworld.take_all_items(player);
   textworld.create_recipe(
     "Iron Sword",
@@ -4064,7 +4064,20 @@ Deno.test("player_can_craft_recipe", () => {
   textworld.learn_recipe(player, "Iron Sword");
   const result = textworld.craft_recipe(player, ["Iron Sword"]);
   assertEquals(result.response, "Iron Sword has been crafted.");
-  assertEquals(player.items.length, 3);
+  assertEquals(player.items.length, 1);
+  // Not enough materials
+  const result2 = textworld.craft_recipe(player, ["Iron Sword"]);
+  assertEquals(
+    result2.response,
+    "You don't have the ingredients to craft that.",
+  );
+  // Invalid Recipe
+  textworld.reset_world();
+  try {
+    textworld.craft_recipe(player, ["Iron Sword"]);
+  } catch (e) {
+    assertEquals(e.message, "Recipe does not exist.");
+  }
   textworld.reset_world();
 });
 

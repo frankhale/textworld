@@ -3302,12 +3302,13 @@ export class TextWorld {
    * @param {Player} player - The player to craft the item for.
    * @param {string[]} args - The arguments to craft the item with.
    * @returns {CommandResponse} - The response object.
+   * @throws {Error} - If the recipe does not exist.
    */
   craft_recipe(player: Player, args: string[]): CommandResponse {
     const recipe_names = this.generate_combinations(args);
     const recipe_name = recipe_names.find((name) =>
-      this.world.recipes.some(
-        (recipe) => recipe.name.toLowerCase() === name.toLowerCase(),
+      player.known_recipes.some(
+        (known_recipe) => known_recipe.toLowerCase() === name.toLowerCase(),
       )
     );
 
@@ -3319,9 +3320,7 @@ export class TextWorld {
 
     const recipe = this.get_recipe(recipe_name);
     if (!recipe) {
-      return {
-        response: "You don't know how to craft that.",
-      };
+      throw new Error("Recipe does not exist.");
     }
 
     const has_ingredients = recipe.ingredients.every((ingredient) =>
@@ -3335,7 +3334,7 @@ export class TextWorld {
     }
 
     recipe.ingredients.forEach((ingredient) => {
-      this.remove_player_item(player, ingredient.name);
+      this.remove_player_item(player, ingredient.name, ingredient.quantity);
     });
 
     player.items.push({
