@@ -4,8 +4,6 @@
 
 import {
   assert,
-  assertAlmostEquals,
-  assertArrayIncludes,
   assertEquals,
   assertGreater,
   assertNotEquals,
