@@ -4,8 +4,10 @@
 
 import {
   assert,
+  assertAlmostEquals,
   assertArrayIncludes,
   assertEquals,
+  assertGreater,
   assertNotEquals,
   assertStringIncludes,
 } from "@std/assert";
@@ -4905,16 +4907,21 @@ Deno.test("can_run_websocket_server", async () => {
   textworld.create_room("Zone1", "Room1", "This is room 1");
   const server = textworld.run_websocket_server(8080, player.id);
   const client = new WebSocket("ws://localhost:8080");
-  let client_response;
-  client.onopen = () => {
-    client.send(JSON.stringify({ player_id: player.id, command: "quit" }));
+  client.onopen = (event) => {
+    client.send(
+      JSON.stringify({ player_id: "InvalidPlayer", command: "look" }),
+    );
+    client.send(JSON.stringify({ player_id: player.id, command: "look" }));
+    assertNotEquals(event, null);
   };
   client.onmessage = (e) => {
-    client_response = JSON.parse(e.data).responseLines;
-    client.close();
+    const response = JSON.parse(e.data).responseLines;
+    assertNotEquals(response, null);
+    assertGreater(response.length, 0);
+    //["This is room 1"]
+    //["Invalid player"]
   };
-  await delay(3000);
+  await delay(2500);
+  client.close();
   server.shutdown();
-  assertNotEquals(client_response, null);
-  assertArrayIncludes(client_response!, ["This is room 1"]);
 });

@@ -4128,32 +4128,33 @@ export class TextWorld {
   ): Deno.HttpServer<Deno.NetAddr> {
     const process_request = async (game_message: GameMessage) => {
       const player = this.get_player(game_message.player_id);
-      if (player) {
-        console.log(`${player.id}: ${game_message.command}`);
-        const result: CommandResponse = JSON.parse(
-          await this.parse_command(player, game_message.command),
-        );
-        const final_response = {
+      if (!player) {
+        const result = {
+          response: "Invalid player",
+        };
+        return {
           id: crypto.randomUUID(),
           input: game_message.command,
-          player: player,
+          player: "Invalid player",
           result,
           responseLines: result.response.split("\n"),
-          map: this.plot_room_map(player, 5).response,
-        };
-        return final_response;
-      } else {
-        console.log(`${game_message.player_id}: player not found`);
-        const final_response = {
-          id: crypto.randomUUID(),
-          input: game_message.command,
-          player: null,
-          response: "Player not found.",
-          responseLines: [],
           map: "",
         };
-        return final_response;
       }
+
+      console.log(`${player.id}: ${game_message.command}`);
+      const result: CommandResponse = JSON.parse(
+        await this.parse_command(player, game_message.command),
+      );
+      const final_response = {
+        id: crypto.randomUUID(),
+        input: game_message.command,
+        player: player,
+        result,
+        responseLines: result.response.split("\n"),
+        map: this.plot_room_map(player, 5).response,
+      };
+      return final_response;
     };
 
     const ac = new AbortController();
@@ -4173,22 +4174,11 @@ export class TextWorld {
         };
         socket.onmessage = async (e) => {
           const game_message = JSON.parse(e.data);
-          if (game_message.command === "quit") {
-            console.log("Shutting down server...");
-            socket.close();
-            ac.abort();
-          } else {
-            socket.send(JSON.stringify(await process_request(game_message)));
-          }
+          socket.send(JSON.stringify(await process_request(game_message)));
         };
         return response;
       },
     );
-
-    // server.finished.then(() => {
-    //   console.log("Server has been shutdown!");
-    //   Deno.exit();
-    // });
 
     return server;
   }
