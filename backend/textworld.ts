@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 24 September 2024
+// 25 September 2024
 
 // TODO:
 //
@@ -11,6 +11,7 @@
 // - Implement leveling
 // - Implement race
 // - Look at all exception throwing and make sure it's consistent
+// - Implement a way to ask the player a series of questions
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -25,6 +26,8 @@ export type CommandParserAction = (
   args: string[],
 ) => string | Promise<string>;
 export type SpawnLocationAction = (spawn_location: SpawnLocation) => void;
+
+export type BuiltInCommandActionType = "Main" | "PlayerDead";
 
 // Core Interfaces
 export interface Description {
@@ -413,6 +416,21 @@ export class TextWorld {
       },
     ),
   ];
+
+  //////////////////////////////
+  // BUILT IN COMMAND ACTIONS //
+  //////////////////////////////
+
+  add_command_action(
+    action_type: BuiltInCommandActionType,
+    action: CommandAction,
+  ): void {
+    if (action_type === "Main") {
+      this.main_command_actions.push(action);
+    } else if (action_type === "PlayerDead") {
+      this.player_dead_command_actions.push(action);
+    }
+  }
 
   ////////////
   // PLAYER //
@@ -3562,6 +3580,7 @@ export class TextWorld {
    * @param {string} npc_name - The name of the NPC to create the dialog for.
    * @param {string[]} trigger - The trigger for the dialog.
    * @param {string | CommandParserAction} responseOrAction - The response or action for the dialog.
+   * @throws {Error} - If the NPC does not exist.
    */
   create_dialog(
     npc_name: string,
@@ -3569,7 +3588,9 @@ export class TextWorld {
     responseOrAction: string | CommandParserAction,
   ): void {
     const npc = this.get_npc(npc_name);
-    if (!npc) return;
+    if (!npc) {
+      throw new Error(`NPC ${npc_name} does not exist.`);
+    }
 
     const dialog_id = crypto.randomUUID();
 
@@ -4101,7 +4122,10 @@ export class TextWorld {
    * @param {number} port - The port to run the server on.
    * @param {string} fix_me_player_id - The hard coded player ID.
    */
-  run_websocket_server(port: number, fix_me_player_id: string): void {
+  run_websocket_server(
+    port: number,
+    fix_me_player_id: string,
+  ): Deno.HttpServer<Deno.NetAddr> {
     const process_request = async (game_message: GameMessage) => {
       const player = this.get_player(game_message.player_id);
       if (player) {
@@ -4148,12 +4172,12 @@ export class TextWorld {
           socket.send(JSON.stringify(await process_request(game_message)));
         };
         socket.onmessage = async (e) => {
-          if (e.data === "quit") {
+          const game_message = JSON.parse(e.data);
+          if (game_message.command === "quit") {
             console.log("Shutting down server...");
             socket.close();
             ac.abort();
           } else {
-            const game_message = JSON.parse(e.data);
             socket.send(JSON.stringify(await process_request(game_message)));
           }
         };
@@ -4161,9 +4185,11 @@ export class TextWorld {
       },
     );
 
-    server.finished.then(() => {
-      console.log("Server has been shutdown!");
-      Deno.exit();
-    });
+    // server.finished.then(() => {
+    //   console.log("Server has been shutdown!");
+    //   Deno.exit();
+    // });
+
+    return server;
   }
 }

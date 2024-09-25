@@ -1,15 +1,18 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 24 September 2024
+// 25 September 2024
 
 import {
   assert,
+  assertArrayIncludes,
   assertEquals,
   assertNotEquals,
   assertStringIncludes,
 } from "@std/assert";
 
 import * as tw from "./textworld.ts";
+
+const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 const textworld = new tw.TextWorld();
 
@@ -1126,6 +1129,11 @@ Deno.test("can_create_npc_with_dialog", () => {
   const npc = textworld.get_npc("Guard");
   assertEquals(npc?.name, "Guard");
   assertEquals(npc?.dialog?.length, 1);
+  try {
+    textworld.create_dialog("InvalidNpc", ["Goodbye"], "Goodbye citizen!");
+  } catch (e) {
+    assertEquals(e.message, "NPC InvalidNpc does not exist.");
+  }
   textworld.reset_world();
 });
 
@@ -2566,7 +2574,7 @@ Deno.test("can_parse_command_save", async () => {
   textworld.reset_world();
 });
 
-Deno.test("can_spawn_item_in_room_using_spawn_location", () => {
+Deno.test("can_spawn_item_in_room_using_spawn_location", async () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_item("Iron", "A piece of iron", false, false);
@@ -2599,6 +2607,19 @@ Deno.test("can_spawn_item_in_room_using_spawn_location", () => {
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.items.length, 1);
   assertEquals(room?.items[0].name, "Iron");
+  const result = textworld.create_spawn_location(
+    "Test Spawner 2",
+    "Zone1",
+    "Room1",
+    10,
+    true,
+    (_spawn_location: tw.SpawnLocation) => {},
+  );
+  textworld.start_spawn_location("Test Spawner 2");
+  assertEquals(result.interval, 10);
+  // Let the spawner interval run
+  await delay(15);
+  textworld.remove_spawn_location("Test Spawner 2");
   textworld.reset_world();
 });
 
@@ -4719,6 +4740,34 @@ Deno.test("can_get_help", () => {
     result.response,
     "Commands:\n\nnorth, south, east, west - Commands for moving around the world.\ntake, get - Take an item from the room or an NPC.\nuse - Use an item in your inventory.\ndrop - Drop an item or all your items from your inventory.\nlook, l - Look around the room or at yourself.\nls - Look at yourself.\nexamine, x - Examine an object in a room.\ninspect, i, search - Inspect a room to see what items are there.\nmap - Plot a map showing nearby rooms.\nshow - Show an item in your inventory.\ntalk to, tt - Talk to an NPC or Vendor.\ngoto - Go to a room or zone.\nhelp - Show the help text.\nattack - Attack a mob.\ncraft - Craft an item.",
   );
+  const textworld2 = new tw.TextWorld();
+  textworld2.add_command_action(
+    "Main",
+    textworld2.create_command_action(
+      "foo",
+      "",
+      ["foo"],
+      (_player, _input, _command, _args) => {
+        return "foo";
+      },
+    ),
+  );
+  const result2 = textworld2.get_help(player);
+  assertStringIncludes(result2.response, "No description available.");
+  textworld2.add_command_action(
+    "PlayerDead",
+    textworld2.create_command_action(
+      "foo",
+      "",
+      ["foo"],
+      (_player, _input, _command, _args) => {
+        return "foo";
+      },
+    ),
+  );
+  const result3 = textworld2.get_help(player);
+  assertStringIncludes(result3.response, "No description available.");
+  textworld.reset_world();
 });
 
 Deno.test("can_get_help_when_player_is_dead", () => {
@@ -4818,4 +4867,54 @@ Deno.test("can_plot_room_map", () => {
     assertEquals(e.message, "Player is not in a valid zone.");
   }
   textworld.reset_world();
+});
+
+Deno.test("can_add_flag_action", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room2",
+  );
+  textworld.set_flag(player, "foobar");
+  // this adds flag action if it doesn't exist
+  textworld.add_flag_action(
+    "foobar",
+    (_player) => {},
+  );
+  // this replaces flag action if it exists
+  textworld.add_flag_action(
+    "foobar",
+    (_player) => {},
+  );
+  const result = textworld.get_flag_action("foobar");
+  assertNotEquals(result, null);
+  const result2 = textworld.get_flag_action("baz");
+  assertEquals(result2, null);
+  textworld.reset_world();
+});
+
+Deno.test("can_run_websocket_server", async () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  const server = textworld.run_websocket_server(8080, player.id);
+  const client = new WebSocket("ws://localhost:8080");
+  let client_response;
+  client.onopen = () => {
+    client.send(JSON.stringify({ player_id: player.id, command: "quit" }));
+  };
+  client.onmessage = (e) => {
+    client_response = JSON.parse(e.data).responseLines;
+    client.close();
+  };
+  await delay(3000);
+  server.shutdown();
+  assertNotEquals(client_response, null);
+  assertArrayIncludes(client_response!, ["This is room 1"]);
 });
