@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 16 September 2024
+// 25 September 2024
 
 import * as tw from "./textworld.ts";
 
@@ -112,19 +112,20 @@ function create_log_cabin_zone() {
 }
 
 function create_items() {
-  textworld.create_item("Sword", "A sharp sword", false);
-  textworld.create_item("Potion", "A potion", true);
-  textworld.create_item("Key", "A key", true);
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item("Potion", "A potion", true, true);
+  textworld.create_item("Key", "A key", true, true);
   textworld.create_item(
     "Gold coin purse",
     "A leather purse with gold coins",
+    true,
     true,
     (player) => {
       player.gold += 10;
       return `You got 10 gold coins!`;
     },
   );
-  textworld.create_item("Spam", "A can of spam", true, (player) => {
+  textworld.create_item("Spam", "A can of spam", true, true, (player) => {
     textworld.add_to_actor_health(player, 50);
     return `You ate the spam and gained 50 health!`;
   });

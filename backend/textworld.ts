@@ -1,17 +1,19 @@
-// A Text Adventure Library & Game for Deno
-// Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 25 September 2024
-
-// TODO:
-//
-// - Rooms now have a players array, this is for multiplayer support and will
-// need to be populated when players switch rooms or join the game.
-// - Player Progress saving/loading needs refactoring to work in a multiplayer
-// environment
-// - Implement leveling
-// - Implement race
-// - Look at all exception throwing and make sure it's consistent
-// - Implement a way to ask the player a series of questions
+/**
+ * A Text Adventure Library & Game for Deno
+ * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
+ * 25 September 2024
+ *
+ * TODO:
+ *
+ * - Rooms now have a players array, this is for multiplayer support and will
+ * need to be populated when players switch rooms or join the game.
+ * - Player Progress saving/loading needs refactoring to work in a multiplayer
+ * environment
+ * - Implement leveling
+ * - Implement race
+ * - Look at all exception throwing and make sure it's consistent
+ * - Implement a way to ask the player a series of questions
+ */
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
