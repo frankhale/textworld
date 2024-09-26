@@ -3598,7 +3598,7 @@ export class TextWorld {
       npc.dialog = [];
     }
 
-    let response = undefined;
+    let response = "";
     if (typeof responseOrAction === "string") {
       response = responseOrAction;
     }
