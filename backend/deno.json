@@ -1,7 +1,7 @@
 {
   "tasks": {
     "run": "deno --allow-net .\\textworld_game.ts",
-    "test": "deno test --coverage --unstable-kv --allow-read --allow-write .\\textworld_tests.ts",
+    "test": "deno test --coverage --unstable-kv --allow-read --allow-write --allow-net .\\textworld_tests.ts",
     "coverage": "deno coverage --html"
   },
   "imports": {

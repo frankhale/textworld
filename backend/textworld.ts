@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 16 September 2024
+// 25 September 2024
 
 // TODO:
 //
@@ -10,8 +10,8 @@
 // environment
 // - Implement leveling
 // - Implement race
-// - Implement selling items to vendors
 // - Look at all exception throwing and make sure it's consistent
+// - Implement a way to ask the player a series of questions
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -27,10 +27,7 @@ export type CommandParserAction = (
 ) => string | Promise<string>;
 export type SpawnLocationAction = (spawn_location: SpawnLocation) => void;
 
-export interface GameMessage {
-  player_id: string;
-  command: string;
-}
+export type BuiltInCommandActionType = "Main" | "PlayerDead";
 
 // Core Interfaces
 export interface Description {
@@ -85,10 +82,6 @@ export interface Actor extends Entity, Storage {
   race?: Race;
 }
 
-export interface Instance {
-  zones: Zone[];
-}
-
 export interface Player extends Actor {
   score: number;
   gold: number;
@@ -97,7 +90,7 @@ export interface Player extends Actor {
   quests: string[];
   quests_completed: string[];
   known_recipes: string[];
-  instance: Instance;
+  instance: Zone[];
 }
 
 export interface Recipe extends Entity {
@@ -121,6 +114,7 @@ export interface Dialog extends Named {
 
 export interface Item extends Entity {
   usable: boolean;
+  consumable: boolean;
   level: number;
   value: number;
 }
@@ -134,47 +128,49 @@ export interface Drop extends Named {
   quantity: number;
 }
 
-export interface Room extends Entity, Storage {
-  zone_start: boolean;
+export interface ActorContainer {
   npcs: Actor[];
-  exits: Exit[];
   mobs: Actor[];
   objects: Actor[];
   players: Player[];
+}
+
+export interface Room extends Entity, Storage, ActorContainer {
+  exits: Exit[];
   instance: boolean;
 }
 
 export interface Zone extends Entity {
-  name: string;
   rooms: Room[];
   instance: boolean;
+  starting_room?: string;
 }
 
-export interface World {
+export interface World extends ActorContainer {
   zones: Zone[];
   items: Item[];
   recipes: Recipe[];
-  npcs: Actor[];
-  mobs: Actor[];
-  objects: Actor[];
-  players: Player[];
   quests: Quest[];
   level_data: Level[];
 }
 
-export interface Completable extends Entity {
+export interface Quest extends Entity {
+  steps?: QuestStep[];
   complete: boolean;
 }
 
-export interface Quest extends Completable {
-  steps?: QuestStep[];
+export interface QuestStep extends Entity {
+  complete: boolean;
 }
-
-export interface QuestStep extends Completable {}
 
 export interface PlayerProgress {
   player: Player;
   world: World;
+}
+
+export interface GameMessage {
+  player_id: string;
+  command: string;
 }
 
 // Response Interface
@@ -208,11 +204,11 @@ export interface DialogAction extends Named {
   action: CommandParserAction;
 }
 
-export interface ItemAction extends Named {
+export interface NamedAction extends Named {
   action: Action;
 }
 
-export interface RoomAction extends Named {
+export interface NamedActions extends Named {
   actions?: Action[];
 }
 
@@ -233,8 +229,9 @@ export interface SpawnLocation extends Named {
 export interface WorldActions {
   spawn_locations: SpawnLocation[];
   dialog_actions: DialogAction[];
-  item_actions: ItemAction[];
-  room_actions: RoomAction[];
+  flag_actions: NamedAction[];
+  item_actions: NamedAction[];
+  room_actions: NamedActions[];
   room_command_actions: RoomCommandActions[];
   quest_actions: QuestAction[];
   quest_step_actions: QuestStepAction[];
@@ -420,6 +417,21 @@ export class TextWorld {
     ),
   ];
 
+  //////////////////////////////
+  // BUILT IN COMMAND ACTIONS //
+  //////////////////////////////
+
+  add_command_action(
+    action_type: BuiltInCommandActionType,
+    action: CommandAction,
+  ): void {
+    if (action_type === "Main") {
+      this.main_command_actions.push(action);
+    } else if (action_type === "PlayerDead") {
+      this.player_dead_command_actions.push(action);
+    }
+  }
+
   ////////////
   // PLAYER //
   ////////////
@@ -476,9 +488,7 @@ export class TextWorld {
       quests: [],
       quests_completed: [],
       known_recipes: [],
-      instance: {
-        zones: [],
-      },
+      instance: [],
     };
 
     this.world.players.push(player);
@@ -534,7 +544,7 @@ export class TextWorld {
    */
   get_player_zone(player: Player): Zone | null {
     return (
-      player.instance.zones.find((zone) => zone.name === player.zone) ||
+      player.instance.find((zone) => zone.name === player.zone) ||
       this.world.zones.find((zone) => zone.name === player.zone) || null
     );
   }
@@ -1253,6 +1263,14 @@ export class TextWorld {
   // VENDOR //
   ////////////
 
+  dialog_contains_trigger(triggers: string[], words: string[]): number {
+    return words.findIndex((word) => triggers.includes(word));
+  }
+
+  // dialog_remove_trigger(triggers: string[], words: string[]): string[] {
+  //   return words.filter((word) => !triggers.includes(word));
+  // }
+
   /**
    * Creates a new vendor and adds it to the world.
    *
@@ -1292,20 +1310,16 @@ export class TextWorld {
     this.create_dialog(
       name,
       ["purchase", "buy"],
-      (player, input, _command, _args) => {
-        const command_bits = input.split(" ");
-        const trigger_word_index = command_bits.lastIndexOf("purchase") >= 0
-          ? command_bits.lastIndexOf("purchase")
-          : command_bits.lastIndexOf("buy");
-
-        if (
-          trigger_word_index === -1 ||
-          trigger_word_index === command_bits.length - 1
-        ) {
+      (player, _input, _command, args) => {
+        const trigger_index = this.dialog_contains_trigger(
+          ["purchase", "buy"],
+          args,
+        );
+        const item_name = args.slice(trigger_index + 1).join(" ");
+        if (!item_name.trim()) {
           return "You must specify an item to purchase.";
         }
 
-        const item_name = command_bits.slice(trigger_word_index + 1).join(" ");
         return this.purchase_from_vendor(player, name, item_name);
       },
     );
@@ -1313,28 +1327,14 @@ export class TextWorld {
     this.create_dialog(
       name,
       ["sell"],
-      (player, input, _command, _args) => {
-        const command_bits = input.split(" ");
-        const trigger_word_index = command_bits.lastIndexOf("sell");
-
-        if (
-          trigger_word_index === -1 ||
-          trigger_word_index === command_bits.length - 1
-        ) {
-          return "You must specify an item to sell.";
-        }
-
-        // get last word in command_bits and check to see if it is a number
-        const quantity = parseInt(command_bits[command_bits.length - 1], 10);
+      (player, _input, _command, args) => {
+        const trigger_index = this.dialog_contains_trigger(["sell"], args);
+        const quantity = parseInt(args[args.length - 1], 10);
         if (isNaN(quantity)) {
           return "You must specify a quantity to sell.";
         }
 
-        const item_name = command_bits.slice(
-          trigger_word_index + 1,
-          trigger_word_index + 2,
-        ).join(" ");
-
+        const item_name = args.slice(trigger_index + 1, -1).join(" ");
         const has_item = this.has_item_in_quantity(player, item_name, quantity);
 
         if (!has_item) {
@@ -1351,7 +1351,7 @@ export class TextWorld {
         player.gold += total_value;
         this.remove_player_item(player, item_name, quantity);
 
-        return `You sold '${quantity}' of '${item_name}' for a value of '${total_value}'.`;
+        return `You sold '${quantity}' of '${item.name}' for a value of '${total_value}'.`;
       },
     );
   }
@@ -1420,6 +1420,7 @@ export class TextWorld {
     name: string,
     description: string,
     usable: boolean,
+    consumable: boolean,
     action: Action | null = null,
   ): Item {
     const item = {
@@ -1427,6 +1428,7 @@ export class TextWorld {
       name,
       descriptions: [{ flag: "default", description }],
       usable,
+      consumable,
       level: 1,
       value: 1,
     };
@@ -1573,10 +1575,10 @@ export class TextWorld {
    * Gets an item action.
    *
    * @param {string} name - The name of the item to get the action for.
-   * @returns {ItemAction | null} - The item action or null if it does not exist.
+   * @returns {NamedAction | null} - The item action or null if it does not exist.
    * @throws {Error} - If the item does not exist.
    */
-  get_item_action(name: string): ItemAction | null {
+  get_item_action(name: string): NamedAction | null {
     const item = this.get_item(name);
     if (!item) {
       throw new Error(`Item ${name} does not exist.`);
@@ -1701,7 +1703,7 @@ export class TextWorld {
 
     current_room.items.forEach((room_item) => {
       const player_item = player.items.find(
-        (pitem) => pitem.name.toLowerCase() === room_item.name.toLowerCase(),
+        (item) => item.name.toLowerCase() === room_item.name.toLowerCase(),
       );
 
       if (player_item) {
@@ -1762,9 +1764,10 @@ export class TextWorld {
     const result = item_action?.action(player) ??
       "You used the item but nothing happened.";
 
-    if (this.has_flag(player, "prevent_item_consumption")) {
-      this.remove_flag(player, "prevent_item_consumption");
-    } else {
+    // if (this.has_flag(player, "prevent_item_consumption")) {
+    //   this.remove_flag(player, "prevent_item_consumption");
+    // } else {
+    if (item_definition.consumable) {
       player_item.quantity--;
       if (player_item.quantity === 0) {
         player.items = player.items.filter(
@@ -1774,7 +1777,7 @@ export class TextWorld {
     }
 
     return {
-      response: result,
+      response: result || "You used the item but nothing happened.",
     };
   }
 
@@ -1826,13 +1829,6 @@ export class TextWorld {
    * @returns {CommandResponse} - The response object.
    */
   drop_item(player: Player, args: string[]): CommandResponse {
-    const zone = this.get_player_zone(player);
-    if (!zone) {
-      return {
-        response: "That item does not exist.",
-      };
-    }
-
     const possible_items = this.generate_combinations(args);
 
     if (possible_items.includes("all")) {
@@ -1852,16 +1848,8 @@ export class TextWorld {
       };
     }
 
-    const current_room = zone.rooms.find(
-      (room) => room.name.toLowerCase() === player.room.toLowerCase(),
-    );
-    if (!current_room) {
-      return {
-        response: "You are not in a valid room.",
-      };
-    }
-
-    current_room.items.push({
+    const current_room = this.get_player_room(player);
+    current_room?.items.push({
       name: player_item.name,
       quantity: player_item.quantity,
     });
@@ -1933,13 +1921,11 @@ export class TextWorld {
       };
     }
 
-    const item = this.world.items.find(
-      (item) => item.name.toLowerCase() === player_item.name.toLowerCase(),
-    );
+    const item = this.get_item(player_item.name);
 
     if (!item) {
       return {
-        response: "That item does not exist in the world.",
+        response: "That item does not exist.",
       };
     }
 
@@ -1981,7 +1967,7 @@ export class TextWorld {
       .filter(Boolean);
 
     return {
-      response: items_description.length > 0
+      response: (items_description && items_description.length > 0)
         ? items_description.join("\n\n")
         : "You have no items to show.",
     };
@@ -2106,18 +2092,17 @@ export class TextWorld {
       return "Cannot perform attack.";
     }
 
-    const is_critical_hit =
-      Math.random() < (attacker.stats.critical_chance ?? 0);
-    const attacker_damage = (attacker.stats.physical_damage ?? 0) *
+    const is_critical_hit = Math.random() < attacker.stats.critical_chance;
+    const attacker_damage = attacker.stats.physical_damage *
       (is_critical_hit ? 2 : 1);
     const damage_dealt = Math.max(
       0,
-      attacker_damage - (defender.stats.physical_defense ?? 0),
+      attacker_damage - defender.stats.physical_defense,
     );
 
     defender.stats.health.current = Math.max(
       0,
-      (defender.stats.health.current ?? 0) - damage_dealt,
+      defender.stats.health.current - damage_dealt,
     );
 
     let result =
@@ -2229,23 +2214,25 @@ export class TextWorld {
   }
 
   /**
-   * Create an instanced zone for a player.
+   * Create an instance zone for a player.
    *
    * @param player - The player to create the zone for.
    * @param name - The name of the zone to create.
    */
-  create_instanced_zone(player: Player, name: string): void {
+  create_instance_zone(player: Player, name: string): void {
     const zone = this.get_zone(name);
     if (!zone) {
       throw new Error(`Zone ${name} does not exist.`);
     }
 
     // If zone already exists in player instance then filter it out.
-    player.instance.zones = player.instance.zones.filter(
+    player.instance = player.instance.filter(
       (z) => z.name.toLowerCase() !== name.toLowerCase(),
     );
 
-    player.instance.zones.push(structuredClone(zone));
+    const instance_zone = structuredClone(zone);
+    instance_zone.instance = true;
+    player.instance.push(instance_zone);
   }
 
   /**
@@ -2280,7 +2267,7 @@ export class TextWorld {
    */
   get_instance_zone(player: Player, zone_name: string): Zone | null {
     return (
-      player.instance.zones.find(
+      player.instance.find(
         (zone) => zone.name.toLowerCase() === zone_name.toLowerCase(),
       ) || null
     );
@@ -2602,6 +2589,7 @@ export class TextWorld {
    *
    * @param {Player} player - The player to get the description for.
    * @returns {CommandResponse} - The response object.
+   * @throws {Error} - If the player is not in a valid zone or room.
    */
   get_room_description(player: Player): CommandResponse {
     const zone = this.get_player_zone(player);
@@ -2613,9 +2601,7 @@ export class TextWorld {
       (room) => room.name.toLowerCase() === player.room.toLowerCase(),
     );
     if (!current_room) {
-      return {
-        response: "You can't see anything.",
-      };
+      throw new Error("Player is not in a valid room.");
     }
 
     const exits = current_room.exits
@@ -2667,7 +2653,7 @@ export class TextWorld {
       throw new Error("Player is not in a valid zone.");
     }
 
-    let current_room = zone.rooms.find((room) => room.name === player.room);
+    let current_room = this.get_player_room(player);
     const has_command = command.length > 0;
 
     if (
@@ -2690,8 +2676,7 @@ export class TextWorld {
       if (exit.hidden) exit.hidden = false;
       player.room = exit.location;
 
-      current_room = zone.rooms.find((room) => room.name === player.room) ||
-        current_room;
+      current_room = this.get_player_room(player);
     }
 
     return this.get_room_description(player);
@@ -2717,7 +2702,7 @@ export class TextWorld {
    * @returns {CommandResponse} - The response object.
    * @throws {Error} - If the player is not in a valid zone.
    */
-  plot_room_map(player: Player, window_size: number): CommandResponse {
+  plot_room_map(player: Player, window_size: number = 5): CommandResponse {
     const zone = this.get_player_zone(player);
     if (!zone) {
       throw new Error("Player is not in a valid zone.");
@@ -2765,8 +2750,7 @@ export class TextWorld {
       room.exits.forEach((exit) => {
         if (exit.hidden) return;
 
-        const [dx, dy] = direction_to_coords[exit.name] || [];
-        if (dx === undefined || dy === undefined) return;
+        const [dx, dy] = direction_to_coords[exit.name];
 
         const neighbor_room = rooms.find((r) => r.name === exit.location);
         if (neighbor_room) {
@@ -2856,14 +2840,14 @@ export class TextWorld {
   }
 
   /**
-   * Creates an instanced room for a player.
+   * Creates an instance room for a player.
    *
    * @param {Player} player - The player to create the room for.
    * @param {string} zone_name - The name of the zone to create the room in.
    * @param {string} room_name - The name of the room to create.
    * @returns {Room | null} - The created room or null if it does not exist.
    */
-  create_instanced_room(
+  create_instance_room(
     player: Player,
     zone_name: string,
     room_name: string,
@@ -2876,25 +2860,25 @@ export class TextWorld {
 
       if (room) {
         const instance_zone = this.get_instance_zone(player, zone_name);
+        const instance_room = structuredClone(room);
+        instance_room.instance = true;
 
         if (instance_zone) {
           instance_zone.rooms.filter((r) =>
             r.name.toLowerCase() !== room_name.toLowerCase()
           );
+          instance_zone.rooms.push(instance_room);
+        } else {
+          player.instance.push({
+            id: zone.id,
+            descriptions: zone.descriptions,
+            name: zone.name,
+            rooms: [instance_room],
+            instance: true,
+          });
         }
 
-        const instanced_room = structuredClone(room);
-        instanced_room.instance = true;
-
-        player.instance.zones.push({
-          id: zone.id,
-          descriptions: zone.descriptions,
-          name: zone.name,
-          rooms: [instanced_room],
-          instance: true,
-        });
-
-        return instanced_room;
+        return instance_room;
       }
     }
 
@@ -2909,11 +2893,17 @@ export class TextWorld {
    * @throws {Error} - If the room does not exist in the zone.
    */
   set_room_as_zone_starter(zone_name: string, room_name: string): void {
+    const zone = this.get_zone(zone_name);
+    if (!zone) {
+      throw new Error(`Zone ${zone_name} does not exist.`);
+    }
+
     const room = this.get_room(zone_name, room_name);
     if (!room) {
       throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
     }
-    room.zone_start = true;
+
+    zone.starting_room = room_name;
   }
 
   /**
@@ -2942,6 +2932,21 @@ export class TextWorld {
         actions: [action],
       });
     }
+  }
+
+  /**
+   * Gets a room's actions.
+   *
+   * @param zone_name - The name of the zone to get the room actions from.
+   * @param room_name - The name of the room to remove the action from.
+   * @returns {NamedActions | null}
+   */
+  get_room_actions(room_name: string): NamedActions | null {
+    const room_actions = this.world_actions.room_actions.find(
+      (action_obj) => action_obj.name.toLowerCase() === room_name.toLowerCase(),
+    );
+
+    return room_actions || null;
   }
 
   /**
@@ -2995,7 +3000,7 @@ export class TextWorld {
   get_zone_starter_room(zone_name: string): Room | null {
     const zone = this.get_zone(zone_name);
     if (!zone) return null;
-    return zone.rooms.find((room) => room.zone_start) ?? null;
+    return zone.rooms.find((room) => zone.starting_room == room.name) ?? null;
   }
 
   /**
@@ -3015,7 +3020,7 @@ export class TextWorld {
       };
     }
 
-    const items_string = current_room.items.length > 0
+    const items = current_room.items.length > 0
       ? `Items: ${
         current_room.items
           .map((item) => `${item.name} (${item.quantity})`)
@@ -3023,15 +3028,15 @@ export class TextWorld {
       }`
       : "There is nothing else of interest here.";
 
-    const mobs_string = current_room.mobs.length > 0
+    const mobs = current_room.mobs.length > 0
       ? `Mobs: ${current_room.mobs.map((mob) => mob.name).join(", ")}`
       : "";
 
     return {
       response: `You inspect the room and found:\n\n${
         [
-          mobs_string,
-          items_string,
+          mobs,
+          items,
         ]
           .filter(Boolean)
           .join("\n")
@@ -3315,12 +3320,13 @@ export class TextWorld {
    * @param {Player} player - The player to craft the item for.
    * @param {string[]} args - The arguments to craft the item with.
    * @returns {CommandResponse} - The response object.
+   * @throws {Error} - If the recipe does not exist.
    */
   craft_recipe(player: Player, args: string[]): CommandResponse {
     const recipe_names = this.generate_combinations(args);
     const recipe_name = recipe_names.find((name) =>
-      this.world.recipes.some(
-        (recipe) => recipe.name.toLowerCase() === name.toLowerCase(),
+      player.known_recipes.some(
+        (known_recipe) => known_recipe.toLowerCase() === name.toLowerCase(),
       )
     );
 
@@ -3332,9 +3338,7 @@ export class TextWorld {
 
     const recipe = this.get_recipe(recipe_name);
     if (!recipe) {
-      return {
-        response: "You don't know how to craft that.",
-      };
+      throw new Error("Recipe does not exist.");
     }
 
     const has_ingredients = recipe.ingredients.every((ingredient) =>
@@ -3348,7 +3352,7 @@ export class TextWorld {
     }
 
     recipe.ingredients.forEach((ingredient) => {
-      this.remove_player_item(player, ingredient.name);
+      this.remove_player_item(player, ingredient.name, ingredient.quantity);
     });
 
     player.items.push({
@@ -3364,6 +3368,41 @@ export class TextWorld {
   //////////
   // MISC //
   //////////
+
+  /**
+   * Adds a flag action.
+   *
+   * @param {string} name - The name of the flag action.
+   * @param {Action} action - The action to add.
+   */
+  add_flag_action(name: string, action: Action): void {
+    const flag_action = this.world_actions.flag_actions.find(
+      (flag) => flag.name === name,
+    );
+
+    if (flag_action) {
+      flag_action.action = action;
+    } else {
+      this.world_actions.flag_actions.push({
+        name,
+        action,
+      });
+    }
+  }
+
+  /**
+   * Gets a flag action.
+   *
+   * @param {string} name - The name of the flag action to remove.
+   * @returns {Action | null} - The flag action or null if it does not exist.
+   */
+  get_flag_action(name: string): Action | null {
+    const flag_action = this.world_actions.flag_actions.find(
+      (flag) => flag.name === name,
+    );
+
+    return flag_action ? flag_action.action : null;
+  }
 
   /**
    * Saves player progress to a database.
@@ -3541,6 +3580,7 @@ export class TextWorld {
    * @param {string} npc_name - The name of the NPC to create the dialog for.
    * @param {string[]} trigger - The trigger for the dialog.
    * @param {string | CommandParserAction} responseOrAction - The response or action for the dialog.
+   * @throws {Error} - If the NPC does not exist.
    */
   create_dialog(
     npc_name: string,
@@ -3548,7 +3588,9 @@ export class TextWorld {
     responseOrAction: string | CommandParserAction,
   ): void {
     const npc = this.get_npc(npc_name);
-    if (!npc) return;
+    if (!npc) {
+      throw new Error(`NPC ${npc_name} does not exist.`);
+    }
 
     const dialog_id = crypto.randomUUID();
 
@@ -3556,7 +3598,7 @@ export class TextWorld {
       npc.dialog = [];
     }
 
-    let response = undefined;
+    let response = "";
     if (typeof responseOrAction === "string") {
       response = responseOrAction;
     }
@@ -3687,6 +3729,7 @@ export class TextWorld {
     const world_actions: WorldActions = {
       spawn_locations: [],
       dialog_actions: [],
+      flag_actions: [],
       item_actions: [],
       room_actions: [],
       room_command_actions: [],
@@ -4079,35 +4122,39 @@ export class TextWorld {
    * @param {number} port - The port to run the server on.
    * @param {string} fix_me_player_id - The hard coded player ID.
    */
-  run_websocket_server(port: number, fix_me_player_id: string): void {
+  run_websocket_server(
+    port: number,
+    fix_me_player_id: string,
+  ): Deno.HttpServer<Deno.NetAddr> {
     const process_request = async (game_message: GameMessage) => {
       const player = this.get_player(game_message.player_id);
-      if (player) {
-        console.log(`${player.id}: ${game_message.command}`);
-        const result: CommandResponse = JSON.parse(
-          await this.parse_command(player, game_message.command),
-        );
-        const final_response = {
+      if (!player) {
+        const result = {
+          response: "Invalid player",
+        };
+        return {
           id: crypto.randomUUID(),
           input: game_message.command,
-          player: player,
+          player: "Invalid player",
           result,
           responseLines: result.response.split("\n"),
-          map: this.plot_room_map(player, 5).response,
-        };
-        return final_response;
-      } else {
-        console.log(`${game_message.player_id}: player not found`);
-        const final_response = {
-          id: crypto.randomUUID(),
-          input: game_message.command,
-          player: null,
-          response: "Player not found.",
-          responseLines: [],
           map: "",
         };
-        return final_response;
       }
+
+      console.log(`${player.id}: ${game_message.command}`);
+      const result: CommandResponse = JSON.parse(
+        await this.parse_command(player, game_message.command),
+      );
+      const final_response = {
+        id: crypto.randomUUID(),
+        input: game_message.command,
+        player: player,
+        result,
+        responseLines: result.response.split("\n"),
+        map: this.plot_room_map(player, 5).response,
+      };
+      return final_response;
     };
 
     const ac = new AbortController();
@@ -4126,22 +4173,13 @@ export class TextWorld {
           socket.send(JSON.stringify(await process_request(game_message)));
         };
         socket.onmessage = async (e) => {
-          if (e.data === "quit") {
-            console.log("Shutting down server...");
-            socket.close();
-            ac.abort();
-          } else {
-            const game_message = JSON.parse(e.data);
-            socket.send(JSON.stringify(await process_request(game_message)));
-          }
+          const game_message = JSON.parse(e.data);
+          socket.send(JSON.stringify(await process_request(game_message)));
         };
         return response;
       },
     );
 
-    server.finished.then(() => {
-      console.log("Server has been shutdown!");
-      Deno.exit();
-    });
+    return server;
   }
 }

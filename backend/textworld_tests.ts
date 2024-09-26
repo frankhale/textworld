@@ -1,15 +1,18 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 16 September 2024
+// 25 September 2024
 
 import {
   assert,
   assertEquals,
+  assertGreater,
   assertNotEquals,
   assertStringIncludes,
 } from "@std/assert";
 
 import * as tw from "./textworld.ts";
+
+const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 const textworld = new tw.TextWorld();
 
@@ -23,6 +26,34 @@ Deno.test("can_create_zone", () => {
   textworld.create_zone("Zone1");
   const zone = textworld.get_zone("Zone1");
   assertEquals(zone?.name, "Zone1");
+  textworld.create_zone("Zone2", "This is zone 2");
+  const zone2 = textworld.get_zone("Zone2");
+  assertEquals(zone2?.name, "Zone2");
+  textworld.reset_world();
+});
+
+Deno.test("can_create_instance_zone", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_instance_zone(player, "Zone1");
+  const zone = textworld.get_player_zone(player);
+  assertEquals(zone?.name, "Zone1");
+  assertEquals(zone?.instance, true);
+  // Replace the instance zone with a new instance zone
+  textworld.create_instance_zone(player, "Zone1");
+  const zone2 = textworld.get_player_zone(player);
+  assertEquals(zone2?.name, "Zone1");
+  try {
+    textworld.create_instance_zone(player, "InvalidZone");
+  } catch (e) {
+    assertEquals(e.message, "Zone InvalidZone does not exist.");
+  }
   textworld.reset_world();
 });
 
@@ -169,7 +200,7 @@ Deno.test("can_add_item_to_player", () => {
     "Zone1",
     "Room1",
   );
-  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_item("Sword", "A sharp sword", false, false);
   textworld.add_item_to_player(player, "Sword");
   assertEquals(player.items.length, 1);
   assertEquals(player.items[0].name, "Sword");
@@ -431,7 +462,7 @@ Deno.test("can_create_room", () => {
   textworld.reset_world();
 });
 
-Deno.test("can_create_instanced_room", () => {
+Deno.test("can_create_instance_room", () => {
   const player = textworld.create_player(
     "Player",
     "You are a strong adventurer",
@@ -440,15 +471,27 @@ Deno.test("can_create_instanced_room", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  const non_instanced_room = textworld.get_room("Zone1", "Room1");
-  assertEquals(non_instanced_room?.instance, false);
-  textworld.create_instanced_room(player, "Zone1", "Room1");
-  const room = textworld.get_instance_room(player, "Zone1", "Room1");
-  assertEquals(room?.instance, true);
+  textworld.create_room("Zone1", "Room2", "This is room 2");
+  const non_instance_room = textworld.get_room("Zone1", "Room1");
+  assertEquals(non_instance_room?.instance, false);
+  textworld.create_instance_room(player, "Zone1", "Room1");
+  const result = textworld.get_instance_room(player, "Zone1", "Room1");
+  assertEquals(result?.instance, true);
+  textworld.create_instance_room(player, "Zone1", "Room2");
+  const result2 = textworld.get_instance_room(player, "Zone1", "Room2");
+  assertEquals(result2?.instance, true);
+  const result3 = textworld.create_instance_room(player, "Zone1", "Room3");
+  assertEquals(result3, null);
+  // Invalid Zone
+  const resutl4 = textworld.get_instance_room(player, "InvalidZone", "Room1");
+  assertEquals(resutl4, null);
+  // Invalid Room
+  const result5 = textworld.get_instance_room(player, "Zone1", "InvalidRoom");
+  assertEquals(result5, null);
   textworld.reset_world();
 });
 
-Deno.test("can_create_instanced_room_with_item", () => {
+Deno.test("can_create_instance_room_with_item", () => {
   const player = textworld.create_player(
     "Player",
     "You are a strong adventurer",
@@ -457,17 +500,17 @@ Deno.test("can_create_instanced_room_with_item", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_instanced_room(player, "Zone1", "Room1");
-  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_instance_room(player, "Zone1", "Room1");
+  textworld.create_item("Sword", "A sharp sword", false, false);
   textworld.place_item("Zone1", "Room1", "Sword", 1, player);
-  const instanced_room = textworld.get_instance_room(player, "Zone1", "Room1");
-  assertEquals(instanced_room?.items.length, 1);
-  const non_instanced_room = textworld.get_room("Zone1", "Room1");
-  assertEquals(non_instanced_room?.items.length, 0);
+  const instance_room = textworld.get_instance_room(player, "Zone1", "Room1");
+  assertEquals(instance_room?.items.length, 1);
+  const non_instance_room = textworld.get_room("Zone1", "Room1");
+  assertEquals(non_instance_room?.items.length, 0);
   textworld.reset_world();
 });
 
-Deno.test("can_create_instanced_room_with_mob", () => {
+Deno.test("can_create_instance_room_with_mob", () => {
   const player = textworld.create_player(
     "Player",
     "You are a strong adventurer",
@@ -476,7 +519,7 @@ Deno.test("can_create_instanced_room_with_mob", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_instanced_room(player, "Zone1", "Room1");
+  textworld.create_instance_room(player, "Zone1", "Room1");
   textworld.create_mob(
     "Goblin",
     "A small goblin",
@@ -494,14 +537,14 @@ Deno.test("can_create_instanced_room_with_mob", () => {
     [],
   );
   textworld.place_mob("Zone1", "Room1", "Goblin", player);
-  const instanced_room = textworld.get_instance_room(player, "Zone1", "Room1");
-  assertEquals(instanced_room?.mobs.length, 1);
-  const non_instanced_room = textworld.get_room("Zone1", "Room1");
-  assertEquals(non_instanced_room?.mobs.length, 0);
+  const instance_room = textworld.get_instance_room(player, "Zone1", "Room1");
+  assertEquals(instance_room?.mobs.length, 1);
+  const non_instance_room = textworld.get_room("Zone1", "Room1");
+  assertEquals(non_instance_room?.mobs.length, 0);
   textworld.reset_world();
 });
 
-Deno.test("create_instanced_room_with_npc", () => {
+Deno.test("create_instance_room_with_npc", () => {
   const player = textworld.create_player(
     "Player",
     "You are a strong adventurer",
@@ -510,13 +553,13 @@ Deno.test("create_instanced_room_with_npc", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_instanced_room(player, "Zone1", "Room1");
+  textworld.create_instance_room(player, "Zone1", "Room1");
   textworld.create_npc("Guard", "A strong guard");
   textworld.place_npc("Zone1", "Room1", "Guard", player);
-  const instanced_room = textworld.get_instance_room(player, "Zone1", "Room1");
-  assertEquals(instanced_room?.npcs.length, 1);
-  const non_instanced_room = textworld.get_room("Zone1", "Room1");
-  assertEquals(non_instanced_room?.npcs.length, 0);
+  const instance_room = textworld.get_instance_room(player, "Zone1", "Room1");
+  assertEquals(instance_room?.npcs.length, 1);
+  const non_instance_room = textworld.get_room("Zone1", "Room1");
+  assertEquals(non_instance_room?.npcs.length, 0);
   textworld.reset_world();
 });
 
@@ -540,6 +583,57 @@ Deno.test("can_describe_room", () => {
   textworld.create_room("Zone1", "Room1", "This is room 1");
   const result = textworld.get_room_description(player);
   assertEquals(result.response, "This is room 1");
+  textworld.create_npc("Guard", "A strong guard");
+  textworld.place_npc("Zone1", "Room1", "Guard");
+  const result2 = textworld.get_room_description(player);
+  assertEquals(result2.response, "This is room 1");
+  assertEquals(result2.npcs, "Guard");
+  textworld.create_item("Silver Sword", "A shiny silver sword", false, false);
+  textworld.create_vendor("Foxnir", "A vendor", [{
+    name: "Silver Sword",
+    price: 1000,
+  }]);
+  textworld.place_npc("Zone1", "Room1", "Foxnir");
+  const result3 = textworld.get_room_description(player);
+  assertEquals(result3.npcs, "Guard, Foxnir (Vendor)");
+  textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_stats(
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      15,
+      8,
+      5,
+      2,
+      0.05,
+      { level: 1, xp: 0 },
+    ),
+    [],
+  );
+  textworld.place_mob("Zone1", "Room1", "Goblin");
+  const result4 = textworld.get_room_description(player);
+  assertEquals(result4.mobs, "Goblin");
+  textworld.create_object("Chest", "A locked chest");
+  textworld.place_object("Zone1", "Room1", "Chest");
+  const result5 = textworld.get_room_description(player);
+  assertEquals(result5.objects, "Chest");
+  // INVALID ZONE
+  player.zone = "InvalidZone";
+  try {
+    textworld.get_room_description(player);
+  } catch (e) {
+    assertEquals(e.message, "Player is not in a valid zone.");
+  }
+  // INVALID ROOM
+  player.zone = "Zone1";
+  player.room = "InvalidRoom";
+  try {
+    textworld.get_room_description(player);
+  } catch (e) {
+    assertEquals(e.message, "Player is not in a valid room.");
+  }
   textworld.reset_world();
 });
 
@@ -573,6 +667,16 @@ Deno.test("can_create_alternate_room_description", () => {
   );
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.descriptions.length, 2);
+  try {
+    textworld.add_room_description(
+      "Zone1",
+      "Room2",
+      "room2-alt",
+      "This is room 2",
+    );
+  } catch (e) {
+    assertEquals(e.message, "Room Room2 does not exist in zone Zone1.");
+  }
   textworld.reset_world();
 });
 
@@ -649,6 +753,42 @@ Deno.test("can_create_exit", () => {
   const exit = textworld.get_exit("Zone1", "Room1", "north");
   assertEquals(exit?.name, "north");
   assertEquals(exit?.location, "Room2");
+  try {
+    textworld.get_exit("InvalidZone", "Room1", "south");
+  } catch (e) {
+    assertEquals(e.message, "Zone InvalidZone does not exist.");
+  }
+  try {
+    textworld.get_exit("Zone1", "InvalidRoom", "south");
+  } catch (e) {
+    assertEquals(e.message, "Room InvalidRoom does not exist in zone Zone1.");
+  }
+  try {
+    textworld.get_exit("Zone1", "Room1", "south");
+  } catch (e) {
+    assertEquals(e.message, "Exit south does not exist in room Room1.");
+  }
+  try {
+    textworld.create_exit("InvalidZone", "Room1", "north", "Room2");
+  } catch (e) {
+    assertEquals(e.message, "Zone InvalidZone does not exist.");
+  }
+  try {
+    textworld.create_exit("Zone1", "InvalidRoom", "north", "Room2");
+  } catch (e) {
+    assertEquals(
+      e.message,
+      "Room InvalidRoom or Room2 does not exist in zone Zone1.",
+    );
+  }
+  try {
+    textworld.create_exit("Zone1", "Room1", "InvalidDirection", "Room2");
+  } catch (e) {
+    assertEquals(
+      e.message,
+      "Invalid exit name: InvalidDirection.",
+    );
+  }
   textworld.reset_world();
 });
 
@@ -660,6 +800,16 @@ Deno.test("can_remove_exit", () => {
   textworld.remove_exit("Zone1", "Room1", "north");
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.exits.length, 0);
+  try {
+    textworld.remove_exit("InvalidZone", "Room1", "north");
+  } catch (e) {
+    assertEquals(e.message, "Zone InvalidZone does not exist.");
+  }
+  try {
+    textworld.remove_exit("Zone1", "InvalidRoom", "north");
+  } catch (e) {
+    assertEquals(e.message, "Room InvalidRoom does not exist in zone Zone1.");
+  }
   textworld.reset_world();
 });
 
@@ -701,7 +851,7 @@ Deno.test("can_create_recipe", () => {
 });
 
 Deno.test("can_create_item", () => {
-  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_item("Sword", "A sharp sword", false, false);
   const item = textworld.get_item("Sword");
   assertEquals(item?.name, "Sword");
   textworld.reset_world();
@@ -714,30 +864,47 @@ Deno.test("can_create_item_with_action", () => {
     "Zone1",
     "Room1",
   );
-  textworld.create_item("Potion", "A potion", true, (_player) => {
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item("Potion", "A potion", true, false, (_player) => {
     return "You drank the potion but nothing happened.";
   });
   const item = textworld.get_item("Potion");
   assertEquals(item?.name, "Potion");
-  const item_action = textworld.get_item_action("Potion");
+  const result = textworld.get_item_action("Potion");
   assertEquals(
-    item_action?.action(player),
+    result?.action(player),
     "You drank the potion but nothing happened.",
   );
+  try {
+    textworld.get_item_action("Foobar");
+  } catch (e) {
+    assertEquals(e.message, "Item Foobar does not exist.");
+  }
+  const result2 = textworld.get_item_action("Sword");
+  assertEquals(result2, null);
   textworld.reset_world();
 });
 
 Deno.test("can_get_item", () => {
-  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_item("Sword", "A sharp sword", false, false);
   const item = textworld.get_item("Sword");
   assertEquals(item?.name, "Sword");
+  textworld.reset_world();
+});
+
+Deno.test("cant_get_room_when_zone_is_invalid", () => {
+  try {
+    textworld.get_room("InvalidZone", "Room1");
+  } catch (e) {
+    assertEquals(e.message, "Zone InvalidZone does not exist.");
+  }
   textworld.reset_world();
 });
 
 Deno.test("can_get_room_item", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_item("Sword", "A sharp sword", false, false);
   textworld.place_item("Zone1", "Room1", "Sword");
   const item = textworld.get_room_item("Zone1", "Room1", "Sword");
   assertEquals(item?.name, "Sword");
@@ -763,10 +930,44 @@ Deno.test("cant_get_room_item_if_room_does_not_exist", () => {
   textworld.reset_world();
 });
 
+Deno.test("can_place_object_in_room", () => {
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_object("Chest", "A locked chest");
+  textworld.place_object("Zone1", "Room1", "Chest");
+  const object = textworld.get_room_object("Zone1", "Room1", "Chest");
+  assertEquals(object?.name, "Chest");
+  // Invalid Object
+  try {
+    textworld.place_object("Zone1", "Room1", "Crystal Ball");
+  } catch (e) {
+    assertEquals(e.message, "Object Crystal Ball does not exist.");
+  }
+  // Invalid Room
+  try {
+    textworld.place_object("Zone1", "Room2", "Chest");
+  } catch (e) {
+    assertEquals(e.message, "Room Room2 does not exist in zone Zone1.");
+  }
+  // Instance room
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_object("Tree Branch", "A sturdy tree branch");
+  textworld.create_instance_room(player, "Zone1", "Room1");
+  textworld.place_object("Zone1", "Room1", "Tree Branch", player);
+  const instance_room = textworld.get_instance_room(player, "Zone1", "Room1");
+  assertEquals(instance_room?.objects.length, 2);
+  textworld.reset_world();
+});
+
 Deno.test("can_place_item_in_room", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_item("Sword", "A sharp sword", false, false);
   textworld.place_item("Zone1", "Room1", "Sword");
   const item = textworld.get_room_item("Zone1", "Room1", "Sword");
   assertEquals(item?.name, "Sword");
@@ -786,7 +987,7 @@ Deno.test("cant_place_item_in_room_if_item_doesnt_exist", () => {
 
 Deno.test("cant_place_item_in_room_if_room_doesnt_exist", () => {
   textworld.create_zone("Zone1");
-  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_item("Sword", "A sharp sword", false, false);
   try {
     textworld.place_item("Zone1", "Room1", "Sword");
   } catch (e) {
@@ -804,9 +1005,9 @@ Deno.test("can_add_item_drops_to_room", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
-  textworld.create_item("Potion", "An ordinary potion", true);
-  textworld.create_instanced_room(player, "Zone1", "Room1");
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item("Potion", "An ordinary potion", true, true);
+  textworld.create_instance_room(player, "Zone1", "Room1");
   textworld.place_item("Zone1", "Room1", "Sword", 1, player);
   textworld.place_item("Zone1", "Room1", "Potion", 2, player);
   const room = textworld.get_player_room(player);
@@ -866,6 +1067,17 @@ Deno.test("can_place_mob_in_room", () => {
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.mobs.length, 1);
   assertEquals(room?.mobs[0].name, "Goblin");
+  try {
+    textworld.place_mob("Zone1", "Room1", "Moblin");
+  } catch (e) {
+    assertEquals(e.message, "MOB Moblin does not exist.");
+  }
+  textworld.remove_room("Zone1", "Room1");
+  try {
+    textworld.place_mob("Zone1", "Room1", "Goblin");
+  } catch (e) {
+    assertEquals(e.message, "Room Room1 does not exist in zone Zone1.");
+  }
   textworld.reset_world();
 });
 
@@ -891,6 +1103,12 @@ Deno.test("can_get_room_mob", () => {
   textworld.place_mob("Zone1", "Room1", "Goblin");
   const mob = textworld.get_room_mob("Zone1", "Room1", "Goblin");
   assertEquals(mob?.name, "Goblin");
+  const mob2 = textworld.get_room_mob("Zone1", "Room1", "Moblin");
+  assertEquals(mob2, null);
+  const mob3 = textworld.get_room_mob("Zone2", "Room1", "Goblin");
+  assertEquals(mob3, null);
+  const mob4 = textworld.get_room_mob("Zone1", "Room2", "Goblin");
+  assertEquals(mob4, null);
   textworld.reset_world();
 });
 
@@ -911,6 +1129,11 @@ Deno.test("can_create_npc_with_dialog", () => {
   const npc = textworld.get_npc("Guard");
   assertEquals(npc?.name, "Guard");
   assertEquals(npc?.dialog?.length, 1);
+  try {
+    textworld.create_dialog("InvalidNpc", ["Goodbye"], "Goodbye citizen!");
+  } catch (e) {
+    assertEquals(e.message, "NPC InvalidNpc does not exist.");
+  }
   textworld.reset_world();
 });
 
@@ -940,6 +1163,42 @@ Deno.test("can_remove_npc", () => {
   textworld.reset_world();
 });
 
+Deno.test("can_add_room_action", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.set_actor_health(player, 5);
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.add_room_action("Zone1", "Room1", (player) => {
+    textworld.set_actor_health_to_max(player);
+    return "You feel a rush of energy wash over you! Your health is restored.";
+  });
+  const result = textworld.get_room_actions("Room1");
+  assertEquals(result?.actions?.length, 1);
+  // Add additional room action
+  textworld.add_room_action("Zone1", "Room1", (_player) => {
+    return "Second room action.";
+  });
+  const result2 = textworld.get_room_actions("Room1");
+  assertEquals(result2?.actions?.length, 2);
+  // Invalid room
+  try {
+    textworld.add_room_action("Zone1", "InvalidRoom", (_player) => {
+      return "Do something";
+    });
+  } catch (e) {
+    assertEquals(e.message, "Room InvalidRoom does not exist in zone Zone1.");
+  }
+  textworld.reset_world_actions();
+  const result3 = textworld.get_room_actions("Room1");
+  assertEquals(result3, null);
+  textworld.reset_world();
+});
+
 Deno.test("can_add_room_command_action", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
@@ -958,6 +1217,21 @@ Deno.test("can_add_room_command_action", () => {
     "xyzzy action",
   );
   assertEquals(has_room_action, true);
+  const result = textworld.get_room_command_action("Zone1", "InvalidRoom");
+  assertEquals(result, null);
+  try {
+    textworld.add_room_command_action(
+      "Zone1",
+      "InvalidRoom",
+      "xyzzy action",
+      "You recited the magical word XYZZY!!!",
+      ["xyzzy"],
+      (_player: tw.Player, _input: string, _command: string, _args: string[]) =>
+        "How dare you utter the magical word XYZZY!",
+    );
+  } catch (e) {
+    assertEquals(e.message, "Room InvalidRoom does not exist in zone Zone1.");
+  }
   textworld.reset_world();
 });
 
@@ -1111,6 +1385,7 @@ Deno.test("can_set_and_remove_godmode_on_player", () => {
   textworld.remove_godmode(player);
   result = textworld.has_flag(player, "godmode");
   assertEquals(result, false);
+  textworld.reset_world();
 });
 
 Deno.test("can_create_room_object", () => {
@@ -1127,6 +1402,18 @@ Deno.test("can_create_room_object", () => {
     object?.descriptions[0].description,
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
   );
+  // Invalid Room
+  try {
+    textworld.get_room_object("Zone1", "InvalidRoom", "Fireplace");
+  } catch (e) {
+    assertEquals(e.message, "Room InvalidRoom does not exist in zone Zone1.");
+  }
+  // Invalid Object
+  try {
+    textworld.get_room_object("Zone1", "Room1", "Crystal Ball");
+  } catch (e) {
+    assertEquals(e.message, "Object Crystal Ball does not exist.");
+  }
   textworld.reset_world();
 });
 
@@ -1153,6 +1440,85 @@ Deno.test("can_process_look_at_room_object", () => {
   assertEquals(
     result.response,
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
+  );
+  // Description is empty
+  const object = textworld.get_room_object("Zone1", "Room1", "Fireplace");
+  if (object) {
+    object.descriptions = [];
+  }
+  const result2 = textworld.look_at_or_examine_object(
+    player,
+    "look at fireplace",
+    "look at",
+    ["look", "at", "fireplace"],
+  );
+  assertEquals(
+    result2.response,
+    "There's nothing special about it.",
+  );
+  // Invalid Player Room
+  player.room = "InvalidRoom";
+  try {
+    textworld.look_at_or_examine_object(
+      player,
+      "look at fireplace",
+      "look at",
+      ["look", "at", "fireplace"],
+    );
+  } catch (e) {
+    assertEquals(e.message, "Player is not in a valid room.");
+  }
+  // Invalid Object
+  player.room = "Room1";
+  try {
+    textworld.look_at_or_examine_object(
+      player,
+      "look at crystal ball",
+      "look at",
+      ["look", "at", "crystal", "ball"],
+    );
+  } catch (e) {
+    assertEquals(e.message, "Object Crystal Ball does not exist.");
+  }
+  // Object with dialog
+  const firepit_object = textworld.create_object(
+    "Firepit",
+    "A warm fire burns in the firepit and you can feel the heat radiating from it.",
+    [
+      {
+        name: "Firepit",
+        trigger: ["blow on fire"],
+        response: "You blew on the fire and it grew stronger.",
+      },
+    ],
+  );
+  textworld.create_dialog_action(
+    firepit_object.name,
+    ["blow on fire"],
+    (_player) => {
+      return "You blew on the fire and it went out.";
+    },
+  );
+  textworld.place_object("Zone1", "Room1", "Firepit");
+  const result3 = textworld.look_at_or_examine_object(
+    player,
+    "examine Firepit",
+    "examine",
+    ["examine", "Firepit", "blow on fire"],
+  );
+  assertEquals(
+    result3.response,
+    "You blew on the fire and it went out.",
+  );
+  const result4 = textworld.look_at_or_examine_object(
+    player,
+    "examine Firepit",
+    "examine",
+    ["examine", "Firepit", "invalid action"],
+  );
+  assertEquals(
+    result4.response,
+    "There's nothing more to learn about this object.",
   );
   textworld.reset_world();
 });
@@ -1196,8 +1562,11 @@ Deno.test("can_process_get_room_description_with_no_rooms", () => {
     "Room1",
   );
   textworld.create_zone("Zone1");
-  const result = textworld.get_room_description(player);
-  assertEquals(result.response, "You can't see anything.");
+  try {
+    textworld.get_room_description(player);
+  } catch (e) {
+    assertEquals(e.message, "Player is not in a valid room.");
+  }
   textworld.reset_world();
 });
 
@@ -1390,7 +1759,7 @@ Deno.test("can_parse_command_take", async () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_item("Sword", "A sharp sword", false, false);
   textworld.place_item("Zone1", "Room1", "Sword");
   const result = JSON.parse(
     await textworld.parse_command(player, "take sword"),
@@ -1409,8 +1778,8 @@ Deno.test("can_parse_command_take_all", async () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
-  textworld.create_item("Potion", "An ordinary potion", true);
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item("Potion", "An ordinary potion", true, true);
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   const result = JSON.parse(await textworld.parse_command(player, "take all"));
@@ -1428,9 +1797,15 @@ Deno.test("can_parse_command_use", async () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Potion", "An ordinary potion", true, (_player) => {
-    return "You drank the potion but nothing happened.";
-  });
+  textworld.create_item(
+    "Potion",
+    "An ordinary potion",
+    true,
+    true,
+    (_player) => {
+      return "You drank the potion but nothing happened.";
+    },
+  );
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_item(player, ["Potion"]);
   const result = JSON.parse(
@@ -1449,7 +1824,7 @@ Deno.test("can_parse_command_drop", async () => {
     "Room1",
   );
   textworld.create_zone("Zone1");
-  textworld.create_item("Potion", "An ordinary potion", true);
+  textworld.create_item("Potion", "An ordinary potion", true, true);
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_item(player, ["Potion"]);
@@ -1470,8 +1845,8 @@ Deno.test("can_parse_command_drop_all", async () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
-  textworld.create_item("Potion", "An ordinary potion", true);
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item("Potion", "An ordinary potion", true, true);
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   textworld.take_all_items(player);
@@ -1569,7 +1944,7 @@ Deno.test("can_parse_command_examine_object", async () => {
   textworld.reset_world();
 });
 
-Deno.test("can_parse_command_inspect_room_with_no_items", async () => {
+Deno.test("can_parse_command_inspect_room", async () => {
   const player = textworld.create_player(
     "Player",
     "You are a strong adventurer",
@@ -1578,31 +1953,49 @@ Deno.test("can_parse_command_inspect_room_with_no_items", async () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  const result = JSON.parse(await textworld.parse_command(player, "inspect"));
-  assertEquals(
-    result.response,
-    "You inspect the room and found:\n\nThere is nothing else of interest here.",
-  );
-  textworld.reset_world();
-});
-
-Deno.test("can_parse_command_inspect_room_with_items", async () => {
-  const player = textworld.create_player(
-    "Player",
-    "You are a strong adventurer",
-    "Zone1",
-    "Room1",
-  );
-  textworld.create_zone("Zone1");
-  textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
-  textworld.create_item("Potion", "An ordinary potion", true);
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item("Potion", "An ordinary potion", true, true);
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   const result = JSON.parse(await textworld.parse_command(player, "inspect"));
   assertEquals(
     result.response,
     "You inspect the room and found:\n\nItems: Sword (1), Potion (2)",
+  );
+  // Inspect with no items
+  textworld.reset_world();
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  const result2 = JSON.parse(await textworld.parse_command(player, "inspect"));
+  assertEquals(
+    result2.response,
+    "You inspect the room and found:\n\nThere is nothing else of interest here.",
+  );
+  // Inspect with mobs
+  textworld.reset_world();
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_stats(
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      15,
+      8,
+      5,
+      2,
+      0.05,
+      { level: 1, xp: 0 },
+    ),
+    [],
+  );
+  textworld.place_mob("Zone1", "Room1", "Goblin");
+  const result3 = JSON.parse(await textworld.parse_command(player, "inspect"));
+  assertEquals(
+    result3.response,
+    "You inspect the room and found:\n\nMobs: Goblin\nThere is nothing else of interest here.",
   );
   textworld.reset_world();
 });
@@ -1616,7 +2009,7 @@ Deno.test("can_parse_command_show_item", async () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Potion", "An ordinary potion", true);
+  textworld.create_item("Potion", "An ordinary potion", true, true);
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   textworld.take_item(player, ["Potion"]);
   const result = JSON.parse(
@@ -1635,8 +2028,8 @@ Deno.test("can_parse_command_show_all_items", async () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
-  textworld.create_item("Potion", "An ordinary potion", true);
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item("Potion", "An ordinary potion", true, true);
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   textworld.take_all_items(player);
@@ -1762,7 +2155,7 @@ Deno.test("can_parse_command_talk_to_npc_and_get_item", async () => {
 
           if (item) {
             textworld.set_flag(player, "took_gem");
-            textworld.create_item("Gem", "A shiny gem", false);
+            textworld.create_item("Gem", "A shiny gem", false, false);
             player.items.push({
               name: "Gem",
               quantity: 1,
@@ -1840,7 +2233,7 @@ Deno.test("can_parse_command_talk_to_vendor_and_sell_item", async () => {
     "Room1",
   );
   player.gold = 10;
-  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_item("Sword", "A sharp sword", false, false);
   textworld.set_item_level_and_value("Sword", 5, 25);
   textworld.add_item_to_player(player, "Sword", 2);
   textworld.create_zone("Zone1");
@@ -1859,6 +2252,35 @@ Deno.test("can_parse_command_talk_to_vendor_and_sell_item", async () => {
   );
   assertEquals(player.gold, 60);
   assertEquals(textworld.has_item_in_quantity(player, "Sword", 2), false);
+  textworld.add_item_to_player(player, "Sword", 1);
+  const result2 = JSON.parse(
+    await textworld.parse_command(
+      player,
+      "talk to Vendor1 say sell Sword",
+    ),
+  );
+  assertEquals(
+    result2.response,
+    "You must specify a quantity to sell.",
+  );
+  const result3 = JSON.parse(
+    await textworld.parse_command(
+      player,
+      "talk to Vendor1 say sell Sword 10",
+    ),
+  );
+  assertEquals(
+    result3.response,
+    "You don't have 10 of sword to sell.",
+  );
+  textworld.remove_item("Sword"); // This shouldn't really happen
+  const result4 = JSON.parse(
+    await textworld.parse_command(
+      player,
+      "talk to Vendor1 say sell Sword 1",
+    ),
+  );
+  assertEquals(result4.response, "That item does not exist.");
   textworld.reset_world();
 });
 
@@ -1875,6 +2297,7 @@ Deno.test("can_parse_command_talk_to_vendor_and_purchase_item", async () => {
   textworld.create_item(
     "Fried Chicken & Roasted Vegetables",
     "A delicious dinner of fried chicken and roasted vegetables.",
+    false,
     false,
   );
   textworld.create_vendor("Vendor1", "A friendly food vendor", [
@@ -1908,6 +2331,7 @@ Deno.test("can_parse_command_talk_to_vendor_and_purchase_item_with_synonmym", as
     "Fried Chicken & Roasted Vegetables",
     "A delicious dinner of fried chicken and roasted vegetables.",
     false,
+    false,
   );
   textworld.create_vendor("Vendor1", "A friendly food vendor", [
     { name: "Fried Chicken & Roasted Vegetables", price: 2 },
@@ -1939,6 +2363,7 @@ Deno.test("can_parse_command_talk_to_vendor_and_handle_when_item_isnt_specified"
   textworld.create_item(
     "Fried Chicken & Roasted Vegetables",
     "A delicious dinner of fried chicken and roasted vegetables.",
+    false,
     false,
   );
   textworld.create_vendor("Vendor1", "A friendly food vendor", [
@@ -2029,8 +2454,11 @@ Deno.test("can_parse_malformed_command", async () => {
   result = JSON.parse(await textworld.parse_command(player, "goto"));
   assertEquals(result.response, "That room or zone does not exist.");
   textworld.remove_godmode(player);
-  result = JSON.parse(await textworld.parse_command(player, "look"));
-  assertEquals(result.response, "You can't see anything.");
+  try {
+    JSON.parse(await textworld.parse_command(player, "look"));
+  } catch (e) {
+    assertEquals(e.message, "Player is not in a valid room.");
+  }
   result = JSON.parse(await textworld.parse_command(player, "inspect"));
   assertEquals(result.response, "There is nothing else of interest here.");
   result = JSON.parse(await textworld.parse_command(player, "north"));
@@ -2060,8 +2488,8 @@ Deno.test("can_parse_command_craft", async () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Iron", "A piece of iron", false);
-  textworld.create_item("Wood", "A piece of wood", false);
+  textworld.create_item("Iron", "A piece of iron", false, false);
+  textworld.create_item("Wood", "A piece of wood", false, false);
   textworld.place_item("Zone1", "Room1", "Iron", 4);
   textworld.place_item("Zone1", "Room1", "Wood", 4);
   textworld.take_all_items(player);
@@ -2146,10 +2574,10 @@ Deno.test("can_parse_command_save", async () => {
   textworld.reset_world();
 });
 
-Deno.test("can_spawn_item_in_room_using_spawn_location", () => {
+Deno.test("can_spawn_item_in_room_using_spawn_location", async () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Iron", "A piece of iron", false);
+  textworld.create_item("Iron", "A piece of iron", false, false);
   textworld.create_spawn_location(
     "Test Spawner",
     "Zone1",
@@ -2179,13 +2607,26 @@ Deno.test("can_spawn_item_in_room_using_spawn_location", () => {
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.items.length, 1);
   assertEquals(room?.items[0].name, "Iron");
+  const result = textworld.create_spawn_location(
+    "Test Spawner 2",
+    "Zone1",
+    "Room1",
+    10,
+    true,
+    (_spawn_location: tw.SpawnLocation) => {},
+  );
+  textworld.start_spawn_location("Test Spawner 2");
+  assertEquals(result.interval, 10);
+  // Let the spawner interval run
+  await delay(15);
+  textworld.remove_spawn_location("Test Spawner 2");
   textworld.reset_world();
 });
 
 Deno.test("can_remove_spawn_location", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Iron", "A piece of iron", false);
+  textworld.create_item("Iron", "A piece of iron", false, false);
   textworld.create_spawn_location(
     "Test Spawner",
     "Zone1",
@@ -2211,6 +2652,19 @@ Deno.test("can_remove_spawn_location", () => {
   textworld.remove_spawn_location("Test Spawner");
   const spawn_location = textworld.get_spawn_location("Test Spawner");
   assertEquals(spawn_location, null);
+  textworld.reset_world();
+});
+
+Deno.test("player_cannot_attack_npc", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  const npc = textworld.create_npc("Old man", "A wise old man");
+  const result = textworld.perform_attack(player, npc);
+  assertStringIncludes(result, "Cannot perform attack.");
   textworld.reset_world();
 });
 
@@ -2292,7 +2746,7 @@ Deno.test("player_can_attack_mob", () => {
     "Goblin",
     "A small goblin",
     textworld.create_stats(
-      { current: 10, max: 10 },
+      { current: 100, max: 100 },
       { current: 10, max: 10 },
       { current: 10, max: 10 },
       15,
@@ -2342,6 +2796,53 @@ Deno.test("player_can_kill_mob", () => {
   textworld.reset_world();
 });
 
+Deno.test("player_can_initate_attack_on_mob", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_mob(
+    "Goblin",
+    "A small goblin",
+    textworld.create_stats(
+      { current: 100, max: 100 },
+      { current: 10, max: 10 },
+      { current: 10, max: 10 },
+      15,
+      8,
+      5,
+      2,
+      0.05,
+      { level: 1, xp: 0 },
+    ),
+    [],
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.place_mob("Zone1", "Room1", "Goblin");
+  const result = textworld.initiate_attack(player, ["goblin"]);
+  assertStringIncludes(result.response, "Player attacks Goblin");
+  player.zone = "InvalidZone";
+  try {
+    textworld.initiate_attack(player, ["goblin"]);
+  } catch (e) {
+    assertEquals(e.message, "Player is not in a valid zone.");
+  }
+  player.zone = "Zone1";
+  player.room = "InvalidRoom";
+  try {
+    textworld.initiate_attack(player, ["goblin"]);
+  } catch (e) {
+    assertEquals(e.message, "Player is not in a valid room.");
+  }
+  player.room = "Room1";
+  const result2 = textworld.initiate_attack(player, ["zombie"]);
+  assertStringIncludes(result2.response, "That mob does not exist.");
+  textworld.reset_world();
+});
+
 Deno.test("player_can_kill_mob_and_drop_loot", () => {
   const player = textworld.create_player(
     "Player",
@@ -2351,8 +2852,8 @@ Deno.test("player_can_kill_mob_and_drop_loot", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
-  textworld.create_item("Shield", "A strong shield", false);
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item("Shield", "A strong shield", false, false);
   textworld.create_mob(
     "Goblin",
     "A small goblin",
@@ -2392,8 +2893,8 @@ Deno.test("player_can_kill_mob_and_pickup_look", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
-  textworld.create_item("Shield", "A strong shield", false);
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item("Shield", "A strong shield", false, false);
   textworld.create_mob(
     "Goblin",
     "A small goblin",
@@ -2427,7 +2928,7 @@ Deno.test("player_can_kill_mob_and_pickup_look", () => {
   textworld.reset_world();
 });
 
-Deno.test("player_attack_mob_and_mob_attack_player", () => {
+Deno.test("player_can_attack_mob_and_mob_can_attack_player", () => {
   const player = textworld.create_player(
     "Player",
     "You are a strong adventurer",
@@ -2540,11 +3041,13 @@ Deno.test("player_can_take_item", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_item("Cane", "A wooden cane", false, false);
+  textworld.create_item("Sword", "A sharp sword", false, false);
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.take_item(player, ["Sword"]);
   assertEquals(player.items.length, 1);
-
+  const result = textworld.take_item(player, ["Cane"]);
+  assertEquals(result?.response, "That item does not exist.");
   textworld.reset_world();
 });
 
@@ -2557,13 +3060,14 @@ Deno.test("player_can_take_all_items", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
-  textworld.create_item("Potion", "A potion", true);
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item("Potion", "A potion", true, true);
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_all_items(player);
   assertEquals(player.items.length, 2);
-
+  const result = textworld.take_all_items(player);
+  assertEquals(result?.response, "There are no items to take.");
   textworld.reset_world();
 });
 
@@ -2576,7 +3080,7 @@ Deno.test("player_takes_item_and_players_inventory_contains_item", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_item("Sword", "A sharp sword", false, false);
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.take_item(player, ["Sword"]);
   const result = textworld.has_item(player, "Sword");
@@ -2594,16 +3098,19 @@ Deno.test("player_can_take_item_and_it_stacks_in_inventory", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Potion", "An ordinary potion", false);
+  textworld.create_item("Potion", "An ordinary potion", false, false);
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_item(player, ["Potion"]);
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_item(player, ["Potion"]);
-  let result = textworld.has_item_in_quantity(player, "Potion", 2);
+  const result = textworld.has_item_in_quantity(player, "Potion", 2);
   assertEquals(result, true);
+  textworld.place_item("Zone1", "Room1", "Potion", 5);
+  const result2 = textworld.take_all_items(player);
+  assertEquals(result2.response, "You took all items: Potion (5)");
   // Exercise the else condition on has_item_in_quantity
-  result = textworld.has_item_in_quantity(player, "Potion", 100);
-  assertEquals(result, false);
+  const result3 = textworld.has_item_in_quantity(player, "Potion", 100);
+  assertEquals(result3, false);
   textworld.reset_world();
 });
 
@@ -2615,7 +3122,7 @@ Deno.test("player_can_drop_item", () => {
     "Room1",
   );
   textworld.create_zone("Zone1");
-  textworld.create_item("Potion", "A potion", true);
+  textworld.create_item("Potion", "A potion", true, true);
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_item(player, ["Potion"]);
@@ -2634,8 +3141,10 @@ Deno.test("player_can_drop_all_items", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
-  textworld.create_item("Potion", "A potion", true);
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item("Potion", "A potion", true, true);
+  const result = textworld.drop_all_items(player);
+  assertEquals(result.response, "You have no items to drop.");
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_all_items(player);
@@ -2653,13 +3162,26 @@ Deno.test("player_can_use_item", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Potion", "A potion", true, (_player) => {
+  textworld.create_item("Glove", "A glove", true, true, (_player) => {
+    return "";
+  });
+  textworld.create_item("Cane", "A wooden cane", true, true, (_player) => {
+    return "";
+  });
+  textworld.create_item("Potion", "A potion", true, true, (_player) => {
     return "You drank the potion but nothing happened.";
   });
   textworld.place_item("Zone1", "Room1", "Potion");
-  textworld.take_item(player, ["Potion"]);
+  textworld.place_item("Zone1", "Room1", "Cane");
+  textworld.place_item("Zone1", "Room1", "Glove");
+  textworld.take_all_items(player);
   const result = textworld.use_item(player, ["Potion"]);
   assertEquals(result.response, "You drank the potion but nothing happened.");
+  const result2 = textworld.use_item(player, ["Cane"]);
+  assertEquals(result2.response, "You used the item but nothing happened.");
+  textworld.reset_world_actions();
+  const result3 = textworld.use_item(player, ["Glove"]);
+  assertEquals(result3.response, "You used the item but nothing happened.");
   textworld.reset_world();
 });
 
@@ -2671,7 +3193,7 @@ Deno.test("player_cant_use_item_thats_not_usable", () => {
     "Room1",
   );
   textworld.create_zone("Zone1");
-  textworld.create_item("Sword", "A sharp sword", false);
+  textworld.create_item("Sword", "A sharp sword", false, false);
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.take_item(player, ["Sword"]);
@@ -2690,7 +3212,7 @@ Deno.test("can_remove_item_from_player_inventory", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Potion", "A potion", true, (_player) => {
+  textworld.create_item("Potion", "A potion", true, true, (_player) => {
     return "You drank the potion but nothing happened.";
   });
   textworld.place_item("Zone1", "Room1", "Potion");
@@ -2701,7 +3223,7 @@ Deno.test("can_remove_item_from_player_inventory", () => {
 });
 
 Deno.test("can_create_item_and_remove_it", () => {
-  textworld.create_item("Potion", "A potion", true);
+  textworld.create_item("Potion", "A potion", true, true);
   textworld.remove_item("Potion");
   const result = textworld.get_item("Potion");
   assertEquals(result, null);
@@ -2765,8 +3287,13 @@ Deno.test("player_can_look_at_self_without_inventory", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
-  textworld.create_item("Diamond", "A diamond surely worth a fortune", false);
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item(
+    "Diamond",
+    "A diamond surely worth a fortune",
+    false,
+    false,
+  );
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Diamond");
   textworld.take_all_items(player);
@@ -2787,8 +3314,13 @@ Deno.test("player_can_look_at_self_with_inventory", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
-  textworld.create_item("Diamond", "A diamond surely worth a fortune", false);
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item(
+    "Diamond",
+    "A diamond surely worth a fortune",
+    false,
+    false,
+  );
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Diamond");
   textworld.take_all_items(player);
@@ -2826,8 +3358,8 @@ Deno.test("player_can_inspect_room_with_items", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
-  textworld.create_item("Potion", "An ordinary potion", true);
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item("Potion", "An ordinary potion", true, true);
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   const result = textworld.inspect_room(player);
@@ -2847,11 +3379,23 @@ Deno.test("player_can_show_item", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Potion", "An ordinary potion", true);
+  textworld.create_item("Potion", "An ordinary potion", true, true);
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   textworld.take_item(player, ["Potion"]);
   const result = textworld.show(player, ["Potion"]);
   assertEquals(result.response, "An ordinary potion");
+  textworld.remove_item("Potion");
+  const result2 = textworld.show(player, ["Potion"]);
+  assertEquals(result2.response, "That item does not exist.");
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.place_item("Zone1", "Room1", "Sword");
+  textworld.take_item(player, ["Sword"]);
+  const item = textworld.get_item("Sword");
+  if (item) {
+    item.descriptions = [];
+  }
+  const result3 = textworld.show(player, ["Sword"]);
+  assertEquals(result3.response, "No description available.");
   textworld.reset_world();
 });
 
@@ -2862,19 +3406,24 @@ Deno.test("player_can_show_all_items", () => {
     "Zone1",
     "Room1",
   );
+  const result = textworld.show_all_items(player);
+  assertEquals(result.response, "You have no items to show.");
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Sword", "A sharp sword", false);
-  textworld.create_item("Potion", "An ordinary potion", true);
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item("Potion", "An ordinary potion", true, true);
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   textworld.take_all_items(player);
-  const result = textworld.show_all_items(player);
+  const result2 = textworld.show_all_items(player);
   assertEquals(
-    result.response,
+    result2.response,
     "Sword - A sharp sword\n\nPotion - An ordinary potion",
   );
-
+  player.items.length = 0;
+  player.items.push({ name: "Foo", quantity: 1 });
+  const result3 = textworld.show_all_items(player);
+  assertEquals(result3.response, "You have no items to show.");
   textworld.reset_world();
 });
 
@@ -2888,7 +3437,7 @@ Deno.test("player_can_purchase_from_vendor", () => {
   player.gold = 10;
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Fried Chicken & Roasted Vegetables", "", false);
+  textworld.create_item("Fried Chicken & Roasted Vegetables", "", false, false);
   textworld.create_vendor("Vendor1", "A friendly food vendor", [
     { name: "Fried Chicken & Roasted Vegetables", price: 2 },
   ]);
@@ -2919,7 +3468,7 @@ Deno.test("player_can_purchase_from_vendor_if_also_having_same_item", () => {
   textworld.add_item_to_player(player, "Fried Chicken & Roasted Vegetables", 1);
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Fried Chicken & Roasted Vegetables", "", false);
+  textworld.create_item("Fried Chicken & Roasted Vegetables", "", false, false);
   textworld.create_vendor("Vendor1", "A friendly food vendor", [
     { name: "Fried Chicken & Roasted Vegetables", price: 2 },
   ]);
@@ -2950,7 +3499,7 @@ Deno.test("player_cant_purchase_from_vendor_that_doesnt_have_items_for_sale", ()
   player.gold = 10;
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Fried Chicken & Roasted Vegetables", "", false);
+  textworld.create_item("Fried Chicken & Roasted Vegetables", "", false, false);
   textworld.create_vendor("Vendor1", "A friendly food vendor", []);
   textworld.place_npc("Zone1", "Room1", "Vendor1");
   const result = textworld.purchase_from_vendor(
@@ -2975,7 +3524,7 @@ Deno.test("player_cant_purchase_item_from_vendor_if_not_enough_gold", () => {
   player.gold = 1;
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Fried Chicken & Roasted Vegetables", "", false);
+  textworld.create_item("Fried Chicken & Roasted Vegetables", "", false, false);
   textworld.create_vendor("Vendor1", "A friendly food vendor", [
     { name: "Fried Chicken & Roasted Vegetables", price: 2 },
   ]);
@@ -3138,7 +3687,7 @@ Deno.test("player_can_complete_quest", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Magic Ring", "A magic ring", false);
+  textworld.create_item("Magic Ring", "A magic ring", false, false);
   textworld.place_item("Zone1", "Room1", "Magic Ring");
   textworld.create_quest("Quest1", "A quest");
   textworld.add_quest_step(
@@ -3253,7 +3802,7 @@ Deno.test("player_can_complete_quest_with_multiple_steps", () => {
           });
           if (item) {
             textworld.set_flag(player, "took_gem");
-            textworld.create_item("Gem", "A shiny gem", false);
+            textworld.create_item("Gem", "A shiny gem", false, false);
             player.items.push({
               name: "Gem",
               quantity: 1,
@@ -3374,6 +3923,18 @@ Deno.test("player_can_navigate_between_rooms", () => {
   textworld.switch_room(player, "north");
   const room = textworld.get_player_room(player);
   assertEquals(room!.name, "Room2");
+  player.zone = "InvalidZone";
+  try {
+    textworld.switch_room(player, "north");
+  } catch (e) {
+    assertEquals(e.message, "Player is not in a valid zone.");
+  }
+  player.zone = "Zone1";
+  player.room = "Room1";
+  textworld.create_exit("Zone1", "Room1", "south", "Room2", true);
+  textworld.switch_room(player, "south");
+  const room2 = textworld.get_player_room(player);
+  assertEquals(room2!.name, "Room2");
   textworld.reset_world();
 });
 
@@ -3446,6 +4007,7 @@ Deno.test("player_can_learn_recipe", () => {
     "Iron Sword recipe",
     "A recipe for an iron sword",
     true,
+    true,
     (player) => {
       return textworld.learn_recipe(player, "Iron Sword");
     },
@@ -3482,6 +4044,7 @@ Deno.test("player_cant_learn_recipe_player_already_knows", () => {
     "Iron Sword recipe",
     "A recipe for an iron sword",
     true,
+    false,
     (player) => {
       return textworld.learn_recipe(player, "Iron Sword");
     },
@@ -3505,10 +4068,10 @@ Deno.test("player_can_craft_recipe", () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Iron", "A piece of iron", false);
-  textworld.create_item("Wood", "A piece of wood", false);
-  textworld.place_item("Zone1", "Room1", "Iron", 4);
-  textworld.place_item("Zone1", "Room1", "Wood", 4);
+  textworld.create_item("Iron", "A piece of iron", false, false);
+  textworld.create_item("Wood", "A piece of wood", false, false);
+  textworld.place_item("Zone1", "Room1", "Iron", 2);
+  textworld.place_item("Zone1", "Room1", "Wood", 1);
   textworld.take_all_items(player);
   textworld.create_recipe(
     "Iron Sword",
@@ -3522,7 +4085,20 @@ Deno.test("player_can_craft_recipe", () => {
   textworld.learn_recipe(player, "Iron Sword");
   const result = textworld.craft_recipe(player, ["Iron Sword"]);
   assertEquals(result.response, "Iron Sword has been crafted.");
-  assertEquals(player.items.length, 3);
+  assertEquals(player.items.length, 1);
+  // Not enough materials
+  const result2 = textworld.craft_recipe(player, ["Iron Sword"]);
+  assertEquals(
+    result2.response,
+    "You don't have the ingredients to craft that.",
+  );
+  // Invalid Recipe
+  textworld.reset_world();
+  try {
+    textworld.craft_recipe(player, ["Iron Sword"]);
+  } catch (e) {
+    assertEquals(e.message, "Recipe does not exist.");
+  }
   textworld.reset_world();
 });
 
@@ -3610,6 +4186,19 @@ Deno.test("player_can_talk_to_npc_and_say_something_npc_doesnt_understand", () =
     ["talk", "to", "Big", "Guard", "say", "fizzbuzz"],
   );
   assertEquals(result.response, "hmm...");
+
+  const malformed_npc = textworld.create_npc("Witch", "A mysterious witch");
+  malformed_npc.dialog = [
+    { name: crypto.randomUUID(), trigger: ["hello"], response: undefined },
+  ];
+  textworld.place_npc("Zone1", "Room1", "Witch");
+  const result2 = textworld.interact_with_actor(
+    player,
+    "talk to Witch say Hello",
+    "talk to",
+    ["talk", "to", "Witch", "say", "Hello"],
+  );
+  assertEquals(result2.response, "hmm...");
   textworld.reset_world();
 });
 
@@ -3684,6 +4273,7 @@ Deno.test("player_can_talk_to_vendor_and_list_items", () => {
     "Fried Chicken & Roasted Vegetables",
     "A delicious dinner of fried chicken and roasted vegetables.",
     false,
+    false,
   );
   textworld.create_vendor("Vendor1", "A friendly food vendor", [
     { name: "Fried Chicken & Roasted Vegetables", price: 2 },
@@ -3715,6 +4305,7 @@ Deno.test("player_can_talk_to_vendor_and_purchase_item", () => {
   textworld.create_item(
     "Fried Chicken & Roasted Vegetables",
     "A delicious dinner of fried chicken and roasted vegetables.",
+    false,
     false,
   );
   textworld.create_vendor("Vendor1", "A friendly food vendor", [
@@ -3887,7 +4478,7 @@ Deno.test("item_actions_work_after_loading_player_progress", async () => {
     "Zone1",
     "Room1",
   );
-  textworld.create_item("Potion", "A potion", true, (_player) => {
+  textworld.create_item("Potion", "A potion", true, true, (_player) => {
     return "You drank the potion but nothing happened.";
   });
   const item = textworld.get_item("Potion");
@@ -3985,7 +4576,7 @@ Deno.test("quest_actions_work_after_loading_player_progress", async () => {
   );
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  textworld.create_item("Magic Ring", "A magic ring", false);
+  textworld.create_item("Magic Ring", "A magic ring", false, false);
   textworld.place_item("Zone1", "Room1", "Magic Ring");
   textworld.create_quest("Quest1", "A quest");
   textworld.add_quest_step(
@@ -4067,6 +4658,16 @@ Deno.test("can_set_players_room_to_zone_start", () => {
   textworld.set_player_room_to_zone_start(player, "Zone2");
   assertEquals(player.zone, "Zone2");
   assertEquals(player.room, "Room1");
+  try {
+    textworld.set_room_as_zone_starter("InvalidZone", "Room1");
+  } catch (e) {
+    assertEquals(e.message, "Zone InvalidZone does not exist.");
+  }
+  try {
+    textworld.set_room_as_zone_starter("Zone1", "InvalidRoom");
+  } catch (e) {
+    assertEquals(e.message, "Room InvalidRoom does not exist in zone Zone1.");
+  }
   textworld.reset_world();
 });
 
@@ -4087,6 +4688,9 @@ Deno.test("cant_set_players_room_to_zone_start_if_there_is_no_starter_room_in_zo
   } catch (e) {
     assertEquals(e.message, "Zone Zone2 does not have a starter room.");
   }
+  // Invalid Zone
+  const result = textworld.get_zone_starter_room("InvalidZone");
+  assertEquals(result, null);
   textworld.reset_world();
 });
 
@@ -4136,6 +4740,34 @@ Deno.test("can_get_help", () => {
     result.response,
     "Commands:\n\nnorth, south, east, west - Commands for moving around the world.\ntake, get - Take an item from the room or an NPC.\nuse - Use an item in your inventory.\ndrop - Drop an item or all your items from your inventory.\nlook, l - Look around the room or at yourself.\nls - Look at yourself.\nexamine, x - Examine an object in a room.\ninspect, i, search - Inspect a room to see what items are there.\nmap - Plot a map showing nearby rooms.\nshow - Show an item in your inventory.\ntalk to, tt - Talk to an NPC or Vendor.\ngoto - Go to a room or zone.\nhelp - Show the help text.\nattack - Attack a mob.\ncraft - Craft an item.",
   );
+  const textworld2 = new tw.TextWorld();
+  textworld2.add_command_action(
+    "Main",
+    textworld2.create_command_action(
+      "foo",
+      "",
+      ["foo"],
+      (_player, _input, _command, _args) => {
+        return "foo";
+      },
+    ),
+  );
+  const result2 = textworld2.get_help(player);
+  assertStringIncludes(result2.response, "No description available.");
+  textworld2.add_command_action(
+    "PlayerDead",
+    textworld2.create_command_action(
+      "foo",
+      "",
+      ["foo"],
+      (_player, _input, _command, _args) => {
+        return "foo";
+      },
+    ),
+  );
+  const result3 = textworld2.get_help(player);
+  assertStringIncludes(result3.response, "No description available.");
+  textworld.reset_world();
 });
 
 Deno.test("can_get_help_when_player_is_dead", () => {
@@ -4207,4 +4839,87 @@ Deno.test("can_get_description_of_room", () => {
   const result = textworld.get_description(player, current_room!, "default");
   assertEquals(result, "This is room 1");
   textworld.reset_world();
+});
+
+Deno.test("can_plot_room_map", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room2",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_room("Zone1", "Room2", "This is room 2");
+  textworld.create_room("Zone1", "Room3", "This is room 3");
+  textworld.create_room("Zone1", "Room4", "This is room 4");
+  textworld.create_exit("Zone1", "Room1", "north", "Room2");
+  textworld.create_exit("Zone1", "Room2", "south", "Room1");
+  textworld.create_exit("Zone1", "Room2", "north", "Room3");
+  textworld.create_exit("Zone1", "Room3", "south", "Room2");
+  textworld.create_exit("Zone1", "Room3", "north", "Room4", true);
+  const result = textworld.plot_room_map(player);
+  assertEquals(result.response, "#\n|\n@\n|\n#");
+  player.zone = "InvalidZone";
+  try {
+    textworld.plot_room_map(player);
+  } catch (e) {
+    assertEquals(e.message, "Player is not in a valid zone.");
+  }
+  textworld.reset_world();
+});
+
+Deno.test("can_add_flag_action", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room2",
+  );
+  textworld.set_flag(player, "foobar");
+  // this adds flag action if it doesn't exist
+  textworld.add_flag_action(
+    "foobar",
+    (_player) => {},
+  );
+  // this replaces flag action if it exists
+  textworld.add_flag_action(
+    "foobar",
+    (_player) => {},
+  );
+  const result = textworld.get_flag_action("foobar");
+  assertNotEquals(result, null);
+  const result2 = textworld.get_flag_action("baz");
+  assertEquals(result2, null);
+  textworld.reset_world();
+});
+
+Deno.test("can_run_websocket_server", async () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  const server = textworld.run_websocket_server(8080, player.id);
+  const client = new WebSocket("ws://localhost:8080");
+  client.onopen = (event) => {
+    client.send(
+      JSON.stringify({ player_id: "InvalidPlayer", command: "look" }),
+    );
+    client.send(JSON.stringify({ player_id: player.id, command: "look" }));
+    assertNotEquals(event, null);
+  };
+  client.onmessage = (e) => {
+    const response = JSON.parse(e.data).responseLines;
+    assertNotEquals(response, null);
+    assertGreater(response.length, 0);
+    //["This is room 1"]
+    //["Invalid player"]
+  };
+  await delay(2500);
+  client.close();
+  server.shutdown();
 });
