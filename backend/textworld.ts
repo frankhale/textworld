@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 27 September 2024
+ * 28 September 2024
  *
  * TODO:
  *
@@ -92,9 +92,11 @@ export interface Actor extends Entity, Storage {
 }
 
 export type SessionType = "QuestionSequence";
+export type DataType = "String" | "Number" | "Boolean";
 
 export interface Question {
   id: string;
+  data_type: DataType;
   question: string;
   answer?: string;
 }
@@ -4097,20 +4099,36 @@ export class TextWorld {
   parse_question_sequence(
     player: Player,
     input: string,
-    onFinished: () => void,
+    on_finished: () => void,
   ): string | null {
     const question_sequence = this.process_question_sequence(player);
     if (input === "" && question_sequence) {
       console.log(question_sequence.question);
       return JSON.stringify({ response: question_sequence.question });
     } else if (question_sequence) {
+      let cast_result = false;
+
+      if (question_sequence.data_type === "Number") {
+        cast_result = isNaN(Number(input));
+      } else if (question_sequence.data_type === "Boolean") {
+        cast_result = !["yes", "true", "no", "false"].includes(
+          input.toLowerCase(),
+        );
+      }
+
+      if (cast_result) {
+        return JSON.stringify({ response: question_sequence.question });
+      }
+
       question_sequence.answer = input;
+
       const next_question = this.process_question_sequence(player);
       if (next_question) {
         console.log(next_question.question);
         return JSON.stringify({ response: next_question.question });
       }
-      onFinished();
+
+      on_finished();
     }
 
     return null;
