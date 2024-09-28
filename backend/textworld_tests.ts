@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 25 September 2024
+// 27 September 2024
 
 import {
   assert,
@@ -4890,6 +4890,54 @@ Deno.test("can_add_flag_action", () => {
   const result = textworld.get_flag_action("foobar");
   assertNotEquals(result, null);
   const result2 = textworld.get_flag_action("baz");
+  assertEquals(result2, null);
+  textworld.reset_world();
+});
+
+Deno.test("can_process_question_sequence", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room2",
+  );
+  const question_sequence = {
+    name: "player_name_and_age",
+    questions: [
+      {
+        id: "name",
+        question: "What is your name?",
+      },
+      {
+        id: "age",
+        question: "How old are you?",
+      },
+    ],
+  };
+  textworld.add_session(player, "QuestionSequence", question_sequence, {
+    name: "player_name_and_age",
+    action: (_player: tw.Player) => {},
+  });
+  const result = textworld.get_session(player, "QuestionSequence");
+  assertNotEquals(result, null);
+  while (true) {
+    const question = textworld.process_question_sequence(player);
+    if (!question) {
+      break;
+    }
+
+    if (question.id === "name") {
+      question.answer = "FantasticPlayer";
+    } else if (question.id === "age") {
+      question.answer = "18";
+    }
+  }
+  const result_sequence = result?.payload as tw.QuestionSequence;
+  assertEquals(result_sequence.questions[0].answer, "FantasticPlayer");
+  assertEquals(result_sequence.questions[1].answer, "18");
+  // Can't get a session if it doesn't exist
+  player.sessions = [];
+  const result2 = textworld.get_session(player, "QuestionSequence");
   assertEquals(result2, null);
   textworld.reset_world();
 });

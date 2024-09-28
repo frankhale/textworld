@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 25 September 2024
+// 27 September 2024
 
 import * as tw from "./textworld.ts";
 
@@ -218,4 +218,28 @@ const player = textworld.create_player(
   "The Forest",
   "Open Field",
 );
+// THIS IS TEST CODE:
+//
+// const question_sequence = {
+//   name: "player_name_and_age",
+//   questions: [
+//     {
+//       id: "name",
+//       question: "What is your name?",
+//     },
+//     {
+//       id: "age",
+//       question: "How old are you?",
+//     },
+//   ],
+// };
+// textworld.add_session(
+//   player,
+//   "QuestionSequence",
+//   question_sequence,
+//   {
+//     name: "player_name_and_age",
+//     action: (_player: tw.Player) => {},
+//   },
+// );
 textworld.run_websocket_server(8080, player.id);

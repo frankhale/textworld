@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 25 September 2024
+ * 27 September 2024
  *
  * TODO:
  *
@@ -18,6 +18,9 @@
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
 export const active_quest_limit = 5;
+export const starting_experience = 1;
+export const level_growth_rate = 1.5;
+export const max_levels = 50;
 
 export type Action<T = void> = (player: Player) => T | string | null;
 export type ActionDecision = (player: Player) => boolean;
@@ -28,6 +31,10 @@ export type CommandParserAction = (
   args: string[],
 ) => string | Promise<string>;
 export type SpawnLocationAction = (spawn_location: SpawnLocation) => void;
+export type QuestionSequenceAction = (
+  player: Player,
+  question_sequence: QuestionSequence,
+) => void;
 
 export type BuiltInCommandActionType = "Main" | "PlayerDead";
 
@@ -84,6 +91,23 @@ export interface Actor extends Entity, Storage {
   race?: Race;
 }
 
+export type SessionType = "QuestionSequence";
+
+export interface Question {
+  id: string;
+  question: string;
+  answer?: string;
+}
+
+export interface QuestionSequence extends Named {
+  questions: Question[];
+}
+
+export interface Session {
+  type: SessionType;
+  payload: unknown;
+}
+
 export interface Player extends Actor {
   score: number;
   gold: number;
@@ -93,6 +117,7 @@ export interface Player extends Actor {
   quests_completed: string[];
   known_recipes: string[];
   instance: Zone[];
+  sessions: Session[];
 }
 
 export interface Recipe extends Entity {
@@ -185,7 +210,7 @@ export interface CommandResponse {
 }
 
 // Actions Interfaces
-type QuestActionType = "Start" | "End";
+export type QuestActionType = "Start" | "End";
 
 export interface QuestAction extends Named {
   start?: Action;
@@ -237,6 +262,7 @@ export interface WorldActions {
   room_command_actions: RoomCommandActions[];
   quest_actions: QuestAction[];
   quest_step_actions: QuestStepAction[];
+  session_actions: NamedAction[];
 }
 
 export class TextWorld {
@@ -423,6 +449,12 @@ export class TextWorld {
   // BUILT IN COMMAND ACTIONS //
   //////////////////////////////
 
+  /**
+   * Adds a command action.
+   *
+   * @param {BuiltInCommandActionType} action_type - The type of action to add.
+   * @param {CommandAction} action - The action to add.
+   */
   add_command_action(
     action_type: BuiltInCommandActionType,
     action: CommandAction,
@@ -491,10 +523,49 @@ export class TextWorld {
       quests_completed: [],
       known_recipes: [],
       instance: [],
+      sessions: [],
     };
 
     this.world.players.push(player);
     return player;
+  }
+
+  /**
+   * Adds a new session to a player.
+   *
+   * @param {Player} player - The player to add a session to.
+   * @param {SessionType} session_type - The type of session to add.
+   * @param {unknown} payload - The payload of the session.
+   */
+  add_session(
+    player: Player,
+    session_type: SessionType,
+    payload: unknown,
+    action: NamedAction,
+  ): void {
+    const existing_session = this.get_session(player, session_type);
+
+    if (existing_session) {
+      existing_session.payload = payload;
+    } else {
+      player.sessions.push({
+        type: session_type,
+        payload,
+      });
+      this.world_actions.session_actions.push(action);
+    }
+  }
+
+  /**
+   * Get a session from a player.
+   *
+   * @param {Player} player - The player to get the session from.
+   * @param {SessionType} session_type - The type of session to get.
+   * @returns {Session | null} - The session or null if it does not exist.
+   */
+  get_session(player: Player, session_type: SessionType): Session | null {
+    return player.sessions.find((session) => session.type === session_type) ||
+      null;
   }
 
   /**
@@ -3372,6 +3443,20 @@ export class TextWorld {
   //////////
 
   /**
+   * Processes a question sequence for a player.
+   *
+   * @param {Player} player - The player to process the question sequence for.
+   * @returns {Question | null} - A question that has not been answered or null.
+   */
+  process_question_sequence(player: Player): Question | null {
+    const sequence = this.get_session(player, "QuestionSequence");
+    if (!sequence) return null;
+
+    return (sequence.payload as QuestionSequence)
+      .questions.find((question: Question) => !question.answer) || null;
+  }
+
+  /**
    * Adds a flag action.
    *
    * @param {string} name - The name of the flag action.
@@ -3715,7 +3800,11 @@ export class TextWorld {
       objects: [],
       players: [],
       quests: [],
-      level_data: this.calculate_level_experience(1, 1.2, 50),
+      level_data: this.calculate_level_experience(
+        starting_experience,
+        level_growth_rate,
+        max_levels,
+      ),
     };
     this.world = world;
     this.reset_world_actions();
@@ -3737,6 +3826,7 @@ export class TextWorld {
       room_command_actions: [],
       quest_actions: [],
       quest_step_actions: [],
+      session_actions: [],
     };
     this.world_actions = world_actions;
     return world_actions;
@@ -4004,6 +4094,28 @@ export class TextWorld {
     );
   }
 
+  parse_question_sequence(
+    player: Player,
+    input: string,
+    onFinished: () => void,
+  ): string | null {
+    const question_sequence = this.process_question_sequence(player);
+    if (input === "" && question_sequence) {
+      console.log(question_sequence.question);
+      return JSON.stringify({ response: question_sequence.question });
+    } else if (question_sequence) {
+      question_sequence.answer = input;
+      const next_question = this.process_question_sequence(player);
+      if (next_question) {
+        console.log(next_question.question);
+        return JSON.stringify({ response: next_question.question });
+      }
+      onFinished();
+    }
+
+    return null;
+  }
+
   /**
    * Parses a command from a player.
    *
@@ -4014,6 +4126,13 @@ export class TextWorld {
   async parse_command(player: Player, input: string): Promise<string> {
     const input_limit = Math.min(input_character_limit, input.length);
     input = input.substring(0, input_limit);
+
+    const question_result = this.parse_question_sequence(player, input, () => {
+      input = "";
+    });
+    if (question_result) {
+      return question_result;
+    }
 
     if (input === "") {
       input = "look";
