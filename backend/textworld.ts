@@ -4103,7 +4103,6 @@ export class TextWorld {
   ): string | null {
     const question_sequence = this.process_question_sequence(player);
     if (input === "" && question_sequence) {
-      console.log(question_sequence.question);
       return JSON.stringify({ response: question_sequence.question });
     } else if (question_sequence) {
       let cast_result = false;
@@ -4124,7 +4123,6 @@ export class TextWorld {
 
       const next_question = this.process_question_sequence(player);
       if (next_question) {
-        console.log(next_question.question);
         return JSON.stringify({ response: next_question.question });
       }
 

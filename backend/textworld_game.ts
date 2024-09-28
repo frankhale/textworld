@@ -220,33 +220,33 @@ const player = textworld.create_player(
 );
 // THIS IS TEST CODE:
 //
-const question_sequence: tw.QuestionSequence = {
-  name: "player_name_and_age",
-  questions: [
-    {
-      id: "name",
-      data_type: "String",
-      question: "What is your name?",
-    },
-    {
-      id: "age",
-      data_type: "Number",
-      question: "How old are you?",
-    },
-    {
-      id: "adventure",
-      data_type: "Boolean",
-      question: "Are you ready for an adventure?",
-    },
-  ],
-};
-textworld.add_session(
-  player,
-  "QuestionSequence",
-  question_sequence,
-  {
-    name: "player_questions",
-    action: (_player: tw.Player) => {},
-  },
-);
+// const question_sequence: tw.QuestionSequence = {
+//   name: "player_name_and_age",
+//   questions: [
+//     {
+//       id: "name",
+//       data_type: "String",
+//       question: "What is your name?",
+//     },
+//     {
+//       id: "age",
+//       data_type: "Number",
+//       question: "How old are you?",
+//     },
+//     {
+//       id: "adventure",
+//       data_type: "Boolean",
+//       question: "Are you ready for an adventure?",
+//     },
+//   ],
+// };
+// textworld.add_session(
+//   player,
+//   "QuestionSequence",
+//   question_sequence,
+//   {
+//     name: "player_questions",
+//     action: (_player: tw.Player) => {},
+//   },
+// );
 textworld.run_websocket_server(8080, player.id);
