@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 28 September 2024
+ * 29 September 2024
  *
  * TODO:
  *
@@ -12,7 +12,6 @@
  * - Implement leveling
  * - Implement race
  * - Look at all exception throwing and make sure it's consistent
- * - Implement a way to ask the player a series of questions
  */
 
 export const player_progress_db_name = "game_saves.db";
@@ -31,6 +30,7 @@ export type CommandParserAction = (
   args: string[],
 ) => string | Promise<string>;
 export type SpawnLocationAction = (spawn_location: SpawnLocation) => void;
+export type SessionAction = (player: Player, session: Session) => void;
 export type QuestionSequenceAction = (
   player: Player,
   question_sequence: QuestionSequence,
@@ -91,7 +91,7 @@ export interface Actor extends Entity, Storage {
   race?: Race;
 }
 
-export type SessionType = "QuestionSequence";
+export type SessionType = "QuestionSequence" | "String";
 export type DataType = "String" | "Number" | "Boolean";
 
 export interface Question {
@@ -105,7 +105,7 @@ export interface QuestionSequence extends Named {
   questions: Question[];
 }
 
-export interface Session {
+export interface Session extends Named {
   type: SessionType;
   payload: unknown;
 }
@@ -241,6 +241,10 @@ export interface NamedActions extends Named {
   actions?: Action[];
 }
 
+export interface NamedSessionAction extends Named {
+  action: SessionAction;
+}
+
 export interface RoomCommandActions extends Named {
   command_actions: CommandAction[];
 }
@@ -264,7 +268,7 @@ export interface WorldActions {
   room_command_actions: RoomCommandActions[];
   quest_actions: QuestAction[];
   quest_step_actions: QuestStepAction[];
-  session_actions: NamedAction[];
+  session_actions: NamedSessionAction[];
 }
 
 export class TextWorld {
@@ -447,6 +451,8 @@ export class TextWorld {
     ),
   ];
 
+  readonly current_question_sequence: string = "current_question_sequence";
+
   //////////////////////////////
   // BUILT IN COMMAND ACTIONS //
   //////////////////////////////
@@ -541,20 +547,24 @@ export class TextWorld {
    */
   add_session(
     player: Player,
+    name: string,
     session_type: SessionType,
     payload: unknown,
-    action: NamedAction,
+    action?: NamedSessionAction,
   ): void {
-    const existing_session = this.get_session(player, session_type);
+    const existing_session = this.get_session(player, name);
 
     if (existing_session) {
       existing_session.payload = payload;
     } else {
       player.sessions.push({
+        name,
         type: session_type,
         payload,
       });
-      this.world_actions.session_actions.push(action);
+      if (action) {
+        this.world_actions.session_actions.push(action);
+      }
     }
   }
 
@@ -565,9 +575,21 @@ export class TextWorld {
    * @param {SessionType} session_type - The type of session to get.
    * @returns {Session | null} - The session or null if it does not exist.
    */
-  get_session(player: Player, session_type: SessionType): Session | null {
-    return player.sessions.find((session) => session.type === session_type) ||
+  get_session(player: Player, session_name: string): Session | null {
+    return player.sessions.find((session) => session.name === session_name) ||
       null;
+  }
+
+  /**
+   * Remove a session from a player.
+   *
+   * @param {Player} player - The player to remove the session from.
+   * @param {string} session_name - The name of the session to remove.
+   */
+  remove_session(player: Player, session_name: string): void {
+    player.sessions = player.sessions.filter(
+      (session) => session.name !== session_name,
+    );
   }
 
   /**
@@ -3448,14 +3470,26 @@ export class TextWorld {
    * Processes a question sequence for a player.
    *
    * @param {Player} player - The player to process the question sequence for.
-   * @returns {Question | null} - A question that has not been answered or null.
    */
-  process_question_sequence(player: Player): Question | null {
-    const sequence = this.get_session(player, "QuestionSequence");
+  process_question_sequence(player: Player) {
+    const current_sequence_session = this.get_session(
+      player,
+      this.current_question_sequence,
+    );
+    if (!current_sequence_session) return null;
+
+    const current_sequence_name = current_sequence_session.payload as string;
+
+    const sequence = this.get_session(player, current_sequence_name);
     if (!sequence) return null;
 
-    return (sequence.payload as QuestionSequence)
+    const next_question = (sequence.payload as QuestionSequence)
       .questions.find((question: Question) => !question.answer) || null;
+
+    return {
+      session: sequence,
+      question: next_question,
+    };
   }
 
   /**
@@ -4099,34 +4133,36 @@ export class TextWorld {
   parse_question_sequence(
     player: Player,
     input: string,
-    on_finished: () => void,
+    on_finished: (player: Player, session: Session) => void,
   ): string | null {
     const question_sequence = this.process_question_sequence(player);
-    if (input === "" && question_sequence) {
-      return JSON.stringify({ response: question_sequence.question });
-    } else if (question_sequence) {
+    if (input === "" && question_sequence?.question) {
+      return JSON.stringify({ response: question_sequence.question.question });
+    } else if (question_sequence?.question) {
       let cast_result = false;
 
-      if (question_sequence.data_type === "Number") {
+      if (question_sequence.question.data_type === "Number") {
         cast_result = isNaN(Number(input));
-      } else if (question_sequence.data_type === "Boolean") {
+      } else if (question_sequence.question.data_type === "Boolean") {
         cast_result = !["yes", "true", "no", "false"].includes(
           input.toLowerCase(),
         );
       }
 
       if (cast_result) {
-        return JSON.stringify({ response: question_sequence.question });
+        return JSON.stringify({
+          response: question_sequence.question.question,
+        });
       }
 
-      question_sequence.answer = input;
+      question_sequence.question.answer = input;
 
       const next_question = this.process_question_sequence(player);
-      if (next_question) {
-        return JSON.stringify({ response: next_question.question });
+      if (next_question?.question) {
+        return JSON.stringify({ response: next_question.question.question });
       }
 
-      on_finished();
+      on_finished(player, question_sequence.session);
     }
 
     return null;
@@ -4143,9 +4179,23 @@ export class TextWorld {
     const input_limit = Math.min(input_character_limit, input.length);
     input = input.substring(0, input_limit);
 
-    const question_result = this.parse_question_sequence(player, input, () => {
-      input = "";
-    });
+    const question_result = this.parse_question_sequence(
+      player,
+      input,
+      (_player: Player, session: Session) => {
+        input = "";
+
+        const session_action = this.world_actions.session_actions.find(
+          (action) => action.name === session.name,
+        );
+
+        if (session_action) {
+          session_action.action(player, session);
+        }
+
+        this.remove_session(player, session.name);
+      },
+    );
     if (question_result) {
       return question_result;
     }
@@ -4279,7 +4329,7 @@ export class TextWorld {
         };
       }
 
-      console.log(`${player.id}: ${game_message.command}`);
+      console.log(`${player.name}: ${game_message.command}`);
       const result: CommandResponse = JSON.parse(
         await this.parse_command(player, game_message.command),
       );

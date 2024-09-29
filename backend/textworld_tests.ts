@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 28 September 2024
+// 29 September 2024
 
 import {
   assert,
@@ -4902,7 +4902,7 @@ Deno.test("can_process_question_sequence", () => {
     "Room2",
   );
   const question_sequence: tw.QuestionSequence = {
-    name: "player_name_and_age",
+    name: "player_questions",
     questions: [
       {
         id: "name",
@@ -4921,11 +4921,24 @@ Deno.test("can_process_question_sequence", () => {
       },
     ],
   };
-  textworld.add_session(player, "QuestionSequence", question_sequence, {
-    name: "player_name_and_age",
-    action: (_player: tw.Player) => {},
-  });
-  const result = textworld.get_session(player, "QuestionSequence");
+  textworld.add_session(
+    player,
+    textworld.current_question_sequence,
+    "String",
+    "player_questions",
+  );
+
+  textworld.add_session(
+    player,
+    "player_questions",
+    "QuestionSequence",
+    question_sequence,
+    {
+      name: "player_questions",
+      action: (_player: tw.Player, _session: tw.Session) => {},
+    },
+  );
+  const result = textworld.get_session(player, "player_questions");
   assertNotEquals(result, null);
 
   const question_result = textworld.parse_question_sequence(
