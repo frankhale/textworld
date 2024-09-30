@@ -12,6 +12,7 @@
  * - Implement leveling
  * - Implement race
  * - Look at all exception throwing and make sure it's consistent
+ * - Finish implementing email
  */
 
 export const player_progress_db_name = "game_saves.db";
@@ -101,6 +102,11 @@ export interface Question {
   answer?: string;
 }
 
+export interface QuestionResponse {
+  session: Session;
+  question?: Question | null;
+}
+
 export interface QuestionSequence extends Named {
   questions: Question[];
 }
@@ -108,6 +114,15 @@ export interface QuestionSequence extends Named {
 export interface Session extends Named {
   type: SessionType;
   payload: unknown;
+}
+
+export interface Email {
+  id: string;
+  from: string; // id of the sender
+  subject: string;
+  body: string;
+  date: Date;
+  items?: Drop[];
 }
 
 export interface Player extends Actor {
@@ -120,6 +135,7 @@ export interface Player extends Actor {
   known_recipes: string[];
   instance: Zone[];
   sessions: Session[];
+  email: Email[];
 }
 
 export interface Recipe extends Entity {
@@ -532,10 +548,52 @@ export class TextWorld {
       known_recipes: [],
       instance: [],
       sessions: [],
+      email: [],
     };
 
     this.world.players.push(player);
     return player;
+  }
+
+  /**
+   * Sends an email to a player.
+   *
+   * @param {string} from - The id of the sender.
+   * @param {string} to - The player to send the email to.
+   * @param {string} body - The body of the email.
+   * @param {Drop[]} items - The items attached to the email.
+   */
+  send_email(
+    from: string,
+    to: string,
+    subject: string,
+    body: string,
+    items?: Drop[],
+  ): void {
+    const from_player = this.get_player(from);
+    const to_player = this.get_player(to);
+    if (!to_player || !from_player) {
+      throw new Error(`Player does not exist.`);
+    }
+
+    to_player.email.push({
+      id: crypto.randomUUID(),
+      from,
+      subject,
+      body,
+      date: new Date(),
+      items,
+    });
+  }
+
+  /**
+   * Deletes an email from a player.
+   *
+   * @param {Player} player - The player to delete the email from.
+   * @param {string} email_id - The id of the email to delete.
+   */
+  delete_email(player: Player, email_id: string): void {
+    player.email = player.email.filter((email) => email.id !== email_id);
   }
 
   /**
@@ -2297,8 +2355,8 @@ export class TextWorld {
    *
    * @param {string} name - The name of the zone.
    */
-  create_zone(name: string, description: string = ""): void {
-    this.world.zones.push({
+  create_zone(name: string, description: string = ""): Zone {
+    const zone = {
       id: crypto.randomUUID(),
       descriptions: [{
         flag: "default",
@@ -2307,7 +2365,9 @@ export class TextWorld {
       name,
       rooms: [],
       instance: false,
-    });
+    };
+    this.world.zones.push(zone);
+    return zone;
   }
 
   /**
@@ -2888,14 +2948,14 @@ export class TextWorld {
   }
 
   /**
-   * Creates a new room and adds it to a zone.
+   * Creates a new room and adds it to a zone. If the zone does not exist it
+   * will be created.
    *
    * @param {string} zone_name - The name of the zone to create the room in.
    * @param {string} name - The name of the room.
    * @param {string} description - The description of the room.
    * @param {Action | null} action - The action to add to the room.
    * @returns {Room} - The created room.
-   * @throws {Error} - If the zone does not exist.
    */
   create_room(
     zone_name: string,
@@ -2903,8 +2963,10 @@ export class TextWorld {
     description: string,
     action: Action | null = null,
   ): Room {
-    const zone = this.get_zone(zone_name);
-    if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
+    let zone = this.get_zone(zone_name);
+    if (!zone) {
+      zone = this.create_zone(zone_name);
+    }
 
     const id = name;
 
@@ -3470,8 +3532,9 @@ export class TextWorld {
    * Processes a question sequence for a player.
    *
    * @param {Player} player - The player to process the question sequence for.
+   * @returns {QuestionResponse | null} - The response object or null if it does not exist.
    */
-  process_question_sequence(player: Player) {
+  process_question_sequence(player: Player): QuestionResponse | null {
     const current_sequence_session = this.get_session(
       player,
       this.current_question_sequence,
@@ -4130,6 +4193,14 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Parses a question sequence and returns the next question if one exists.
+   *
+   * @param player - The player to parse the question sequence for.
+   * @param input - The input (used for answers to questions).
+   * @param on_finished - The callback to run when the question sequence is finished.
+   * @returns {string | null} - The parsed question sequence or null.
+   */
   parse_question_sequence(
     player: Player,
     input: string,
@@ -4139,17 +4210,17 @@ export class TextWorld {
     if (input === "" && question_sequence?.question) {
       return JSON.stringify({ response: question_sequence.question.question });
     } else if (question_sequence?.question) {
-      let cast_result = false;
+      let cast_failed = false;
 
       if (question_sequence.question.data_type === "Number") {
-        cast_result = isNaN(Number(input));
+        cast_failed = isNaN(Number(input));
       } else if (question_sequence.question.data_type === "Boolean") {
-        cast_result = !["yes", "true", "no", "false"].includes(
+        cast_failed = !["yes", "true", "no", "false"].includes(
           input.toLowerCase(),
         );
       }
 
-      if (cast_result) {
+      if (cast_failed) {
         return JSON.stringify({
           response: question_sequence.question.question,
         });
@@ -4353,15 +4424,17 @@ export class TextWorld {
       (_req: Request) => {
         const { socket, response } = Deno.upgradeWebSocket(_req);
         socket.onopen = async () => {
-          const game_message: GameMessage = {
-            player_id: fix_me_player_id,
-            command: "",
-          };
-          socket.send(JSON.stringify(await process_request(game_message)));
+          socket.send(JSON.stringify(
+            await process_request({
+              player_id: fix_me_player_id,
+              command: "",
+            }),
+          ));
         };
         socket.onmessage = async (e) => {
-          const game_message = JSON.parse(e.data);
-          socket.send(JSON.stringify(await process_request(game_message)));
+          socket.send(
+            JSON.stringify(await process_request(JSON.parse(e.data))),
+          );
         };
         return response;
       },

@@ -4894,6 +4894,27 @@ Deno.test("can_add_flag_action", () => {
   textworld.reset_world();
 });
 
+Deno.test("can_add_session", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room2",
+  );
+  textworld.add_session(player, "foobar", "String", "baz");
+  const result = textworld.get_session(player, "foobar");
+  assertNotEquals(result, null);
+  assertEquals(result?.payload, "baz");
+  textworld.add_session(player, "foobar", "String", "xyzzy");
+  const result2 = textworld.get_session(player, "foobar");
+  assertNotEquals(result2, null);
+  assertEquals(result2?.payload, "xyzzy");
+  textworld.remove_session(player, "foobar");
+  const result3 = textworld.get_session(player, "foobar");
+  assertEquals(result3, null);
+  textworld.reset_world();
+});
+
 Deno.test("can_process_question_sequence", () => {
   const player = textworld.create_player(
     "Player",
@@ -4965,12 +4986,23 @@ Deno.test("can_process_question_sequence", () => {
   assertNotEquals(question_result3, null);
   assertStringIncludes(question_result3!, "Are you ready for an adventure?");
 
+  // Question answer should be something that can be parsed to a boolean
+  // eg. yes, no, true or false
   const question_result4 = textworld.parse_question_sequence(
+    player,
+    "hello",
+    () => {},
+  );
+  assertNotEquals(question_result4, null);
+  assertStringIncludes(question_result4!, "Are you ready for an adventure?");
+
+  // Since previous answer is not valid, the same question will get asked again
+  const question_result5 = textworld.parse_question_sequence(
     player,
     "yes",
     () => {},
   );
-  assertEquals(question_result4, null);
+  assertEquals(question_result5, null);
 
   assertEquals(
     (result?.payload as tw.QuestionSequence).questions[0].answer,
@@ -4985,10 +5017,108 @@ Deno.test("can_process_question_sequence", () => {
     "yes",
   );
 
+  textworld.remove_session(player, "player_questions");
+  const result3 = textworld.parse_question_sequence(
+    player,
+    "",
+    () => {},
+  );
+  assertEquals(result3, null);
   // Can't get a session if it doesn't exist
   player.sessions = [];
   const result2 = textworld.get_session(player, "QuestionSequence");
   assertEquals(result2, null);
+  textworld.reset_world();
+});
+
+Deno.test("can_parse_command_with_question_sequence", async () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+
+  const question_sequence: tw.QuestionSequence = {
+    name: "player_questions",
+    questions: [
+      {
+        id: "name",
+        data_type: "String",
+        question: "What is your name?",
+      },
+    ],
+  };
+  textworld.add_session(
+    player,
+    textworld.current_question_sequence,
+    "String",
+    "player_questions",
+  );
+  textworld.add_session(
+    player,
+    "player_questions",
+    "QuestionSequence",
+    question_sequence,
+    {
+      name: "player_questions",
+      action: (_player: tw.Player, _session: tw.Session) => {
+        assertNotEquals(_player, null);
+      },
+    },
+  );
+  const result = textworld.get_session(player, "player_questions");
+  assertNotEquals(result, null);
+
+  const command_result = await textworld.parse_command(player, "");
+  assertNotEquals(command_result, null);
+  assertStringIncludes(command_result, "What is your name?");
+
+  const command_result2 = await textworld.parse_command(player, "Frank");
+  assertNotEquals(command_result2, null);
+
+  textworld.reset_world();
+});
+
+Deno.test("can_send_email", () => {
+  const player1 = textworld.create_player(
+    "Player1",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room2",
+  );
+  const player2 = textworld.create_player(
+    "Player2",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room2",
+  );
+  textworld.send_email(player1.id, player2.id, "Hello", "Hello, how are you?");
+  assertEquals(player2.email.length, 1);
+  textworld.delete_email(player2, player2.email[0].id);
+  assertEquals(player2.email.length, 0);
+  try {
+    textworld.send_email(
+      "InvalidPlayerId",
+      player2.id,
+      "Hello",
+      "Hello, how are you?",
+    );
+  } catch (e) {
+    assertEquals(e.message, "Player does not exist.");
+  }
+  try {
+    textworld.send_email(
+      player1.id,
+      "InvalidPlayerId",
+      "Hello",
+      "Hello, how are you?",
+    );
+  } catch (e) {
+    assertEquals(e.message, "Player does not exist.");
+  }
   textworld.reset_world();
 });
 
