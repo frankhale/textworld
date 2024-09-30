@@ -10,6 +10,7 @@ import {
   assertGreater,
   assertNotEquals,
   assertStringIncludes,
+  assertThrows,
 } from "@std/assert";
 
 import * as tw from "./textworld.ts";
@@ -461,6 +462,10 @@ Deno.test("can_create_room", () => {
   const zone = textworld.get_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   assertEquals(zone!.rooms.length, 1);
+  // create room but zone does not exist
+  textworld.create_room("Zone2", "Room1", "This is room 1");
+  const zone2 = textworld.get_zone("Zone2");
+  assertNotEquals(zone2, null);
   textworld.reset_world();
 });
 
@@ -576,15 +581,6 @@ Deno.test("create_instance_room_with_npc", () => {
   textworld.reset_world();
 });
 
-Deno.test("cant_create_room_without_a_zone", () => {
-  try {
-    textworld.create_room("Zone1", "Room1", "This is room 1");
-  } catch (e) {
-    assertEquals(e.message, "Zone Zone1 does not exist.");
-  }
-  textworld.reset_world();
-});
-
 Deno.test("can_describe_room", () => {
   const player = textworld.create_player(
     "Player",
@@ -634,19 +630,23 @@ Deno.test("can_describe_room", () => {
   assertEquals(result5.objects, "Chest");
   // INVALID ZONE
   player.zone = "InvalidZone";
-  try {
-    textworld.get_room_description(player);
-  } catch (e) {
-    assertEquals(e.message, "Player is not in a valid zone.");
-  }
+  assertThrows(
+    () => {
+      textworld.get_room_description(player);
+    },
+    Error,
+    "Player is not in a valid zone.",
+  );
   // INVALID ROOM
   player.zone = "Zone1";
   player.room = "InvalidRoom";
-  try {
-    textworld.get_room_description(player);
-  } catch (e) {
-    assertEquals(e.message, "Player is not in a valid room.");
-  }
+  assertThrows(
+    () => {
+      textworld.get_room_description(player);
+    },
+    Error,
+    "Player is not in a valid room.",
+  );
   textworld.reset_world();
 });
 
