@@ -1,6 +1,8 @@
-// A Text Adventure Library & Game for Deno
-// Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 29 September 2024
+/**
+ * A Text Adventure Library & Game for Deno
+ * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
+ * 30 September 2024
+ */
 
 import {
   assert,
@@ -462,6 +464,17 @@ Deno.test("can_create_room", () => {
   textworld.reset_world();
 });
 
+Deno.test("can_create_rooms_alternate", () => {
+  textworld.create_rooms("Zone1", [
+    textworld.r("Room1", "This is room 1"),
+    textworld.r("Room2", "This is room 2"),
+    textworld.r("Room3", "This is room 3"),
+  ]);
+  const zone = textworld.get_zone("Zone1");
+  assertEquals(zone?.rooms.length, 3);
+  textworld.reset_world();
+});
+
 Deno.test("can_create_instance_room", () => {
   const player = textworld.create_player(
     "Player",
@@ -779,14 +792,6 @@ Deno.test("can_create_exit", () => {
     assertEquals(
       e.message,
       "Room InvalidRoom or Room2 does not exist in zone Zone1.",
-    );
-  }
-  try {
-    textworld.create_exit("Zone1", "Room1", "InvalidDirection", "Room2");
-  } catch (e) {
-    assertEquals(
-      e.message,
-      "Invalid exit name: InvalidDirection.",
     );
   }
   textworld.reset_world();

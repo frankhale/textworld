@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 29 September 2024
+ * 30 September 2024
  *
  * TODO:
  *
@@ -163,6 +163,8 @@ export interface Item extends Entity {
   level: number;
   value: number;
 }
+
+export type ExitName = "north" | "south" | "east" | "west";
 
 export interface Exit extends Named {
   location: string;
@@ -2621,7 +2623,7 @@ export class TextWorld {
   create_exit(
     zone_name: string,
     from_room_name: string,
-    exit_name: string,
+    exit_name: ExitName,
     to_room_name: string,
     hidden = false,
   ): void {
@@ -2642,9 +2644,6 @@ export class TextWorld {
     }
 
     const opposite_exit_name = this.get_opposite_exit_name(exit_name);
-    if (!opposite_exit_name) {
-      throw new Error(`Invalid exit name: ${exit_name}.`);
-    }
 
     from_room.exits.push({
       name: exit_name,
@@ -2663,16 +2662,16 @@ export class TextWorld {
    * Gets the opposite exit name for the given exit name.
    *
    * @param {string} exit_name - The name of the exit.
-   * @returns {Exit | null} - The opposite exit name or null if it does not exist.
+   * @returns {Exit} - The opposite exit name.
    */
-  get_opposite_exit_name(exit_name: string): string | null {
+  get_opposite_exit_name(exit_name: ExitName): string {
     const opposites: { [key: string]: string } = {
       north: "south",
       south: "north",
       east: "west",
       west: "east",
     };
-    return opposites[exit_name] || null;
+    return opposites[exit_name];
   }
 
   /**
@@ -2971,11 +2970,10 @@ export class TextWorld {
     const id = name;
 
     // Create the new room and add it to the zone
-    const room = {
+    const room: Room = {
       id,
       name,
       descriptions: [{ flag: "default", description }],
-      zone_start: false,
       items: [],
       npcs: [],
       mobs: [],
@@ -2996,6 +2994,31 @@ export class TextWorld {
     }
 
     return room;
+  }
+
+  r(name: string, description: string): Room {
+    const room: Room = {
+      id: name,
+      name,
+      descriptions: [{ flag: "default", description }],
+      items: [],
+      npcs: [],
+      mobs: [],
+      objects: [],
+      exits: [],
+      players: [],
+      instance: false,
+    };
+    return room;
+  }
+
+  create_rooms(zone_name: string, rooms: Room[]): void {
+    let zone = this.get_zone(zone_name);
+    if (!zone) {
+      zone = this.create_zone(zone_name);
+    }
+
+    zone.rooms = zone.rooms.concat(rooms);
   }
 
   /**
@@ -4433,6 +4456,8 @@ export class TextWorld {
         };
         socket.onmessage = async (e) => {
           socket.send(
+            // TODO: Check e.data because we don't know if it conforms to what
+            // we expect.
             JSON.stringify(await process_request(JSON.parse(e.data))),
           );
         };
