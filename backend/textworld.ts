@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 30 September 2024
+ * 1 October 2024
  *
  * TODO:
  *
@@ -166,7 +166,8 @@ export interface Item extends Entity {
 
 export type ExitName = "north" | "south" | "east" | "west";
 
-export interface Exit extends Named {
+export interface Exit {
+  name: ExitName;
   location: string;
   hidden: boolean;
 }
@@ -2654,7 +2655,46 @@ export class TextWorld {
     to_room.exits.push({
       name: opposite_exit_name,
       location: from_room_name,
-      hidden,
+      hidden: false,
+    });
+  }
+
+  e(exit_name: ExitName, location: string, hidden = false): Exit {
+    return { name: exit_name, location, hidden };
+  }
+
+  create_exits(zone_name: string, from_room_name: string, exits: Exit[]): void {
+    const zone = this.get_zone(zone_name);
+    if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
+
+    const from_room = zone.rooms.find(
+      (room) => room.name.toLowerCase() === from_room_name.toLowerCase(),
+    );
+
+    exits.forEach((exit) => {
+      const to_room = zone.rooms.find(
+        (room) => room.name.toLowerCase() === exit.location.toLowerCase(),
+      );
+
+      if (!from_room || !to_room) {
+        throw new Error(
+          `Room ${from_room_name} or ${exit.location} does not exist in zone ${zone_name}.`,
+        );
+      }
+
+      const opposite_exit_name = this.get_opposite_exit_name(exit.name);
+
+      from_room.exits.push({
+        name: exit.name,
+        location: exit.location,
+        hidden: exit.hidden,
+      });
+
+      to_room.exits.push({
+        name: opposite_exit_name,
+        location: from_room_name,
+        hidden: false,
+      });
     });
   }
 
@@ -2664,8 +2704,8 @@ export class TextWorld {
    * @param {string} exit_name - The name of the exit.
    * @returns {Exit} - The opposite exit name.
    */
-  get_opposite_exit_name(exit_name: ExitName): string {
-    const opposites: { [key: string]: string } = {
+  get_opposite_exit_name(exit_name: ExitName): ExitName {
+    const opposites: { [key: string]: ExitName } = {
       north: "south",
       south: "north",
       east: "west",
