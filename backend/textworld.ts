@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 29 September 2024
+ * 30 September 2024
  *
  * TODO:
  *
@@ -12,6 +12,7 @@
  * - Implement leveling
  * - Implement race
  * - Look at all exception throwing and make sure it's consistent
+ * - Finish implementing email
  */
 
 export const player_progress_db_name = "game_saves.db";
@@ -101,6 +102,11 @@ export interface Question {
   answer?: string;
 }
 
+export interface QuestionResponse {
+  session: Session;
+  question?: Question | null;
+}
+
 export interface QuestionSequence extends Named {
   questions: Question[];
 }
@@ -108,6 +114,15 @@ export interface QuestionSequence extends Named {
 export interface Session extends Named {
   type: SessionType;
   payload: unknown;
+}
+
+export interface Email {
+  id: string;
+  from: string; // id of the sender
+  subject: string;
+  body: string;
+  date: Date;
+  items?: Drop[];
 }
 
 export interface Player extends Actor {
@@ -120,6 +135,7 @@ export interface Player extends Actor {
   known_recipes: string[];
   instance: Zone[];
   sessions: Session[];
+  email: Email[];
 }
 
 export interface Recipe extends Entity {
@@ -147,6 +163,8 @@ export interface Item extends Entity {
   level: number;
   value: number;
 }
+
+export type ExitName = "north" | "south" | "east" | "west";
 
 export interface Exit extends Named {
   location: string;
@@ -532,10 +550,52 @@ export class TextWorld {
       known_recipes: [],
       instance: [],
       sessions: [],
+      email: [],
     };
 
     this.world.players.push(player);
     return player;
+  }
+
+  /**
+   * Sends an email to a player.
+   *
+   * @param {string} from - The id of the sender.
+   * @param {string} to - The player to send the email to.
+   * @param {string} body - The body of the email.
+   * @param {Drop[]} items - The items attached to the email.
+   */
+  send_email(
+    from: string,
+    to: string,
+    subject: string,
+    body: string,
+    items?: Drop[],
+  ): void {
+    const from_player = this.get_player(from);
+    const to_player = this.get_player(to);
+    if (!to_player || !from_player) {
+      throw new Error(`Player does not exist.`);
+    }
+
+    to_player.email.push({
+      id: crypto.randomUUID(),
+      from,
+      subject,
+      body,
+      date: new Date(),
+      items,
+    });
+  }
+
+  /**
+   * Deletes an email from a player.
+   *
+   * @param {Player} player - The player to delete the email from.
+   * @param {string} email_id - The id of the email to delete.
+   */
+  delete_email(player: Player, email_id: string): void {
+    player.email = player.email.filter((email) => email.id !== email_id);
   }
 
   /**
@@ -2297,8 +2357,8 @@ export class TextWorld {
    *
    * @param {string} name - The name of the zone.
    */
-  create_zone(name: string, description: string = ""): void {
-    this.world.zones.push({
+  create_zone(name: string, description: string = ""): Zone {
+    const zone = {
       id: crypto.randomUUID(),
       descriptions: [{
         flag: "default",
@@ -2307,7 +2367,9 @@ export class TextWorld {
       name,
       rooms: [],
       instance: false,
-    });
+    };
+    this.world.zones.push(zone);
+    return zone;
   }
 
   /**
@@ -2561,7 +2623,7 @@ export class TextWorld {
   create_exit(
     zone_name: string,
     from_room_name: string,
-    exit_name: string,
+    exit_name: ExitName,
     to_room_name: string,
     hidden = false,
   ): void {
@@ -2582,9 +2644,6 @@ export class TextWorld {
     }
 
     const opposite_exit_name = this.get_opposite_exit_name(exit_name);
-    if (!opposite_exit_name) {
-      throw new Error(`Invalid exit name: ${exit_name}.`);
-    }
 
     from_room.exits.push({
       name: exit_name,
@@ -2603,16 +2662,16 @@ export class TextWorld {
    * Gets the opposite exit name for the given exit name.
    *
    * @param {string} exit_name - The name of the exit.
-   * @returns {Exit | null} - The opposite exit name or null if it does not exist.
+   * @returns {Exit} - The opposite exit name.
    */
-  get_opposite_exit_name(exit_name: string): string | null {
+  get_opposite_exit_name(exit_name: ExitName): string {
     const opposites: { [key: string]: string } = {
       north: "south",
       south: "north",
       east: "west",
       west: "east",
     };
-    return opposites[exit_name] || null;
+    return opposites[exit_name];
   }
 
   /**
@@ -2888,14 +2947,14 @@ export class TextWorld {
   }
 
   /**
-   * Creates a new room and adds it to a zone.
+   * Creates a new room and adds it to a zone. If the zone does not exist it
+   * will be created.
    *
    * @param {string} zone_name - The name of the zone to create the room in.
    * @param {string} name - The name of the room.
    * @param {string} description - The description of the room.
    * @param {Action | null} action - The action to add to the room.
    * @returns {Room} - The created room.
-   * @throws {Error} - If the zone does not exist.
    */
   create_room(
     zone_name: string,
@@ -2903,17 +2962,18 @@ export class TextWorld {
     description: string,
     action: Action | null = null,
   ): Room {
-    const zone = this.get_zone(zone_name);
-    if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
+    let zone = this.get_zone(zone_name);
+    if (!zone) {
+      zone = this.create_zone(zone_name);
+    }
 
     const id = name;
 
     // Create the new room and add it to the zone
-    const room = {
+    const room: Room = {
       id,
       name,
       descriptions: [{ flag: "default", description }],
-      zone_start: false,
       items: [],
       npcs: [],
       mobs: [],
@@ -2934,6 +2994,46 @@ export class TextWorld {
     }
 
     return room;
+  }
+
+  /**
+   * Shorthand function that creates a new room object and returns that object.
+   * The room still has to be added to the world. This function is specifically
+   * designed to be used with create_rooms().
+   *
+   * @param {string} name - The name of the room.
+   * @param {string} description - The description of the room.
+   * @returns {Room} - The room object.
+   */
+  r(name: string, description: string): Room {
+    const room: Room = {
+      id: name,
+      name,
+      descriptions: [{ flag: "default", description }],
+      items: [],
+      npcs: [],
+      mobs: [],
+      objects: [],
+      exits: [],
+      players: [],
+      instance: false,
+    };
+    return room;
+  }
+
+  /**
+   * Allows you to create multiple rooms at once and add them to a zone.
+   *
+   * @param {string} zone_name - The name of the zone to create the rooms in.
+   * @param {Room[]} rooms - The rooms to create.
+   */
+  create_rooms(zone_name: string, rooms: Room[]): void {
+    let zone = this.get_zone(zone_name);
+    if (!zone) {
+      zone = this.create_zone(zone_name);
+    }
+
+    zone.rooms = zone.rooms.concat(rooms);
   }
 
   /**
@@ -3295,7 +3395,7 @@ export class TextWorld {
 
     if (!current_room) {
       return {
-        response: "That object does not exist.",
+        response: "Player is not in a valid room.",
       };
     }
 
@@ -3470,8 +3570,9 @@ export class TextWorld {
    * Processes a question sequence for a player.
    *
    * @param {Player} player - The player to process the question sequence for.
+   * @returns {QuestionResponse | null} - The response object or null if it does not exist.
    */
-  process_question_sequence(player: Player) {
+  process_question_sequence(player: Player): QuestionResponse | null {
     const current_sequence_session = this.get_session(
       player,
       this.current_question_sequence,
@@ -3585,7 +3686,7 @@ export class TextWorld {
    */
   get_random_number(upper: number = 100): number {
     const nums = new Uint32Array(1);
-    window.crypto.getRandomValues(nums);
+    crypto.getRandomValues(nums);
     return nums[0] % (upper + 1);
   }
 
@@ -4130,6 +4231,14 @@ export class TextWorld {
     );
   }
 
+  /**
+   * Parses a question sequence and returns the next question if one exists.
+   *
+   * @param player - The player to parse the question sequence for.
+   * @param input - The input (used for answers to questions).
+   * @param on_finished - The callback to run when the question sequence is finished.
+   * @returns {string | null} - The parsed question sequence or null.
+   */
   parse_question_sequence(
     player: Player,
     input: string,
@@ -4139,17 +4248,17 @@ export class TextWorld {
     if (input === "" && question_sequence?.question) {
       return JSON.stringify({ response: question_sequence.question.question });
     } else if (question_sequence?.question) {
-      let cast_result = false;
+      let cast_failed = false;
 
       if (question_sequence.question.data_type === "Number") {
-        cast_result = isNaN(Number(input));
+        cast_failed = isNaN(Number(input));
       } else if (question_sequence.question.data_type === "Boolean") {
-        cast_result = !["yes", "true", "no", "false"].includes(
+        cast_failed = !["yes", "true", "no", "false"].includes(
           input.toLowerCase(),
         );
       }
 
-      if (cast_result) {
+      if (cast_failed) {
         return JSON.stringify({
           response: question_sequence.question.question,
         });
@@ -4353,15 +4462,19 @@ export class TextWorld {
       (_req: Request) => {
         const { socket, response } = Deno.upgradeWebSocket(_req);
         socket.onopen = async () => {
-          const game_message: GameMessage = {
-            player_id: fix_me_player_id,
-            command: "",
-          };
-          socket.send(JSON.stringify(await process_request(game_message)));
+          socket.send(JSON.stringify(
+            await process_request({
+              player_id: fix_me_player_id,
+              command: "",
+            }),
+          ));
         };
         socket.onmessage = async (e) => {
-          const game_message = JSON.parse(e.data);
-          socket.send(JSON.stringify(await process_request(game_message)));
+          socket.send(
+            // TODO: Check e.data because we don't know if it conforms to what
+            // we expect.
+            JSON.stringify(await process_request(JSON.parse(e.data))),
+          );
         };
         return response;
       },
