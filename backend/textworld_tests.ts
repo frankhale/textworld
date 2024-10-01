@@ -9,6 +9,7 @@ import {
   assertEquals,
   assertGreater,
   assertNotEquals,
+  assertRejects,
   assertStringIncludes,
   assertThrows,
 } from "@std/assert";
@@ -52,11 +53,13 @@ Deno.test("can_create_instance_zone", () => {
   textworld.create_instance_zone(player, "Zone1");
   const zone2 = textworld.get_player_zone(player);
   assertEquals(zone2?.name, "Zone1");
-  try {
-    textworld.create_instance_zone(player, "InvalidZone");
-  } catch (e) {
-    assertEquals(e.message, "Zone InvalidZone does not exist.");
-  }
+  assertThrows(
+    () => {
+      textworld.create_instance_zone(player, "InvalidZone");
+    },
+    Error,
+    "Zone InvalidZone does not exist.",
+  );
   textworld.reset_world();
 });
 
@@ -310,13 +313,13 @@ Deno.test("cant_ressurect_actor_that_has_no_stats", () => {
     "Room1",
   );
   player.stats = undefined;
-
-  try {
-    textworld.resurrect_actor(player);
-  } catch (e) {
-    assertEquals(e.message, "Actor does not have stats.");
-  }
-
+  assertThrows(
+    () => {
+      textworld.resurrect_actor(player);
+    },
+    Error,
+    "Actor does not have stats.",
+  );
   textworld.reset_world();
 });
 
@@ -365,14 +368,15 @@ Deno.test("can_add_quest_step_to_quest", () => {
 });
 
 Deno.test("cant_add_quest_action_to_quest_that_doesnt_exist", () => {
-  try {
-    textworld.add_quest_action("Quest1", "Start", (_player) => {
-      return "Hello, World!";
-    });
-  } catch (e) {
-    assertEquals(e.message, "Quest Quest1 does not exist.");
-  }
-
+  assertThrows(
+    () => {
+      textworld.add_quest_action("Quest1", "Start", (_player) => {
+        return "Hello, World!";
+      });
+    },
+    Error,
+    "Quest Quest1 does not exist.",
+  );
   textworld.reset_world();
 });
 
@@ -394,23 +398,24 @@ Deno.test("cant_add_quest_action_to_quest_that_has_quest_actions", () => {
   textworld.add_quest_action("Quest1", "End", (_player) => {
     return "Hello, World!";
   });
-
-  try {
-    textworld.add_quest_action("Quest1", "Start", (_player) => {
-      return "Hello, World!";
-    });
-  } catch (e) {
-    assertEquals(e.message, "Quest Quest1 already has an action for Start.");
-  }
-
-  try {
-    textworld.add_quest_action("Quest1", "End", (_player) => {
-      return "Hello, World!";
-    });
-  } catch (e) {
-    assertEquals(e.message, "Quest Quest1 already has an action for End.");
-  }
-
+  assertThrows(
+    () => {
+      textworld.add_quest_action("Quest1", "Start", (_player) => {
+        return "Hello, World!";
+      });
+    },
+    Error,
+    "Quest Quest1 already has an action for Start.",
+  );
+  assertThrows(
+    () => {
+      textworld.add_quest_action("Quest1", "End", (_player) => {
+        return "Hello, World!";
+      });
+    },
+    Error,
+    "Quest Quest1 already has an action for End.",
+  );
   textworld.reset_world();
 });
 
@@ -439,13 +444,15 @@ Deno.test("can_add_quest_step_to_quest_with_action", () => {
 });
 
 Deno.test("cant_add_quest_step_to_quest_that_doesnt_exist", () => {
-  try {
-    textworld.add_quest_step("Quest1", "Step1", "A step", (_player) => {
-      return true;
-    });
-  } catch (e) {
-    assertEquals(e.message, "Quest Quest1 does not exist.");
-  }
+  assertThrows(
+    () => {
+      textworld.add_quest_step("Quest1", "Step1", "A step", (_player) => {
+        return true;
+      });
+    },
+    Error,
+    "Quest Quest1 does not exist.",
+  );
   textworld.reset_world();
 });
 
@@ -680,16 +687,18 @@ Deno.test("can_create_alternate_room_description", () => {
   );
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.descriptions.length, 2);
-  try {
-    textworld.add_room_description(
-      "Zone1",
-      "Room2",
-      "room2-alt",
-      "This is room 2",
-    );
-  } catch (e) {
-    assertEquals(e.message, "Room Room2 does not exist in zone Zone1.");
-  }
+  assertThrows(
+    () => {
+      textworld.add_room_description(
+        "Zone1",
+        "Room2",
+        "room2-alt",
+        "This is room 2",
+      );
+    },
+    Error,
+    "Room Room2 does not exist in zone Zone1.",
+  );
   textworld.reset_world();
 });
 
@@ -766,34 +775,48 @@ Deno.test("can_create_exit", () => {
   const exit = textworld.get_exit("Zone1", "Room1", "north");
   assertEquals(exit?.name, "north");
   assertEquals(exit?.location, "Room2");
-  try {
-    textworld.get_exit("InvalidZone", "Room1", "south");
-  } catch (e) {
-    assertEquals(e.message, "Zone InvalidZone does not exist.");
-  }
-  try {
-    textworld.get_exit("Zone1", "InvalidRoom", "south");
-  } catch (e) {
-    assertEquals(e.message, "Room InvalidRoom does not exist in zone Zone1.");
-  }
-  try {
-    textworld.get_exit("Zone1", "Room1", "south");
-  } catch (e) {
-    assertEquals(e.message, "Exit south does not exist in room Room1.");
-  }
-  try {
-    textworld.create_exit("InvalidZone", "Room1", "north", "Room2");
-  } catch (e) {
-    assertEquals(e.message, "Zone InvalidZone does not exist.");
-  }
-  try {
-    textworld.create_exit("Zone1", "InvalidRoom", "north", "Room2");
-  } catch (e) {
-    assertEquals(
-      e.message,
-      "Room InvalidRoom or Room2 does not exist in zone Zone1.",
-    );
-  }
+  assertThrows(
+    () => {
+      textworld.get_exit("InvalidZone", "Room1", "south");
+    },
+    Error,
+    "Zone InvalidZone does not exist.",
+  );
+  assertThrows(
+    () => {
+      textworld.get_exit("Zone1", "InvalidRoom", "south");
+    },
+    Error,
+    "Room InvalidRoom does not exist in zone Zone1.",
+  );
+  assertThrows(
+    () => {
+      textworld.get_exit("Zone1", "Room1", "south");
+    },
+    Error,
+    "Exit south does not exist in room Room1.",
+  );
+  assertThrows(
+    () => {
+      textworld.create_exit("InvalidZone", "Room1", "north", "Room2");
+    },
+    Error,
+    "Zone InvalidZone does not exist.",
+  );
+  assertThrows(
+    () => {
+      textworld.create_exit("InvalidZone", "Room1", "north", "Room2");
+    },
+    Error,
+    "Zone InvalidZone does not exist.",
+  );
+  assertThrows(
+    () => {
+      textworld.create_exit("Zone1", "InvalidRoom", "north", "Room2");
+    },
+    Error,
+    "Room InvalidRoom or Room2 does not exist in zone Zone1.",
+  );
   textworld.reset_world();
 });
 
@@ -805,16 +828,20 @@ Deno.test("can_remove_exit", () => {
   textworld.remove_exit("Zone1", "Room1", "north");
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.exits.length, 0);
-  try {
-    textworld.remove_exit("InvalidZone", "Room1", "north");
-  } catch (e) {
-    assertEquals(e.message, "Zone InvalidZone does not exist.");
-  }
-  try {
-    textworld.remove_exit("Zone1", "InvalidRoom", "north");
-  } catch (e) {
-    assertEquals(e.message, "Room InvalidRoom does not exist in zone Zone1.");
-  }
+  assertThrows(
+    () => {
+      textworld.remove_exit("InvalidZone", "Room1", "north");
+    },
+    Error,
+    "Zone InvalidZone does not exist.",
+  );
+  assertThrows(
+    () => {
+      textworld.remove_exit("Zone1", "InvalidRoom", "north");
+    },
+    Error,
+    "Room InvalidRoom does not exist in zone Zone1.",
+  );
   textworld.reset_world();
 });
 
@@ -880,11 +907,13 @@ Deno.test("can_create_item_with_action", () => {
     result?.action(player),
     "You drank the potion but nothing happened.",
   );
-  try {
-    textworld.get_item_action("Foobar");
-  } catch (e) {
-    assertEquals(e.message, "Item Foobar does not exist.");
-  }
+  assertThrows(
+    () => {
+      textworld.get_item_action("Foobar");
+    },
+    Error,
+    "Item Foobar does not exist.",
+  );
   const result2 = textworld.get_item_action("Sword");
   assertEquals(result2, null);
   textworld.reset_world();
@@ -898,11 +927,13 @@ Deno.test("can_get_item", () => {
 });
 
 Deno.test("cant_get_room_when_zone_is_invalid", () => {
-  try {
-    textworld.get_room("InvalidZone", "Room1");
-  } catch (e) {
-    assertEquals(e.message, "Zone InvalidZone does not exist.");
-  }
+  assertThrows(
+    () => {
+      textworld.get_room("InvalidZone", "Room1");
+    },
+    Error,
+    "Zone InvalidZone does not exist.",
+  );
   textworld.reset_world();
 });
 
@@ -917,21 +948,25 @@ Deno.test("can_get_room_item", () => {
 });
 
 Deno.test("cant_get_room_item_if_zone_does_not_exist", () => {
-  try {
-    textworld.get_room_item("Zone1", "Room1", "Sword");
-  } catch (e) {
-    assertEquals(e.message, "Zone Zone1 does not exist.");
-  }
+  assertThrows(
+    () => {
+      textworld.get_room_item("Zone1", "Room1", "Sword");
+    },
+    Error,
+    "Zone Zone1 does not exist.",
+  );
   textworld.reset_world();
 });
 
 Deno.test("cant_get_room_item_if_room_does_not_exist", () => {
   textworld.create_zone("Zone1");
-  try {
-    textworld.get_room_item("Zone1", "Room1", "Sword");
-  } catch (e) {
-    assertEquals(e.message, "Room Room1 does not exist in zone Zone1.");
-  }
+  assertThrows(
+    () => {
+      textworld.get_room_item("Zone1", "Room1", "Sword");
+    },
+    Error,
+    "Room Room1 does not exist in zone Zone1.",
+  );
   textworld.reset_world();
 });
 
@@ -943,17 +978,21 @@ Deno.test("can_place_object_in_room", () => {
   const object = textworld.get_room_object("Zone1", "Room1", "Chest");
   assertEquals(object?.name, "Chest");
   // Invalid Object
-  try {
-    textworld.place_object("Zone1", "Room1", "Crystal Ball");
-  } catch (e) {
-    assertEquals(e.message, "Object Crystal Ball does not exist.");
-  }
+  assertThrows(
+    () => {
+      textworld.place_object("Zone1", "Room1", "Crystal Ball");
+    },
+    Error,
+    "Object Crystal Ball does not exist.",
+  );
   // Invalid Room
-  try {
-    textworld.place_object("Zone1", "Room2", "Chest");
-  } catch (e) {
-    assertEquals(e.message, "Room Room2 does not exist in zone Zone1.");
-  }
+  assertThrows(
+    () => {
+      textworld.place_object("Zone1", "Room2", "Chest");
+    },
+    Error,
+    "Room Room2 does not exist in zone Zone1.",
+  );
   // Instance room
   const player = textworld.create_player(
     "Player",
@@ -982,22 +1021,26 @@ Deno.test("can_place_item_in_room", () => {
 Deno.test("cant_place_item_in_room_if_item_doesnt_exist", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  try {
-    textworld.place_item("Zone1", "Room1", "Sword");
-  } catch (e) {
-    assertEquals(e.message, "Item Sword does not exist.");
-  }
+  assertThrows(
+    () => {
+      textworld.place_item("Zone1", "Room1", "Sword");
+    },
+    Error,
+    "Item Sword does not exist.",
+  );
   textworld.reset_world();
 });
 
 Deno.test("cant_place_item_in_room_if_room_doesnt_exist", () => {
   textworld.create_zone("Zone1");
   textworld.create_item("Sword", "A sharp sword", false, false);
-  try {
-    textworld.place_item("Zone1", "Room1", "Sword");
-  } catch (e) {
-    assertEquals(e.message, "Room Room1 does not exist in zone Zone1.");
-  }
+  assertThrows(
+    () => {
+      textworld.place_item("Zone1", "Room1", "Sword");
+    },
+    Error,
+    "Room Room1 does not exist in zone Zone1.",
+  );
   textworld.reset_world();
 });
 
@@ -1072,17 +1115,21 @@ Deno.test("can_place_mob_in_room", () => {
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.mobs.length, 1);
   assertEquals(room?.mobs[0].name, "Goblin");
-  try {
-    textworld.place_mob("Zone1", "Room1", "Moblin");
-  } catch (e) {
-    assertEquals(e.message, "MOB Moblin does not exist.");
-  }
+  assertThrows(
+    () => {
+      textworld.place_mob("Zone1", "Room1", "Moblin");
+    },
+    Error,
+    "MOB Moblin does not exist.",
+  );
   textworld.remove_room("Zone1", "Room1");
-  try {
-    textworld.place_mob("Zone1", "Room1", "Goblin");
-  } catch (e) {
-    assertEquals(e.message, "Room Room1 does not exist in zone Zone1.");
-  }
+  assertThrows(
+    () => {
+      textworld.place_mob("Zone1", "Room1", "Goblin");
+    },
+    Error,
+    "Room Room1 does not exist in zone Zone1.",
+  );
   textworld.reset_world();
 });
 
@@ -1134,11 +1181,13 @@ Deno.test("can_create_npc_with_dialog", () => {
   const npc = textworld.get_npc("Guard");
   assertEquals(npc?.name, "Guard");
   assertEquals(npc?.dialog?.length, 1);
-  try {
-    textworld.create_dialog("InvalidNpc", ["Goodbye"], "Goodbye citizen!");
-  } catch (e) {
-    assertEquals(e.message, "NPC InvalidNpc does not exist.");
-  }
+  assertThrows(
+    () => {
+      textworld.create_dialog("InvalidNpc", ["Goodbye"], "Goodbye citizen!");
+    },
+    Error,
+    "NPC InvalidNpc does not exist.",
+  );
   textworld.reset_world();
 });
 
@@ -1191,13 +1240,15 @@ Deno.test("can_add_room_action", () => {
   const result2 = textworld.get_room_actions("Room1");
   assertEquals(result2?.actions?.length, 2);
   // Invalid room
-  try {
-    textworld.add_room_action("Zone1", "InvalidRoom", (_player) => {
-      return "Do something";
-    });
-  } catch (e) {
-    assertEquals(e.message, "Room InvalidRoom does not exist in zone Zone1.");
-  }
+  assertThrows(
+    () => {
+      textworld.add_room_action("Zone1", "InvalidRoom", (_player) => {
+        return "Do something";
+      });
+    },
+    Error,
+    "Room InvalidRoom does not exist in zone Zone1.",
+  );
   textworld.reset_world_actions();
   const result3 = textworld.get_room_actions("Room1");
   assertEquals(result3, null);
@@ -1224,19 +1275,25 @@ Deno.test("can_add_room_command_action", () => {
   assertEquals(has_room_action, true);
   const result = textworld.get_room_command_action("Zone1", "InvalidRoom");
   assertEquals(result, null);
-  try {
-    textworld.add_room_command_action(
-      "Zone1",
-      "InvalidRoom",
-      "xyzzy action",
-      "You recited the magical word XYZZY!!!",
-      ["xyzzy"],
-      (_player: tw.Player, _input: string, _command: string, _args: string[]) =>
-        "How dare you utter the magical word XYZZY!",
-    );
-  } catch (e) {
-    assertEquals(e.message, "Room InvalidRoom does not exist in zone Zone1.");
-  }
+  assertThrows(
+    () => {
+      textworld.add_room_command_action(
+        "Zone1",
+        "InvalidRoom",
+        "xyzzy action",
+        "You recited the magical word XYZZY!!!",
+        ["xyzzy"],
+        (
+          _player: tw.Player,
+          _input: string,
+          _command: string,
+          _args: string[],
+        ) => "How dare you utter the magical word XYZZY!",
+      );
+    },
+    Error,
+    "Room InvalidRoom does not exist in zone Zone1.",
+  );
   textworld.reset_world();
 });
 
@@ -1337,43 +1394,46 @@ Deno.test("can_place_npc_in_room", () => {
 Deno.test("cant_place_npc_in_room_if_npc_doesnt_exist", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  try {
-    textworld.place_npc("Zone1", "Room1", "Guard");
-  } catch (e) {
-    assertEquals(e.message, "NPC Guard does not exist.");
-  }
+  assertThrows(
+    () => {
+      textworld.place_npc("Zone1", "Room1", "Guard");
+    },
+    Error,
+    "NPC Guard does not exist.",
+  );
   textworld.reset_world();
 });
 
 Deno.test("cant_place_npc_in_room_if_room_doesnt_exist", () => {
   textworld.create_zone("Zone1");
   textworld.create_npc("Guard", "A strong guard");
-  try {
-    textworld.place_npc("Zone1", "Room1", "Guard");
-  } catch (e) {
-    assertEquals(e.message, "Room Room1 does not exist in zone Zone1.");
-  }
+  assertThrows(
+    () => {
+      textworld.place_npc("Zone1", "Room1", "Guard");
+    },
+    Error,
+    "Room Room1 does not exist in zone Zone1.",
+  );
   textworld.reset_world();
 });
 
 Deno.test("cant_get_room_npc_if_room_doesnt_exist", () => {
   textworld.create_zone("Zone1");
-  try {
-    textworld.get_room_npc("Zone1", "Room1", "Guard");
-  } catch (e) {
-    assertEquals(e.message, "Room Room1 does not exist in zone Zone1.");
-  }
+  assertThrows(
+    () => {
+      textworld.get_room_npc("Zone1", "Room1", "Guard");
+    },
+    Error,
+    "Room Room1 does not exist in zone Zone1.",
+  );
   textworld.reset_world();
 });
 
 Deno.test("cant_get_room_npc_if_npc_doesnt_exist", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
-  try {
-    textworld.get_room_npc("Zone1", "Room1", "Guard");
-  } catch (e) {
-    assertEquals(e.message, "NPC Guard does not exist.");
-  }
+  const result = textworld.get_room_npc("Zone1", "Room1", "Guard");
+  assertEquals(result, null);
   textworld.reset_world();
 });
 
@@ -1408,17 +1468,16 @@ Deno.test("can_create_room_object", () => {
     "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
   );
   // Invalid Room
-  try {
-    textworld.get_room_object("Zone1", "InvalidRoom", "Fireplace");
-  } catch (e) {
-    assertEquals(e.message, "Room InvalidRoom does not exist in zone Zone1.");
-  }
+  assertThrows(
+    () => {
+      textworld.get_room_object("Zone1", "InvalidRoom", "Fireplace");
+    },
+    Error,
+    "Room InvalidRoom does not exist in zone Zone1.",
+  );
   // Invalid Object
-  try {
-    textworld.get_room_object("Zone1", "Room1", "Crystal Ball");
-  } catch (e) {
-    assertEquals(e.message, "Object Crystal Ball does not exist.");
-  }
+  const result = textworld.get_room_object("Zone1", "Room1", "Crystal Ball");
+  assertEquals(result, null);
   textworld.reset_world();
 });
 
@@ -1463,28 +1522,22 @@ Deno.test("can_process_look_at_room_object", () => {
   );
   // Invalid Player Room
   player.room = "InvalidRoom";
-  try {
-    textworld.look_at_or_examine_object(
-      player,
-      "look at fireplace",
-      "look at",
-      ["look", "at", "fireplace"],
-    );
-  } catch (e) {
-    assertEquals(e.message, "Player is not in a valid room.");
-  }
+  const result3 = textworld.look_at_or_examine_object(
+    player,
+    "look at fireplace",
+    "look at",
+    ["look", "at", "fireplace"],
+  );
+  assertEquals(result3.response, "Player is not in a valid room.");
   // Invalid Object
   player.room = "Room1";
-  try {
-    textworld.look_at_or_examine_object(
-      player,
-      "look at crystal ball",
-      "look at",
-      ["look", "at", "crystal", "ball"],
-    );
-  } catch (e) {
-    assertEquals(e.message, "Object Crystal Ball does not exist.");
-  }
+  const result4 = textworld.look_at_or_examine_object(
+    player,
+    "look at crystal ball",
+    "look at",
+    ["look", "at", "crystal", "ball"],
+  );
+  assertEquals(result4.response, "That object does not exist.");
   // Object with dialog
   const firepit_object = textworld.create_object(
     "Firepit",
@@ -1505,24 +1558,24 @@ Deno.test("can_process_look_at_room_object", () => {
     },
   );
   textworld.place_object("Zone1", "Room1", "Firepit");
-  const result3 = textworld.look_at_or_examine_object(
+  const result5 = textworld.look_at_or_examine_object(
     player,
     "examine Firepit",
     "examine",
     ["examine", "Firepit", "blow on fire"],
   );
   assertEquals(
-    result3.response,
+    result5.response,
     "You blew on the fire and it went out.",
   );
-  const result4 = textworld.look_at_or_examine_object(
+  const result6 = textworld.look_at_or_examine_object(
     player,
     "examine Firepit",
     "examine",
     ["examine", "Firepit", "invalid action"],
   );
   assertEquals(
-    result4.response,
+    result6.response,
     "There's nothing more to learn about this object.",
   );
   textworld.reset_world();
@@ -1567,20 +1620,24 @@ Deno.test("can_process_get_room_description_with_no_rooms", () => {
     "Room1",
   );
   textworld.create_zone("Zone1");
-  try {
-    textworld.get_room_description(player);
-  } catch (e) {
-    assertEquals(e.message, "Player is not in a valid room.");
-  }
+  assertThrows(
+    () => {
+      textworld.get_room_description(player);
+    },
+    Error,
+    "Player is not in a valid room.",
+  );
   textworld.reset_world();
 });
 
 Deno.test("can_process_get_exit_with_no_rooms", () => {
-  try {
-    textworld.get_exit("Zone1", "Room1", "north");
-  } catch (e) {
-    assertEquals(e.message, "Zone Zone1 does not exist.");
-  }
+  assertThrows(
+    () => {
+      textworld.get_exit("Zone1", "Room1", "north");
+    },
+    Error,
+    "Zone Zone1 does not exist.",
+  );
   textworld.reset_world();
 });
 
@@ -2446,11 +2503,13 @@ Deno.test("can_parse_malformed_command", async () => {
   assertEquals(result.response, "I don't understand that command.");
   result = JSON.parse(await textworld.parse_command(player, "show"));
   assertEquals(result.response, "That item does not exist.");
-  try {
-    JSON.parse(await textworld.parse_command(player, "take"));
-  } catch (e) {
-    assertEquals(e.message, "Player is not in a valid room.");
-  }
+  assertRejects(
+    async () => {
+      await textworld.parse_command(player, "take");
+    },
+    Error,
+    "Player is not in a valid room.",
+  );
   result = JSON.parse(await textworld.parse_command(player, "use"));
   assertEquals(result.response, "That item does not exist.");
   result = JSON.parse(await textworld.parse_command(player, "drop"));
@@ -2459,11 +2518,13 @@ Deno.test("can_parse_malformed_command", async () => {
   result = JSON.parse(await textworld.parse_command(player, "goto"));
   assertEquals(result.response, "That room or zone does not exist.");
   textworld.remove_godmode(player);
-  try {
-    JSON.parse(await textworld.parse_command(player, "look"));
-  } catch (e) {
-    assertEquals(e.message, "Player is not in a valid room.");
-  }
+  assertRejects(
+    async () => {
+      await textworld.parse_command(player, "look");
+    },
+    Error,
+    "Player is not in a valid room.",
+  );
   result = JSON.parse(await textworld.parse_command(player, "inspect"));
   assertEquals(result.response, "There is nothing else of interest here.");
   result = JSON.parse(await textworld.parse_command(player, "north"));
@@ -2830,18 +2891,22 @@ Deno.test("player_can_initate_attack_on_mob", () => {
   const result = textworld.initiate_attack(player, ["goblin"]);
   assertStringIncludes(result.response, "Player attacks Goblin");
   player.zone = "InvalidZone";
-  try {
-    textworld.initiate_attack(player, ["goblin"]);
-  } catch (e) {
-    assertEquals(e.message, "Player is not in a valid zone.");
-  }
+  assertThrows(
+    () => {
+      textworld.initiate_attack(player, ["goblin"]);
+    },
+    Error,
+    "Player is not in a valid zone.",
+  );
   player.zone = "Zone1";
   player.room = "InvalidRoom";
-  try {
-    textworld.initiate_attack(player, ["goblin"]);
-  } catch (e) {
-    assertEquals(e.message, "Player is not in a valid room.");
-  }
+  assertThrows(
+    () => {
+      textworld.initiate_attack(player, ["goblin"]);
+    },
+    Error,
+    "Player is not in a valid room.",
+  );
   player.room = "Room1";
   const result2 = textworld.initiate_attack(player, ["zombie"]);
   assertStringIncludes(result2.response, "That mob does not exist.");
@@ -3645,11 +3710,13 @@ Deno.test("player_cant_complete_quest_that_doesnt_exist", () => {
     "Zone1",
     "Room1",
   );
-  try {
-    textworld.is_quest_complete(player, "Quest1");
-  } catch (e) {
-    assertEquals(e.message, "The quest Quest1 does not exist.");
-  }
+  assertThrows(
+    () => {
+      textworld.is_quest_complete(player, "Quest1");
+    },
+    Error,
+    "The quest Quest1 does not exist.",
+  );
   textworld.reset_world();
 });
 
@@ -3675,11 +3742,13 @@ Deno.test("player_cant_complete_quest_that_has_no_steps", () => {
   );
   textworld.create_quest("Quest1", "A quest");
   textworld.pickup_quest(player, "Quest1");
-  try {
-    textworld.is_quest_complete(player, "Quest1");
-  } catch (e) {
-    assertEquals(e.message, "The quest Quest1 does not have any steps.");
-  }
+  assertThrows(
+    () => {
+      textworld.is_quest_complete(player, "Quest1");
+    },
+    Error,
+    "The quest Quest1 does not have any steps.",
+  );
   textworld.reset_world();
 });
 
@@ -3749,13 +3818,13 @@ Deno.test("player_cant_get_quest_progress_for_a_quest_that_doesnt_exist", () => 
     "Zone1",
     "Room1",
   );
-
-  try {
-    textworld.get_quest_progress(player, "Quest1");
-  } catch (e) {
-    assertEquals(e.message, "The quest Quest1 does not exist.");
-  }
-
+  assertThrows(
+    () => {
+      textworld.get_quest_progress(player, "Quest1");
+    },
+    Error,
+    "The quest Quest1 does not exist.",
+  );
   textworld.reset_world();
 });
 
@@ -3929,11 +3998,13 @@ Deno.test("player_can_navigate_between_rooms", () => {
   const room = textworld.get_player_room(player);
   assertEquals(room!.name, "Room2");
   player.zone = "InvalidZone";
-  try {
-    textworld.switch_room(player, "north");
-  } catch (e) {
-    assertEquals(e.message, "Player is not in a valid zone.");
-  }
+  assertThrows(
+    () => {
+      textworld.switch_room(player, "north");
+    },
+    Error,
+    "Player is not in a valid zone.",
+  );
   player.zone = "Zone1";
   player.room = "Room1";
   textworld.create_exit("Zone1", "Room1", "south", "Room2", true);
@@ -4099,11 +4170,13 @@ Deno.test("player_can_craft_recipe", () => {
   );
   // Invalid Recipe
   textworld.reset_world();
-  try {
-    textworld.craft_recipe(player, ["Iron Sword"]);
-  } catch (e) {
-    assertEquals(e.message, "Recipe does not exist.");
-  }
+  assertThrows(
+    () => {
+      textworld.craft_recipe(player, ["Iron Sword"]);
+    },
+    Error,
+    "Recipe does not exist.",
+  );
   textworld.reset_world();
 });
 
@@ -4242,7 +4315,7 @@ Deno.test("player_cant_talk_to_npc_if_room_doesnt_exist", () => {
     "Hello citizen, make sure you mind the law!",
   );
   textworld.place_npc("Zone1", "Room1", "Big Guard");
-  let result = textworld.interact_with_actor(
+  const result = textworld.interact_with_actor(
     player,
     "talk to Big Guard say Hello",
     "talk to",
@@ -4251,16 +4324,18 @@ Deno.test("player_cant_talk_to_npc_if_room_doesnt_exist", () => {
   assertEquals(result.response, "Hello citizen, make sure you mind the law!");
   player.zone = "Zone2";
   player.room = "Room2";
-  try {
-    result = textworld.interact_with_actor(
-      player,
-      "talk to Big Guard say Goodbye",
-      "talk to",
-      ["talk", "to", "Big", "Guard", "say", "Goodbye"],
-    );
-  } catch (e) {
-    assertEquals(e.message, "Player is not in a valid zone or room.");
-  }
+  assertThrows(
+    () => {
+      textworld.interact_with_actor(
+        player,
+        "talk to Big Guard say Goodbye",
+        "talk to",
+        ["talk", "to", "Big", "Guard", "say", "Goodbye"],
+      );
+    },
+    Error,
+    "Player is not in a valid zone or room.",
+  );
   textworld.reset_world();
 });
 
@@ -4663,16 +4738,20 @@ Deno.test("can_set_players_room_to_zone_start", () => {
   textworld.set_player_room_to_zone_start(player, "Zone2");
   assertEquals(player.zone, "Zone2");
   assertEquals(player.room, "Room1");
-  try {
-    textworld.set_room_as_zone_starter("InvalidZone", "Room1");
-  } catch (e) {
-    assertEquals(e.message, "Zone InvalidZone does not exist.");
-  }
-  try {
-    textworld.set_room_as_zone_starter("Zone1", "InvalidRoom");
-  } catch (e) {
-    assertEquals(e.message, "Room InvalidRoom does not exist in zone Zone1.");
-  }
+  assertThrows(
+    () => {
+      textworld.set_room_as_zone_starter("InvalidZone", "Room1");
+    },
+    Error,
+    "Zone InvalidZone does not exist.",
+  );
+  assertThrows(
+    () => {
+      textworld.set_room_as_zone_starter("Zone1", "InvalidRoom");
+    },
+    Error,
+    "Room InvalidRoom does not exist in zone Zone1.",
+  );
   textworld.reset_world();
 });
 
@@ -4688,11 +4767,13 @@ Deno.test("cant_set_players_room_to_zone_start_if_there_is_no_starter_room_in_zo
   textworld.create_room("Zone1", "Room1", "This is room 1 in zone 1");
   textworld.create_room("Zone2", "Room1", "This is room 1 in zone 2");
   textworld.set_room_as_zone_starter("Zone1", "Room1");
-  try {
-    textworld.set_player_room_to_zone_start(player, "Zone2");
-  } catch (e) {
-    assertEquals(e.message, "Zone Zone2 does not have a starter room.");
-  }
+  assertThrows(
+    () => {
+      textworld.set_player_room_to_zone_start(player, "Zone2");
+    },
+    Error,
+    "Zone Zone2 does not have a starter room.",
+  );
   // Invalid Zone
   const result = textworld.get_zone_starter_room("InvalidZone");
   assertEquals(result, null);
@@ -4866,11 +4947,13 @@ Deno.test("can_plot_room_map", () => {
   const result = textworld.plot_room_map(player);
   assertEquals(result.response, "#\n|\n@\n|\n#");
   player.zone = "InvalidZone";
-  try {
-    textworld.plot_room_map(player);
-  } catch (e) {
-    assertEquals(e.message, "Player is not in a valid zone.");
-  }
+  assertThrows(
+    () => {
+      textworld.plot_room_map(player);
+    },
+    Error,
+    "Player is not in a valid zone.",
+  );
   textworld.reset_world();
 });
 
@@ -5104,26 +5187,30 @@ Deno.test("can_send_email", () => {
   assertEquals(player2.email.length, 1);
   textworld.delete_email(player2, player2.email[0].id);
   assertEquals(player2.email.length, 0);
-  try {
-    textworld.send_email(
-      "InvalidPlayerId",
-      player2.id,
-      "Hello",
-      "Hello, how are you?",
-    );
-  } catch (e) {
-    assertEquals(e.message, "Player does not exist.");
-  }
-  try {
-    textworld.send_email(
-      player1.id,
-      "InvalidPlayerId",
-      "Hello",
-      "Hello, how are you?",
-    );
-  } catch (e) {
-    assertEquals(e.message, "Player does not exist.");
-  }
+  assertThrows(
+    () => {
+      textworld.send_email(
+        "InvalidPlayerId",
+        player2.id,
+        "Hello",
+        "Hello, how are you?",
+      );
+    },
+    Error,
+    "Player does not exist.",
+  );
+  assertThrows(
+    () => {
+      textworld.send_email(
+        player1.id,
+        "InvalidPlayerId",
+        "Hello",
+        "Hello, how are you?",
+      );
+    },
+    Error,
+    "Player does not exist.",
+  );
   textworld.reset_world();
 });
 

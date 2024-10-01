@@ -2996,6 +2996,15 @@ export class TextWorld {
     return room;
   }
 
+  /**
+   * Shorthand function that creates a new room object and returns that object.
+   * The room still has to be added to the world. This function is specifically
+   * designed to be used with create_rooms().
+   *
+   * @param {string} name - The name of the room.
+   * @param {string} description - The description of the room.
+   * @returns {Room} - The room object.
+   */
   r(name: string, description: string): Room {
     const room: Room = {
       id: name,
@@ -3012,6 +3021,12 @@ export class TextWorld {
     return room;
   }
 
+  /**
+   * Allows you to create multiple rooms at once and add them to a zone.
+   *
+   * @param {string} zone_name - The name of the zone to create the rooms in.
+   * @param {Room[]} rooms - The rooms to create.
+   */
   create_rooms(zone_name: string, rooms: Room[]): void {
     let zone = this.get_zone(zone_name);
     if (!zone) {
@@ -3380,7 +3395,7 @@ export class TextWorld {
 
     if (!current_room) {
       return {
-        response: "That object does not exist.",
+        response: "Player is not in a valid room.",
       };
     }
 
@@ -3671,7 +3686,7 @@ export class TextWorld {
    */
   get_random_number(upper: number = 100): number {
     const nums = new Uint32Array(1);
-    window.crypto.getRandomValues(nums);
+    crypto.getRandomValues(nums);
     return nums[0] % (upper + 1);
   }
 
