@@ -122,9 +122,11 @@ function create_items() {
 }
 
 function place_items() {
-  textworld.place_item("The Forest", "Open Field", "Gold coin purse");
-  textworld.place_item("The Forest", "Open Field", "Sword");
-  textworld.place_item("The Forest", "Open Field", "Potion");
+  textworld.place_items("The Forest", "Open Field", [
+    { name: "Sword", quantity: 1 },
+    { name: "Potion", quantity: 1 },
+    { name: "Gold coin purse", quantity: 1 },
+  ]);
   textworld.place_item("The Forest", "Stream", "Potion", 3);
   textworld.place_item("The Forest", "Hollow Tree", "Key");
 }
@@ -191,6 +193,42 @@ function create_spawn_locations() {
   textworld.start_spawn_location("Gold purse spawner");
 }
 
+function create_question_sequence(player: tw.Player) {
+  const question_sequence: tw.QuestionSequence = {
+    name: "player_questions",
+    questions: [
+      {
+        id: "name",
+        data_type: "String",
+        question: "What is your name?",
+      },
+    ],
+  };
+  textworld.add_session(
+    player,
+    textworld.current_question_sequence,
+    "String",
+    "player_questions",
+  );
+  textworld.add_session(
+    player,
+    "player_questions",
+    "QuestionSequence",
+    question_sequence,
+    {
+      name: "player_questions",
+      action: (player: tw.Player, session: tw.Session) => {
+        const session_payload = session.payload as tw.QuestionSequence;
+        const name = session_payload.questions.find((q) => q.id === "name")
+          ?.answer;
+        if (name) {
+          player.name = name;
+        }
+      },
+    },
+  );
+}
+
 create_the_forest_zone();
 create_log_cabin_zone();
 create_items();
@@ -209,37 +247,6 @@ const player = textworld.create_player(
   "Open Field",
 );
 
-const question_sequence: tw.QuestionSequence = {
-  name: "player_questions",
-  questions: [
-    {
-      id: "name",
-      data_type: "String",
-      question: "What is your name?",
-    },
-  ],
-};
-textworld.add_session(
-  player,
-  textworld.current_question_sequence,
-  "String",
-  "player_questions",
-);
-textworld.add_session(
-  player,
-  "player_questions",
-  "QuestionSequence",
-  question_sequence,
-  {
-    name: "player_questions",
-    action: (player: tw.Player, session: tw.Session) => {
-      const session_payload = session.payload as tw.QuestionSequence;
-      const name = session_payload.questions.find((q) => q.id === "name")
-        ?.answer;
-      if (name) {
-        player.name = name;
-      }
-    },
-  },
-);
+create_question_sequence(player);
+
 textworld.run_websocket_server(8080, player.id);

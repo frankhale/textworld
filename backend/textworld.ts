@@ -1693,6 +1693,45 @@ export class TextWorld {
   }
 
   /**
+   * Places items in a room.
+   *
+   * @param zone_name - The name of the zone to place the item in.
+   * @param in_room_name - The name of the room to place the item in.
+   * @param item_drops - The items to place.
+   * @param player - If player is not null, the item will be placed in the player's instance.
+   * @throws {Error} - If the zone or room does not exist.
+   */
+  place_items(
+    zone_name: string,
+    in_room_name: string,
+    item_drops: Drop[],
+    player: Player | null = null,
+  ): void {
+    const room = player
+      ? this.get_instance_room(player, zone_name, in_room_name)
+      : this.get_room(zone_name, in_room_name);
+
+    if (!room) {
+      throw new Error(
+        `Room ${in_room_name} does not exist in zone ${zone_name}.`,
+      );
+    }
+
+    // Verify all items exist before modifying the room
+    for (const { name } of item_drops) {
+      const item = this.get_item(name);
+      if (!item) {
+        throw new Error(`Item ${name} does not exist.`);
+      }
+    }
+
+    // All items exist; proceed to add them to the room
+    for (const { name, quantity } of item_drops) {
+      room.items.push({ name, quantity });
+    }
+  }
+
+  /**
    * Adds an item to a player.
    *
    * @param {Player} player - The player to add the item to.
