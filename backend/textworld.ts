@@ -2857,7 +2857,7 @@ export class TextWorld {
     const description = this.get_description(player, current_room, "default");
 
     const room_actions = this.world_actions.room_actions.find(
-      (action) => action.name === current_room.name,
+      (action) => action.name === `${zone.name}-${current_room.name}`,
     );
 
     const action_result = room_actions?.actions
@@ -2893,7 +2893,7 @@ export class TextWorld {
 
     if (
       !current_room ||
-      (!has_command && !this.has_room_actions(current_room.name))
+      (!has_command && !this.has_room_actions(zone.name, current_room.name))
     ) {
       return {
         response: "You can't go that way.",
@@ -2923,9 +2923,9 @@ export class TextWorld {
    * @param {string} room_name - The name of the room to check.
    * @returns {boolean} - True if the room has actions, false otherwise.
    */
-  has_room_actions(room_name: string): boolean {
+  has_room_actions(zone_name: string, room_name: string): boolean {
     return !!this.world_actions.room_actions.find(
-      (action) => action.name === room_name,
+      (action) => action.name === `${zone_name}-${room_name}`,
     );
   }
 
@@ -3046,7 +3046,7 @@ export class TextWorld {
       zone = this.create_zone(zone_name);
     }
 
-    const id = name;
+    const id = `${zone.name}-${name}`;
 
     // Create the new room and add it to the zone
     const room: Room = {
@@ -3196,15 +3196,17 @@ export class TextWorld {
       throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
     }
 
+    const id = `${zone_name}-${room_name}`;
+
     const room_action = this.world_actions.room_actions.find(
-      (action_obj) => action_obj.name.toLowerCase() === room_name.toLowerCase(),
+      (action_obj) => action_obj.name === id,
     );
 
     if (room_action) {
       room_action.actions?.push(action);
     } else {
       this.world_actions.room_actions.push({
-        name: room.name,
+        name: id,
         actions: [action],
       });
     }
@@ -3217,9 +3219,11 @@ export class TextWorld {
    * @param room_name - The name of the room to remove the action from.
    * @returns {NamedActions | null}
    */
-  get_room_actions(room_name: string): NamedActions | null {
+  get_room_actions(zone_name: string, room_name: string): NamedActions | null {
     const room_actions = this.world_actions.room_actions.find(
-      (action_obj) => action_obj.name.toLowerCase() === room_name.toLowerCase(),
+      (action_obj) =>
+        action_obj.name.toLowerCase() ===
+          `${zone_name.toLowerCase()}-${room_name.toLowerCase()}`,
     );
 
     return room_actions || null;
