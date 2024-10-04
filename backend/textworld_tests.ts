@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 30 September 2024
+ * 1 October 2024
  */
 
 import {
@@ -820,6 +820,42 @@ Deno.test("can_create_exit", () => {
   textworld.reset_world();
 });
 
+Deno.test("can_create_exits", () => {
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_room("Zone1", "Room2", "This is room 2");
+  textworld.create_exits("Zone1", "Room1", [
+    textworld.e("north", "Room2"),
+    textworld.e("south", "Room2"),
+    textworld.e("east", "Room2"),
+  ]);
+  const room = textworld.get_room("Zone1", "Room1");
+  assertEquals(room?.exits.length, 3);
+  assertThrows(
+    () => {
+      textworld.create_exits("InvalidZone", "Room1", [
+        textworld.e("north", "Room2"),
+        textworld.e("south", "Room2"),
+        textworld.e("east", "Room2"),
+      ]);
+    },
+    Error,
+    "Zone InvalidZone does not exist.",
+  );
+  assertThrows(
+    () => {
+      textworld.create_exits("Zone1", "InvalidRoom", [
+        textworld.e("north", "Room2"),
+        textworld.e("south", "Room2"),
+        textworld.e("east", "Room2"),
+      ]);
+    },
+    Error,
+    "Room InvalidRoom or Room2 does not exist in zone Zone1.",
+  );
+  textworld.reset_world();
+});
+
 Deno.test("can_remove_exit", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
@@ -1015,6 +1051,63 @@ Deno.test("can_place_item_in_room", () => {
   textworld.place_item("Zone1", "Room1", "Sword");
   const item = textworld.get_room_item("Zone1", "Room1", "Sword");
   assertEquals(item?.name, "Sword");
+  textworld.reset_world();
+});
+
+Deno.test("can_place_items_in_room", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_item("Sword", "A sharp sword", false, false);
+  textworld.create_item("Potion", "An ordinary potion", false, false);
+  textworld.create_item("Gold Coin", "A shiny gold coin", false, false);
+  textworld.place_items("Zone1", "Room1", [
+    { name: "Sword", quantity: 1 },
+    { name: "Potion", quantity: 1 },
+    { name: "Gold Coin", quantity: 1 },
+  ]);
+  const room = textworld.get_room("Zone1", "Room1");
+  assertEquals(room?.items.length, 3);
+  assertEquals(room?.items[0].name, "Sword");
+  assertEquals(room?.items[1].name, "Potion");
+  assertEquals(room?.items[2].name, "Gold Coin");
+  assertThrows(
+    () => {
+      textworld.place_items("Zone1", "Room1", [
+        { name: "Crystal Ball", quantity: 1 },
+      ]);
+    },
+    Error,
+    "Item Crystal Ball does not exist.",
+  );
+  assertThrows(
+    () => {
+      textworld.place_items("Zone1", "Room2", [
+        { name: "Sword", quantity: 1 },
+      ]);
+    },
+    Error,
+    "Room Room2 does not exist in zone Zone1.",
+  );
+  if (room) {
+    room.items.length = 0;
+  }
+  textworld.create_instance_room(player, "Zone1", "Room1");
+  textworld.place_items("Zone1", "Room1", [
+    { name: "Sword", quantity: 1 },
+    { name: "Potion", quantity: 1 },
+    { name: "Gold Coin", quantity: 1 },
+  ], player);
+  const instance_room = textworld.get_instance_room(player, "Zone1", "Room1");
+  assertEquals(instance_room?.items.length, 3);
+  assertEquals(instance_room?.items[0].name, "Sword");
+  assertEquals(instance_room?.items[1].name, "Potion");
+  assertEquals(instance_room?.items[2].name, "Gold Coin");
   textworld.reset_world();
 });
 
@@ -1231,13 +1324,13 @@ Deno.test("can_add_room_action", () => {
     textworld.set_actor_health_to_max(player);
     return "You feel a rush of energy wash over you! Your health is restored.";
   });
-  const result = textworld.get_room_actions("Room1");
+  const result = textworld.get_room_actions("Zone1", "Room1");
   assertEquals(result?.actions?.length, 1);
   // Add additional room action
   textworld.add_room_action("Zone1", "Room1", (_player) => {
     return "Second room action.";
   });
-  const result2 = textworld.get_room_actions("Room1");
+  const result2 = textworld.get_room_actions("Zone1", "Room1");
   assertEquals(result2?.actions?.length, 2);
   // Invalid room
   assertThrows(
@@ -1250,7 +1343,7 @@ Deno.test("can_add_room_action", () => {
     "Room InvalidRoom does not exist in zone Zone1.",
   );
   textworld.reset_world_actions();
-  const result3 = textworld.get_room_actions("Room1");
+  const result3 = textworld.get_room_actions("Zone1", "Room1");
   assertEquals(result3, null);
   textworld.reset_world();
 });

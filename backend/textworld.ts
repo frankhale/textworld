@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 30 September 2024
+ * 1 October 2024
  *
  * TODO:
  *
@@ -166,7 +166,8 @@ export interface Item extends Entity {
 
 export type ExitName = "north" | "south" | "east" | "west";
 
-export interface Exit extends Named {
+export interface Exit {
+  name: ExitName;
   location: string;
   hidden: boolean;
 }
@@ -1692,6 +1693,45 @@ export class TextWorld {
   }
 
   /**
+   * Places items in a room.
+   *
+   * @param zone_name - The name of the zone to place the item in.
+   * @param in_room_name - The name of the room to place the item in.
+   * @param item_drops - The items to place.
+   * @param player - If player is not null, the item will be placed in the player's instance.
+   * @throws {Error} - If the zone or room does not exist.
+   */
+  place_items(
+    zone_name: string,
+    in_room_name: string,
+    item_drops: Drop[],
+    player: Player | null = null,
+  ): void {
+    const room = player
+      ? this.get_instance_room(player, zone_name, in_room_name)
+      : this.get_room(zone_name, in_room_name);
+
+    if (!room) {
+      throw new Error(
+        `Room ${in_room_name} does not exist in zone ${zone_name}.`,
+      );
+    }
+
+    // Verify all items exist before modifying the room
+    for (const { name } of item_drops) {
+      const item = this.get_item(name);
+      if (!item) {
+        throw new Error(`Item ${name} does not exist.`);
+      }
+    }
+
+    // All items exist; proceed to add them to the room
+    for (const { name, quantity } of item_drops) {
+      room.items.push({ name, quantity });
+    }
+  }
+
+  /**
    * Adds an item to a player.
    *
    * @param {Player} player - The player to add the item to.
@@ -2654,7 +2694,46 @@ export class TextWorld {
     to_room.exits.push({
       name: opposite_exit_name,
       location: from_room_name,
-      hidden,
+      hidden: false,
+    });
+  }
+
+  e(exit_name: ExitName, location: string, hidden = false): Exit {
+    return { name: exit_name, location, hidden };
+  }
+
+  create_exits(zone_name: string, from_room_name: string, exits: Exit[]): void {
+    const zone = this.get_zone(zone_name);
+    if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
+
+    const from_room = zone.rooms.find(
+      (room) => room.name.toLowerCase() === from_room_name.toLowerCase(),
+    );
+
+    exits.forEach((exit) => {
+      const to_room = zone.rooms.find(
+        (room) => room.name.toLowerCase() === exit.location.toLowerCase(),
+      );
+
+      if (!from_room || !to_room) {
+        throw new Error(
+          `Room ${from_room_name} or ${exit.location} does not exist in zone ${zone_name}.`,
+        );
+      }
+
+      const opposite_exit_name = this.get_opposite_exit_name(exit.name);
+
+      from_room.exits.push({
+        name: exit.name,
+        location: exit.location,
+        hidden: exit.hidden,
+      });
+
+      to_room.exits.push({
+        name: opposite_exit_name,
+        location: from_room_name,
+        hidden: false,
+      });
     });
   }
 
@@ -2664,8 +2743,8 @@ export class TextWorld {
    * @param {string} exit_name - The name of the exit.
    * @returns {Exit} - The opposite exit name.
    */
-  get_opposite_exit_name(exit_name: ExitName): string {
-    const opposites: { [key: string]: string } = {
+  get_opposite_exit_name(exit_name: ExitName): ExitName {
+    const opposites: { [key: string]: ExitName } = {
       north: "south",
       south: "north",
       east: "west",
@@ -2778,7 +2857,7 @@ export class TextWorld {
     const description = this.get_description(player, current_room, "default");
 
     const room_actions = this.world_actions.room_actions.find(
-      (action) => action.name === current_room.name,
+      (action) => action.name === `${zone.name}-${current_room.name}`,
     );
 
     const action_result = room_actions?.actions
@@ -2814,7 +2893,7 @@ export class TextWorld {
 
     if (
       !current_room ||
-      (!has_command && !this.has_room_actions(current_room.name))
+      (!has_command && !this.has_room_actions(zone.name, current_room.name))
     ) {
       return {
         response: "You can't go that way.",
@@ -2844,9 +2923,9 @@ export class TextWorld {
    * @param {string} room_name - The name of the room to check.
    * @returns {boolean} - True if the room has actions, false otherwise.
    */
-  has_room_actions(room_name: string): boolean {
+  has_room_actions(zone_name: string, room_name: string): boolean {
     return !!this.world_actions.room_actions.find(
-      (action) => action.name === room_name,
+      (action) => action.name === `${zone_name}-${room_name}`,
     );
   }
 
@@ -2967,7 +3046,7 @@ export class TextWorld {
       zone = this.create_zone(zone_name);
     }
 
-    const id = name;
+    const id = `${zone.name}-${name}`;
 
     // Create the new room and add it to the zone
     const room: Room = {
@@ -3117,15 +3196,17 @@ export class TextWorld {
       throw new Error(`Room ${room_name} does not exist in zone ${zone_name}.`);
     }
 
+    const id = `${zone_name}-${room_name}`;
+
     const room_action = this.world_actions.room_actions.find(
-      (action_obj) => action_obj.name.toLowerCase() === room_name.toLowerCase(),
+      (action_obj) => action_obj.name === id,
     );
 
     if (room_action) {
       room_action.actions?.push(action);
     } else {
       this.world_actions.room_actions.push({
-        name: room.name,
+        name: id,
         actions: [action],
       });
     }
@@ -3138,9 +3219,11 @@ export class TextWorld {
    * @param room_name - The name of the room to remove the action from.
    * @returns {NamedActions | null}
    */
-  get_room_actions(room_name: string): NamedActions | null {
+  get_room_actions(zone_name: string, room_name: string): NamedActions | null {
     const room_actions = this.world_actions.room_actions.find(
-      (action_obj) => action_obj.name.toLowerCase() === room_name.toLowerCase(),
+      (action_obj) =>
+        action_obj.name.toLowerCase() ===
+          `${zone_name.toLowerCase()}-${room_name.toLowerCase()}`,
     );
 
     return room_actions || null;
