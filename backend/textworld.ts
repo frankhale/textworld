@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 1 October 2024
+ * 3 October 2024
  *
  * TODO:
  *
@@ -126,7 +126,7 @@ export interface Email {
 }
 
 export interface Player extends Actor {
-  score: number;
+  score: number; // For old school text adventure style games
   gold: number;
   zone: string;
   room: string;
