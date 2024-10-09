@@ -168,7 +168,8 @@ export type ExitName = "north" | "south" | "east" | "west";
 
 export interface Exit {
   name: ExitName;
-  location: string;
+  location: string; // FIXME: This assumes that the location the exit goes to is
+  // in the same zone which may not always be the case
   hidden: boolean;
 }
 
