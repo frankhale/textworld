@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 3 October 2024
+ * 13 October 2024
  */
 
 import {
@@ -636,7 +636,7 @@ Deno.test("can_describe_room", () => {
   const result5 = textworld.get_room_description(player);
   assertEquals(result5.objects, "Chest");
   // INVALID ZONE
-  player.zone = "InvalidZone";
+  player.location.zone = "InvalidZone";
   assertThrows(
     () => {
       textworld.get_room_description(player);
@@ -645,8 +645,8 @@ Deno.test("can_describe_room", () => {
     "Player is not in a valid zone.",
   );
   // INVALID ROOM
-  player.zone = "Zone1";
-  player.room = "InvalidRoom";
+  player.location.zone = "Zone1";
+  player.location.room = "InvalidRoom";
   assertThrows(
     () => {
       textworld.get_room_description(player);
@@ -1614,7 +1614,7 @@ Deno.test("can_process_look_at_room_object", () => {
     "There's nothing special about it.",
   );
   // Invalid Player Room
-  player.room = "InvalidRoom";
+  player.location.room = "InvalidRoom";
   const result3 = textworld.look_at_or_examine_object(
     player,
     "look at fireplace",
@@ -1623,7 +1623,7 @@ Deno.test("can_process_look_at_room_object", () => {
   );
   assertEquals(result3.response, "Player is not in a valid room.");
   // Invalid Object
-  player.room = "Room1";
+  player.location.room = "Room1";
   const result4 = textworld.look_at_or_examine_object(
     player,
     "look at crystal ball",
@@ -2983,7 +2983,7 @@ Deno.test("player_can_initate_attack_on_mob", () => {
   textworld.place_mob("Zone1", "Room1", "Goblin");
   const result = textworld.initiate_attack(player, ["goblin"]);
   assertStringIncludes(result.response, "Player attacks Goblin");
-  player.zone = "InvalidZone";
+  player.location.zone = "InvalidZone";
   assertThrows(
     () => {
       textworld.initiate_attack(player, ["goblin"]);
@@ -2991,8 +2991,8 @@ Deno.test("player_can_initate_attack_on_mob", () => {
     Error,
     "Player is not in a valid zone.",
   );
-  player.zone = "Zone1";
-  player.room = "InvalidRoom";
+  player.location.zone = "Zone1";
+  player.location.room = "InvalidRoom";
   assertThrows(
     () => {
       textworld.initiate_attack(player, ["goblin"]);
@@ -3000,7 +3000,7 @@ Deno.test("player_can_initate_attack_on_mob", () => {
     Error,
     "Player is not in a valid room.",
   );
-  player.room = "Room1";
+  player.location.room = "Room1";
   const result2 = textworld.initiate_attack(player, ["zombie"]);
   assertStringIncludes(result2.response, "That mob does not exist.");
   textworld.reset_world();
@@ -4090,7 +4090,7 @@ Deno.test("player_can_navigate_between_rooms", () => {
   textworld.switch_room(player, "north");
   const room = textworld.get_player_room(player);
   assertEquals(room!.name, "Room2");
-  player.zone = "InvalidZone";
+  player.location.zone = "InvalidZone";
   assertThrows(
     () => {
       textworld.switch_room(player, "north");
@@ -4098,8 +4098,8 @@ Deno.test("player_can_navigate_between_rooms", () => {
     Error,
     "Player is not in a valid zone.",
   );
-  player.zone = "Zone1";
-  player.room = "Room1";
+  player.location.zone = "Zone1";
+  player.location.room = "Room1";
   textworld.create_exit("Zone1", "Room1", "south", "Room2", true);
   textworld.switch_room(player, "south");
   const room2 = textworld.get_player_room(player);
@@ -4415,8 +4415,8 @@ Deno.test("player_cant_talk_to_npc_if_room_doesnt_exist", () => {
     ["talk", "to", "Big", "Guard", "say", "Hello"],
   );
   assertEquals(result.response, "Hello citizen, make sure you mind the law!");
-  player.zone = "Zone2";
-  player.room = "Room2";
+  player.location.zone = "Zone2";
+  player.location.room = "Room2";
   assertThrows(
     () => {
       textworld.interact_with_actor(
@@ -4565,8 +4565,8 @@ Deno.test(
       result.response,
       "Blue waves of light start spinning all around you. They get faster and faster until you can't see anything. When the light fades, you find yourself in a new place.\n\nThis is room 1 in zone 2",
     );
-    assertEquals(player.zone, "Zone2");
-    assertEquals(player.room, "Room1");
+    assertEquals(player.location.zone, "Zone2");
+    assertEquals(player.location.room, "Room1");
     textworld.reset_world();
   },
 );
@@ -4829,8 +4829,8 @@ Deno.test("can_set_players_room_to_zone_start", () => {
   textworld.set_room_as_zone_starter("Zone1", "Room1");
   textworld.set_room_as_zone_starter("Zone2", "Room1");
   textworld.set_player_room_to_zone_start(player, "Zone2");
-  assertEquals(player.zone, "Zone2");
-  assertEquals(player.room, "Room1");
+  assertEquals(player.location.zone, "Zone2");
+  assertEquals(player.location.room, "Room1");
   assertThrows(
     () => {
       textworld.set_room_as_zone_starter("InvalidZone", "Room1");
@@ -4885,8 +4885,8 @@ Deno.test("can_set_players_room_to_another_room", () => {
   textworld.create_room("Zone1", "Room2", "This is room 2");
   textworld.set_room_as_zone_starter("Zone1", "Room1");
   textworld.set_player_zone_and_room(player, "Zone1", "Room2");
-  assertEquals(player.zone, "Zone1");
-  assertEquals(player.room, "Room2");
+  assertEquals(player.location.zone, "Zone1");
+  assertEquals(player.location.room, "Room2");
   textworld.reset_world();
 });
 
@@ -4902,8 +4902,8 @@ Deno.test("can_set_players_zone_and_room", () => {
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_room("Zone2", "Room1", "This is room 1");
   textworld.set_player_zone_and_room(player, "Zone2", "Room1");
-  assertEquals(player.zone, "Zone2");
-  assertEquals(player.room, "Room1");
+  assertEquals(player.location.zone, "Zone2");
+  assertEquals(player.location.room, "Room1");
   textworld.reset_world();
 });
 
@@ -5012,7 +5012,7 @@ Deno.test("can_get_description_of_room", () => {
   const current_room = textworld
     .get_player_zone(player)
     ?.rooms.find(
-      (room) => room.name.toLowerCase() === player.room.toLowerCase(),
+      (room) => room.name.toLowerCase() === player.location.room.toLowerCase(),
     );
   assertNotEquals(current_room, null);
   const result = textworld.get_description(player, current_room!, "default");
@@ -5039,7 +5039,7 @@ Deno.test("can_plot_room_map", () => {
   textworld.create_exit("Zone1", "Room3", "north", "Room4", true);
   const result = textworld.plot_room_map(player);
   assertEquals(result.response, "#\n|\n@\n|\n#");
-  player.zone = "InvalidZone";
+  player.location.zone = "InvalidZone";
   assertThrows(
     () => {
       textworld.plot_room_map(player);

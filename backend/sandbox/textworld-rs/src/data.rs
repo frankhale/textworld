@@ -1,5 +1,6 @@
-mod builders;
+pub mod builders;
 
+#[derive(Default)]
 pub struct Item {
     name: String,
     descriptions: Vec<(String, String)>,
@@ -9,6 +10,7 @@ pub struct Item {
     value: u32,
 }
 
+#[derive(Default)]
 pub struct Location {
     zone_name: String,
     room_name: String,
@@ -22,12 +24,14 @@ pub enum ExitName {
     West,
 }
 
+#[derive(Default)]
 pub struct Exit {
     name: String,
     location: Location,
     hidden: bool,
 }
 
+#[derive(Default)]
 pub struct Room {
     name: String,
     descriptions: Vec<(String, String)>,
@@ -35,11 +39,13 @@ pub struct Room {
     exits: Option<Vec<Exit>>,
 }
 
+#[derive(Default)]
 pub struct Zone {
     name: String,
     rooms: Option<Vec<Room>>,
 }
 
+#[derive(Default)]
 pub struct Player {
     score: u64,
     gold: u64,
@@ -47,6 +53,7 @@ pub struct Player {
     description: String,
 }
 
+#[derive(Default)]
 pub struct World {
     players: Vec<Player>,
     zones: Vec<Zone>,

@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 3 October 2024
+ * 13 October 2024
  *
  * TODO:
  *
@@ -125,11 +125,15 @@ export interface Email {
   items?: Drop[];
 }
 
+export interface Location {
+  zone: string;
+  room: string;
+}
+
 export interface Player extends Actor {
   score: number; // For old school text adventure style games
   gold: number;
-  zone: string;
-  room: string;
+  location: Location;
   quests: string[];
   quests_completed: string[];
   known_recipes: string[];
@@ -465,7 +469,7 @@ export class TextWorld {
       "resurrect yourself.",
       ["resurrect", "rez"],
       (player, _input, _command, _args) => {
-        this.set_player_room_to_zone_start(player, player.zone);
+        this.set_player_room_to_zone_start(player, player.location.zone);
         return JSON.stringify(this.resurrect_actor(player));
       },
     ),
@@ -543,8 +547,12 @@ export class TextWorld {
       score: 0,
       stats,
       gold: 0,
-      zone: zone_name,
-      room: room_name,
+      // zone: zone_name,
+      // room: room_name,
+      location: {
+        zone: zone_name,
+        room: room_name,
+      },
       flags: [],
       items: [],
       quests: [],
@@ -703,8 +711,9 @@ export class TextWorld {
    */
   get_player_zone(player: Player): Zone | null {
     return (
-      player.instance.find((zone) => zone.name === player.zone) ||
-      this.world.zones.find((zone) => zone.name === player.zone) || null
+      player.instance.find((zone) => zone.name === player.location.zone) ||
+      this.world.zones.find((zone) => zone.name === player.location.zone) ||
+      null
     );
   }
 
@@ -719,7 +728,8 @@ export class TextWorld {
 
     return (
       zone?.rooms.find(
-        (room) => room.name.toLowerCase() === player.room.toLowerCase(),
+        (room) =>
+          room.name.toLowerCase() === player.location.room.toLowerCase(),
       ) || null
     );
   }
@@ -757,8 +767,10 @@ export class TextWorld {
   set_player_room_to_zone_start(player: Player, zone_name: string): void {
     const room = this.get_zone_starter_room(zone_name);
     if (room) {
-      player.zone = zone_name;
-      player.room = room.name;
+      player.location = {
+        zone: zone_name,
+        room: room.name,
+      };
     } else {
       throw new Error(`Zone ${zone_name} does not have a starter room.`);
     }
@@ -779,8 +791,10 @@ export class TextWorld {
     const room = this.get_room(zone_name, room_name);
 
     if (room) {
-      player.zone = zone_name;
-      player.room = room_name;
+      player.location = {
+        zone: zone_name,
+        room: room_name,
+      };
     }
   }
 
@@ -1890,7 +1904,7 @@ export class TextWorld {
    */
   take_all_items(player: Player): CommandResponse {
     const current_room = this.get_player_zone(player)?.rooms.find(
-      (room) => room.name === player.room,
+      (room) => room.name === player.location.room,
     );
 
     if (!current_room || current_room.items.length === 0) {
@@ -2069,7 +2083,7 @@ export class TextWorld {
    */
   drop_all_items(player: Player): CommandResponse {
     const current_room = this.get_player_zone(player)?.rooms.find(
-      (room) => room.name.toLowerCase() === player.room.toLowerCase(),
+      (room) => room.name.toLowerCase() === player.location.room.toLowerCase(),
     );
 
     if (!current_room || player.items.length === 0) {
@@ -2834,7 +2848,7 @@ export class TextWorld {
     }
 
     const current_room = zone.rooms.find(
-      (room) => room.name.toLowerCase() === player.room.toLowerCase(),
+      (room) => room.name.toLowerCase() === player.location.room.toLowerCase(),
     );
     if (!current_room) {
       throw new Error("Player is not in a valid room.");
@@ -2910,7 +2924,7 @@ export class TextWorld {
       }
 
       if (exit.hidden) exit.hidden = false;
-      player.room = exit.location;
+      player.location.room = exit.location;
 
       current_room = this.get_player_room(player);
     }
@@ -2948,7 +2962,7 @@ export class TextWorld {
 
     if (window_size !== 0) {
       const current_room_index = rooms.findIndex(
-        (room) => room.name === player.room,
+        (room) => room.name === player.location.room,
       );
       const window_start = Math.max(current_room_index - window_size, 0);
       const window_end = Math.min(
@@ -2974,7 +2988,11 @@ export class TextWorld {
     };
 
     const queue = [
-      { room: rooms.find((room) => room.name === player.room)!, x: 0, y: 0 },
+      {
+        room: rooms.find((room) => room.name === player.location.room)!,
+        x: 0,
+        y: 0,
+      },
     ];
     room_grid["0,0"] = "@";
 
@@ -2994,9 +3012,8 @@ export class TextWorld {
           const new_y = y + dy;
           const symbol = direction_to_symbol[exit.name];
 
-          room_grid[`${new_x},${new_y}`] = neighbor_room.name === player.room
-            ? "@"
-            : "#";
+          room_grid[`${new_x},${new_y}`] =
+            neighbor_room.name === player.location.room ? "@" : "#";
           room_grid[`${x + dx / 2},${y + dy / 2}`] = symbol;
 
           queue.push({ room: neighbor_room, x: new_x, y: new_y });
@@ -3292,7 +3309,7 @@ export class TextWorld {
    */
   inspect_room(player: Player): CommandResponse {
     const current_room = this.get_player_zone(player)?.rooms.find(
-      (room) => room.name.toLowerCase() === player.room.toLowerCase(),
+      (room) => room.name.toLowerCase() === player.location.room.toLowerCase(),
     );
 
     if (!current_room) {
@@ -4260,7 +4277,7 @@ export class TextWorld {
 
       if (normalized_name.startsWith("room")) {
         const room_name = possible_room_or_zone.replace(/room/i, "").trim();
-        const new_room = this.get_room(player.zone, room_name);
+        const new_room = this.get_room(player.location.zone, room_name);
 
         if (new_room) {
           new_room_name = new_room.name;
@@ -4278,8 +4295,8 @@ export class TextWorld {
     }
 
     if (new_zone_name) {
-      player.zone = new_zone_name;
-      const starter_room = this.get_zone_starter_room(player.zone);
+      player.location.zone = new_zone_name;
+      const starter_room = this.get_zone_starter_room(player.location.zone);
 
       if (starter_room) {
         new_room_name = starter_room.name;
@@ -4287,7 +4304,7 @@ export class TextWorld {
     }
 
     if (new_room_name) {
-      player.room = new_room_name;
+      player.location.room = new_room_name;
       result = this.get_room_description(player);
     }
 
@@ -4458,7 +4475,7 @@ export class TextWorld {
       if (players_room) {
         const room_command_action = this.find_room_command_action(
           filtered_actions,
-          player.zone,
+          player.location.zone,
           players_room.name,
         );
 
