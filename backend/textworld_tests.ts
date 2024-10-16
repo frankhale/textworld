@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 13 October 2024
+ * 15 October 2024
  */
 
 import {
@@ -9,6 +9,7 @@ import {
   assertEquals,
   assertGreater,
   assertNotEquals,
+  assertObjectMatch,
   assertRejects,
   assertStringIncludes,
   assertThrows,
@@ -5304,6 +5305,47 @@ Deno.test("can_send_email", () => {
     Error,
     "Player does not exist.",
   );
+  textworld.reset_world();
+});
+
+Deno.test("can_add_achievement", () => {
+  textworld.add_achievement(
+    "First is Best",
+    "Complete your first quest",
+    "first_quest",
+    (_player) => {},
+  );
+  const result = textworld.get_achievement("First is Best");
+  assertNotEquals(result, null);
+  assertObjectMatch(result!, {
+    name: "First is Best",
+    description: "Complete your first quest",
+    flag: "first_quest",
+  });
+  assertThrows(
+    () => {
+      textworld.add_achievement(
+        "First is Best",
+        "",
+        "fail",
+      );
+    },
+    Error,
+    "An achievement with the name First is Best or flag fail already exists.",
+  );
+  assertThrows(
+    () => {
+      textworld.add_achievement(
+        "Fail",
+        "",
+        "first_quest",
+      );
+    },
+    Error,
+    "An achievement with the name Fail or flag first_quest already exists.",
+  );
+  const result2 = textworld.get_achievement("Fail");
+  assertEquals(result2, null);
   textworld.reset_world();
 });
 

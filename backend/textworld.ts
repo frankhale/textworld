@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 13 October 2024
+ * 15 October 2024
  *
  * TODO:
  *
@@ -13,6 +13,7 @@
  * - Implement race
  * - Look at all exception throwing and make sure it's consistent
  * - Finish implementing email
+ * - Implement achievements
  */
 
 export const player_progress_db_name = "game_saves.db";
@@ -45,12 +46,9 @@ export interface Description {
   description: string;
 }
 
-export interface Named {
-  name: string;
-}
-
-export interface Entity extends Named {
+export interface Entity {
   id: string;
+  name: string;
   descriptions: Description[];
 }
 
@@ -107,13 +105,21 @@ export interface QuestionResponse {
   question?: Question | null;
 }
 
-export interface QuestionSequence extends Named {
+export interface QuestionSequence {
+  name: string;
   questions: Question[];
 }
 
-export interface Session extends Named {
+export interface Session {
+  name: string;
   type: SessionType;
   payload: unknown;
+}
+
+export interface Achievement {
+  name: string;
+  description: string;
+  flag: string;
 }
 
 export interface Email {
@@ -140,6 +146,7 @@ export interface Player extends Actor {
   instance: Zone[];
   sessions: Session[];
   email: Email[];
+  achievements: Achievement[];
 }
 
 export interface Recipe extends Entity {
@@ -152,11 +159,13 @@ export interface Level {
   xp: number;
 }
 
-export interface VendorItem extends Named {
+export interface VendorItem {
+  name: string;
   price: number;
 }
 
-export interface Dialog extends Named {
+export interface Dialog {
+  name: string;
   trigger: string[];
   response?: string;
 }
@@ -177,7 +186,8 @@ export interface Exit {
   hidden: boolean;
 }
 
-export interface Drop extends Named {
+export interface Drop {
+  name: string;
   quantity: number;
 }
 
@@ -205,6 +215,7 @@ export interface World extends ActorContainer {
   recipes: Recipe[];
   quests: Quest[];
   level_data: Level[];
+  achievements: Achievement[];
 }
 
 export interface Quest extends Entity {
@@ -238,12 +249,14 @@ export interface CommandResponse {
 // Actions Interfaces
 export type QuestActionType = "Start" | "End";
 
-export interface QuestAction extends Named {
+export interface QuestAction {
+  name: string;
   start?: Action;
   end?: Action;
 }
 
-export interface QuestStepAction extends Named {
+export interface QuestStepAction {
+  name: string;
   action: ActionDecision;
 }
 
@@ -252,28 +265,34 @@ export interface CommandAction extends Entity {
   action: CommandParserAction;
 }
 
-export interface DialogAction extends Named {
+export interface DialogAction {
+  name: string;
   trigger: string[];
   action: CommandParserAction;
 }
 
-export interface NamedAction extends Named {
+export interface NamedAction {
+  name: string;
   action: Action;
 }
 
-export interface NamedActions extends Named {
+export interface NamedActions {
+  name: string;
   actions?: Action[];
 }
 
-export interface NamedSessionAction extends Named {
+export interface NamedSessionAction {
+  name: string;
   action: SessionAction;
 }
 
-export interface RoomCommandActions extends Named {
+export interface RoomCommandActions {
+  name: string;
   command_actions: CommandAction[];
 }
 
-export interface SpawnLocation extends Named {
+export interface SpawnLocation {
+  name: string;
   zone: string;
   room: string;
   interval: number;
@@ -281,6 +300,11 @@ export interface SpawnLocation extends Named {
   timer_id: number;
   timer: () => void;
   action: (spawn_location: SpawnLocation) => void;
+}
+
+export interface AchievementActions {
+  name: string;
+  action: Action;
 }
 
 export interface WorldActions {
@@ -293,6 +317,7 @@ export interface WorldActions {
   quest_actions: QuestAction[];
   quest_step_actions: QuestStepAction[];
   session_actions: NamedSessionAction[];
+  achievement_actions: AchievementActions[];
 }
 
 export class TextWorld {
@@ -561,6 +586,7 @@ export class TextWorld {
       instance: [],
       sessions: [],
       email: [],
+      achievements: [],
     };
 
     this.world.players.push(player);
@@ -3668,6 +3694,59 @@ export class TextWorld {
   //////////
 
   /**
+   * Adds an achievement to the world.
+   *
+   * @param {string} name - The name of the achievement.
+   * @param {string} description - The description of the achievement.
+   * @param {string} flag - The flag that cooresponds to this achievement.
+   * @param {Action | null} action - The action to add to the achievement or null.
+   * @returns {Achievement}
+   */
+  add_achievement(
+    name: string,
+    description: string,
+    flag: string,
+    action?: Action,
+  ): Achievement {
+    const existing_achievement = this.world.achievements.find((achievement) =>
+      achievement.name === name || achievement.flag === flag
+    );
+
+    if (existing_achievement) {
+      throw new Error(
+        `An achievement with the name ${name} or flag ${flag} already exists.`,
+      );
+    }
+
+    const achievement: Achievement = {
+      name,
+      description,
+      flag,
+    };
+
+    this.world.achievements.push(achievement);
+    if (action) {
+      this.world_actions.achievement_actions.push({
+        name,
+        action,
+      });
+    }
+
+    return achievement;
+  }
+
+  /**
+   * Gets an achievement.
+   *
+   * @returns {Achievement | null} - The achievement or null if it does not exist.
+   */
+  get_achievement(name: string): Achievement | null {
+    return this.world.achievements.find((achievement) =>
+      achievement.name === name
+    ) || null;
+  }
+
+  /**
    * Processes a question sequence for a player.
    *
    * @param {Player} player - The player to process the question sequence for.
@@ -4043,6 +4122,7 @@ export class TextWorld {
         level_growth_rate,
         max_levels,
       ),
+      achievements: [],
     };
     this.world = world;
     this.reset_world_actions();
@@ -4065,6 +4145,7 @@ export class TextWorld {
       quest_actions: [],
       quest_step_actions: [],
       session_actions: [],
+      achievement_actions: [],
     };
     this.world_actions = world_actions;
     return world_actions;
