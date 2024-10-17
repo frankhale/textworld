@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 15 October 2024
+ * 16 October 2024
  *
  * TODO:
  *
@@ -9,7 +9,7 @@
  * need to be populated when players switch rooms or join the game.
  * - Player Progress saving/loading needs refactoring to work in a multiplayer
  * environment
- * - Implement leveling
+ * - Implement leveling (eg. figure out how xp will be calculated)
  * - Implement race
  * - Look at all exception throwing and make sure it's consistent
  * - Finish implementing email
@@ -304,7 +304,7 @@ export interface SpawnLocation {
 
 export interface AchievementActions {
   name: string;
-  action: Action;
+  action: ActionDecision;
 }
 
 export interface WorldActions {
@@ -3706,7 +3706,7 @@ export class TextWorld {
     name: string,
     description: string,
     flag: string,
-    action?: Action,
+    action: ActionDecision,
   ): Achievement {
     const existing_achievement = this.world.achievements.find((achievement) =>
       achievement.name === name || achievement.flag === flag
@@ -3725,12 +3725,10 @@ export class TextWorld {
     };
 
     this.world.achievements.push(achievement);
-    if (action) {
-      this.world_actions.achievement_actions.push({
-        name,
-        action,
-      });
-    }
+    this.world_actions.achievement_actions.push({
+      name,
+      action,
+    });
 
     return achievement;
   }
@@ -4460,6 +4458,34 @@ export class TextWorld {
   }
 
   /**
+   * Processes achievements for a player.
+   *
+   * @param {Player} player - The player to process achievements for.
+   */
+  process_achievements(player: Player): void {
+    const achievements = this.world.achievements.filter(
+      (achievement) =>
+        !player.achievements.some(
+          (player_achievement) => player_achievement.name === achievement.name,
+        ),
+    );
+
+    achievements.forEach((achievement) => {
+      const achievement_action = this.world_actions.achievement_actions.find(
+        (action) => action.name === achievement.name,
+      );
+
+      if (achievement_action) {
+        const result = achievement_action.action(player);
+
+        if (result) {
+          player.achievements.push(achievement);
+        }
+      }
+    });
+  }
+
+  /**
    * Parses a command from a player.
    *
    * @param {Player} player - The player to parse the command for.
@@ -4469,6 +4495,9 @@ export class TextWorld {
   async parse_command(player: Player, input: string): Promise<string> {
     const input_limit = Math.min(input_character_limit, input.length);
     input = input.substring(0, input_limit);
+
+    // TODO: Look at ways to refactor this so that we can remove the checking
+    // for question sequence and also the processing of achievements.
 
     const question_result = this.parse_question_sequence(
       player,
@@ -4490,6 +4519,8 @@ export class TextWorld {
     if (question_result) {
       return question_result;
     }
+
+    this.process_achievements(player);
 
     if (input === "") {
       input = "look";

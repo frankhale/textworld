@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 15 October 2024
+ * 16 October 2024
  */
 
 import {
@@ -5313,7 +5313,9 @@ Deno.test("can_add_achievement", () => {
     "First is Best",
     "Complete your first quest",
     "first_quest",
-    (_player) => {},
+    (_player) => {
+      return true;
+    },
   );
   const result = textworld.get_achievement("First is Best");
   assertNotEquals(result, null);
@@ -5328,6 +5330,9 @@ Deno.test("can_add_achievement", () => {
         "First is Best",
         "",
         "fail",
+        (_player) => {
+          return true;
+        },
       );
     },
     Error,
@@ -5339,6 +5344,9 @@ Deno.test("can_add_achievement", () => {
         "Fail",
         "",
         "first_quest",
+        (_player) => {
+          return true;
+        },
       );
     },
     Error,
