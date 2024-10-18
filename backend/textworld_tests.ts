@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 16 October 2024
+ * 17 October 2024
  */
 
 import {
@@ -5354,6 +5354,36 @@ Deno.test("can_add_achievement", () => {
   );
   const result2 = textworld.get_achievement("Fail");
   assertEquals(result2, null);
+  textworld.reset_world();
+});
+
+Deno.test("can_get_achievement", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.add_achievement(
+    "Easy Achievement",
+    "Earn your first achievement",
+    "first_achievement",
+    (_player) => {
+      // player has completed the achievement
+      return true;
+    },
+  );
+  textworld.add_achievement(
+    "Another Achievement",
+    "This is the second achievement",
+    "second_achievement",
+    (_player) => {
+      // player has not completed this achievement
+      return false;
+    },
+  );
+  textworld.process_achievements(player);
+  assertEquals(player.achievements.length, 1);
   textworld.reset_world();
 });
 

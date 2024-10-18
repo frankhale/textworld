@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 16 October 2024
+ * 17 October 2024
  *
  * TODO:
  *
@@ -572,8 +572,6 @@ export class TextWorld {
       score: 0,
       stats,
       gold: 0,
-      // zone: zone_name,
-      // room: room_name,
       location: {
         zone: zone_name,
         room: room_name,
