@@ -6,7 +6,8 @@ there is a lot here.
 
 The current focus is more on the game engine and less on the little world that
 was created to play in. Development is drivin primarily from the tests rather
-than the tiny game that is included.
+than the tiny game that is included. This will eventually change but there are
+still a few more features to finalize before that happens.
 
 ## Screenshot(s)
 
@@ -35,6 +36,8 @@ than the tiny game that is included.
 - [ ] Multiplayer
 
 ## Run
+
+If you do not have Deno, you can obtain Deno from [here](https://deno.land/).
 
 Backend:
 
@@ -70,4 +73,4 @@ Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 
 ## Date
 
-30 September 2024
+17 October 2024
