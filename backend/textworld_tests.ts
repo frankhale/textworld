@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 17 October 2024
+ * 22 October 2024
  */
 
 import {
@@ -825,19 +825,23 @@ Deno.test("can_create_exits", () => {
   textworld.create_zone("Zone1");
   textworld.create_room("Zone1", "Room1", "This is room 1");
   textworld.create_room("Zone1", "Room2", "This is room 2");
-  textworld.create_exits("Zone1", "Room1", [
-    textworld.e("north", "Room2"),
-    textworld.e("south", "Room2"),
-    textworld.e("east", "Room2"),
+  textworld.create_exits("Zone1", [
+    textworld.e_from("Room1", [
+      textworld.e("north", "Room2"),
+      textworld.e("south", "Room2"),
+      textworld.e("east", "Room2"),
+    ]),
   ]);
   const room = textworld.get_room("Zone1", "Room1");
   assertEquals(room?.exits.length, 3);
   assertThrows(
     () => {
-      textworld.create_exits("InvalidZone", "Room1", [
-        textworld.e("north", "Room2"),
-        textworld.e("south", "Room2"),
-        textworld.e("east", "Room2"),
+      textworld.create_exits("InvalidZone", [
+        textworld.e_from("Room1", [
+          textworld.e("north", "Room2"),
+          textworld.e("south", "Room2"),
+          textworld.e("east", "Room2"),
+        ]),
       ]);
     },
     Error,
@@ -845,10 +849,12 @@ Deno.test("can_create_exits", () => {
   );
   assertThrows(
     () => {
-      textworld.create_exits("Zone1", "InvalidRoom", [
-        textworld.e("north", "Room2"),
-        textworld.e("south", "Room2"),
-        textworld.e("east", "Room2"),
+      textworld.create_exits("Zone1", [
+        textworld.e_from("InvalidRoom", [
+          textworld.e("north", "Room2"),
+          textworld.e("south", "Room2"),
+          textworld.e("east", "Room2"),
+        ]),
       ]);
     },
     Error,
@@ -5382,6 +5388,9 @@ Deno.test("can_get_achievement", () => {
       return false;
     },
   );
+  textworld.process_achievements(player);
+  assertEquals(player.achievements.length, 1);
+  // should be no change if we process achievements again
   textworld.process_achievements(player);
   assertEquals(player.achievements.length, 1);
   textworld.reset_world();

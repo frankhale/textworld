@@ -1,10 +1,12 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 17 October 2024
+ * 22 October 2024
  *
  * TODO:
  *
+ * - Improve the README
+ *   - Document how to create a game
  * - Rooms now have a players array, this is for multiplayer support and will
  * need to be populated when players switch rooms or join the game.
  * - Player Progress saving/loading needs refactoring to work in a multiplayer
@@ -2741,37 +2743,50 @@ export class TextWorld {
     return { name: exit_name, location, hidden };
   }
 
-  create_exits(zone_name: string, from_room_name: string, exits: Exit[]): void {
+  e_from(
+    from_room_name: string,
+    exits: Exit[],
+  ): { from_room_name: string; exits: Exit[] } {
+    return { from_room_name, exits };
+  }
+
+  create_exits(zone_name: string, exits: {
+    from_room_name: string;
+    exits: Exit[];
+  }[]): void {
     const zone = this.get_zone(zone_name);
     if (!zone) throw new Error(`Zone ${zone_name} does not exist.`);
 
-    const from_room = zone.rooms.find(
-      (room) => room.name.toLowerCase() === from_room_name.toLowerCase(),
-    );
-
-    exits.forEach((exit) => {
-      const to_room = zone.rooms.find(
-        (room) => room.name.toLowerCase() === exit.location.toLowerCase(),
+    exits.forEach((from_exit) => {
+      const from_room = zone.rooms.find(
+        (room) =>
+          room.name.toLowerCase() === from_exit.from_room_name.toLowerCase(),
       );
 
-      if (!from_room || !to_room) {
-        throw new Error(
-          `Room ${from_room_name} or ${exit.location} does not exist in zone ${zone_name}.`,
+      from_exit.exits.forEach((to_exit) => {
+        const to_room = zone.rooms.find(
+          (room) => room.name.toLowerCase() === to_exit.location.toLowerCase(),
         );
-      }
 
-      const opposite_exit_name = this.get_opposite_exit_name(exit.name);
+        if (!from_room || !to_room) {
+          throw new Error(
+            `Room ${from_exit.from_room_name} or ${to_exit.location} does not exist in zone ${zone_name}.`,
+          );
+        }
 
-      from_room.exits.push({
-        name: exit.name,
-        location: exit.location,
-        hidden: exit.hidden,
-      });
+        const opposite_exit_name = this.get_opposite_exit_name(to_exit.name);
 
-      to_room.exits.push({
-        name: opposite_exit_name,
-        location: from_room_name,
-        hidden: false,
+        from_room.exits.push({
+          name: to_exit.name,
+          location: to_exit.location,
+          hidden: to_exit.hidden,
+        });
+
+        to_room.exits.push({
+          name: opposite_exit_name,
+          location: from_exit.from_room_name,
+          hidden: false,
+        });
       });
     });
   }
