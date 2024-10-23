@@ -1581,6 +1581,49 @@ Deno.test("can_create_room_object", () => {
   textworld.reset_world();
 });
 
+Deno.test("can_create_room_object_with_action", () => {
+  const player = textworld.create_player(
+    "Player",
+    "You are a strong adventurer",
+    "Zone1",
+    "Room1",
+  );
+  textworld.create_zone("Zone1");
+  textworld.create_room("Zone1", "Room1", "This is room 1");
+  textworld.create_object(
+    "Fireplace",
+    "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
+    [
+      {
+        name: "Fireplace",
+        trigger: ["fan flame"],
+        response: "The flames become stronger as you fan them.",
+      },
+    ],
+  );
+  textworld.create_dialog_action(
+    "Fireplace",
+    ["snuff fire"],
+    (_player) => {
+      return "You snuffed out the fire.";
+    },
+  );
+  textworld.place_object("Zone1", "Room1", "Fireplace");
+  const object = textworld.get_room_object("Zone1", "Room1", "Fireplace");
+  assertEquals(object?.name, "Fireplace");
+  assertEquals(
+    object?.descriptions[0].description,
+    "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
+  );
+  const action = textworld.get_dialog_action("Fireplace");
+  assert(action);
+  const result = action(player, "snuff fire", "fire", ["snuff", "fire"]);
+  assertEquals(result, "You snuffed out the fire.");
+  const action2 = textworld.get_dialog_action("InvalidObject");
+  assertEquals(action2, null);
+  textworld.reset_world();
+});
+
 Deno.test("can_process_look_at_room_object", () => {
   const player = textworld.create_player(
     "Player",

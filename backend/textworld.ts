@@ -3417,6 +3417,7 @@ export class TextWorld {
 
   /**
    * Creates a new room object and places it in a room.
+   *
    * @param {string} name - The name of the room object.
    * @param {string} description - The description of the room object.
    * @param {Dialog[] | null} dialog - The dialog of the room object.
@@ -3427,7 +3428,7 @@ export class TextWorld {
     name: string,
     description: string,
     dialog?: Dialog[],
-  ) {
+  ): Actor {
     const object = {
       id: crypto.randomUUID(),
       name,
@@ -4046,6 +4047,14 @@ export class TextWorld {
       trigger,
       action,
     });
+  }
+
+  get_dialog_action(dialog_id: string): CommandParserAction | null {
+    const dialog_action = this.world_actions.dialog_actions.find(
+      (action) => action.name === dialog_id,
+    );
+
+    return dialog_action ? dialog_action.action : null;
   }
 
   /**
