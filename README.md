@@ -32,6 +32,8 @@ still a few more features to finalize before that happens.
 - [x] Combat (very basic)
 - [x] Instancing (zones, rooms, items, npcs, mobs)
 - [x] Question sequences
+- [x] Achievements
+- [x] Player to player email
 - [ ] Leveling
 - [ ] Multiplayer
 
@@ -63,8 +65,8 @@ Get coverage report:
 
 ## Usage
 
-Have a look at the sample game `textworld_game.ts` to see a basic usage of the
-library. Additionally take a look at `textworld_test.ts` to see how usage of
+Have a look at the sample game `examples/example1.ts` to see a basic usage of
+the library. Additionally take a look at `textworld_test.ts` to see how usage of
 every feature in the library.
 
 ## Author(s)
@@ -73,4 +75,4 @@ Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
 
 ## Date
 
-22 October 2024
+24 October 2024
