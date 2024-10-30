@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "run": "deno --allow-net .\\textworld_game.ts",
+    "run": "deno --allow-net .\\examples\\example1.ts",
     "test": "deno test --coverage --no-check --unstable-kv --allow-read --allow-write --allow-net .\\textworld_tests.ts",
     "coverage": "deno coverage --html"
   },
