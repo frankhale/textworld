@@ -2,14 +2,12 @@ import { Component, ElementRef, ViewChild } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { GameService } from "../game.service";
-import { OutputComponent } from "../output/output.component";
 
 @Component({
   selector: "app-input",
-  standalone: true,
-  imports: [CommonModule, FormsModule, OutputComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: "./input.component.html",
-  styleUrls: ["./input.component.scss"],
+  styleUrls: ["./input.component.scss"]
 })
 export class InputComponent {
   playerInput: string = "";
