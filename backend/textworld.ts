@@ -1,7 +1,7 @@
 /**
  * A Text Adventure Library & Game for Deno
  * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 22 October 2024
+ * 23 October 2024
  *
  * TODO:
  *
@@ -12,10 +12,9 @@
  * - Player Progress saving/loading needs refactoring to work in a multiplayer
  * environment
  * - Implement leveling (eg. figure out how xp will be calculated)
+ * - Stats are not really implemented
  * - Implement race
  * - Look at all exception throwing and make sure it's consistent
- * - Finish implementing email
- * - Implement achievements
  */
 
 export const player_progress_db_name = "game_saves.db";

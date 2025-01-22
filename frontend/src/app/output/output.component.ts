@@ -5,11 +5,10 @@ import { GameService } from "../game.service";
 import { GameMessage } from "../models/game-message";
 
 @Component({
-  selector: "app-output",
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: "./output.component.html",
-  styleUrls: ["./output.component.scss"],
+    selector: "app-output",
+    imports: [CommonModule],
+    templateUrl: "./output.component.html",
+    styleUrls: ["./output.component.scss"]
 })
 export class OutputComponent {
   history: GameMessage[] = [];
