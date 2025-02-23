@@ -39,7 +39,6 @@ const rooms = {
     .withDescription('A spacious chamber')
     .withItem(items.herb)
     .withExit('south', 'entrance')
-    .withExit('east', 'library')
     .build(),
 };
 
