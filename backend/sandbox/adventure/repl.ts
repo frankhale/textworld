@@ -127,6 +127,30 @@ export class REPL {
     return help;
   }
 
+  processCommand(input: string) {
+    const parts = input.trim().toLowerCase().split(' ');
+    const commandName = parts[0];
+    const args = parts.slice(1);
+
+    try {
+      const command = this.commands.get(commandName);
+      if (!command) {
+        return "Unknown command! Type 'help' for available commands.";
+      }
+
+      const result = command.execute(this.game, args);
+      if (result) {
+        return result;
+      }
+    } catch (e) {
+      if (e instanceof Error) {
+        return `Error: ${e.message}`;
+      } else {
+        return "An unknown error occurred";
+      }
+    }
+  }
+
   start() {
     console.log("Welcome to the Adventure Game!");
     console.log("Type 'help' for a list of commands");
@@ -136,24 +160,7 @@ export class REPL {
       const input = prompt("> ");
       if (!input) continue;
 
-      const parts = input.trim().toLowerCase().split(' ');
-      const commandName = parts[0];
-      const args = parts.slice(1);
-
-      try {
-        const command = this.commands.get(commandName);
-        if (!command) {
-          console.log("Unknown command! Type 'help' for available commands.");
-          continue;
-        }
-
-        const result = command.execute(this.game, args);
-        if (result) {
-          console.log(result);
-        }
-      } catch (e) {
-        console.log("Error:", e);
-      }
+      console.log(this.processCommand(input));
     }
   }
 
