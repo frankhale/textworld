@@ -1,6 +1,6 @@
 <div class="header">
   @if(currentMessage && currentMessage.player) {
-  {{ currentMessage.player.zone }} - {{ currentMessage.player.room }}
+  {{ currentMessage.player.location.zone }} - {{ currentMessage.player.location.room }}
   }
 </div>
 <div class="output-container">
@@ -36,11 +36,11 @@
       Name: {{ currentMessage.player.name }}
       <br />
       Level: {{ currentMessage.player.stats.progress.level }} ({{
-        currentMessage.player.stats.progress.xp
+      currentMessage.player.stats.progress.xp
       }})
       <br />
       Health: {{ currentMessage.player.stats.health.current }}/{{
-        currentMessage.player.stats.health.max
+      currentMessage.player.stats.health.max
       }}
       <br />
       Gold: {{ currentMessage.player.gold }}

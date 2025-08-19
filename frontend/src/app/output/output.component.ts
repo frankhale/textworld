@@ -5,10 +5,10 @@ import { GameService } from "../game.service";
 import { GameMessage } from "../models/game-message";
 
 @Component({
-    selector: "app-output",
-    imports: [CommonModule],
-    templateUrl: "./output.component.html",
-    styleUrls: ["./output.component.scss"]
+  selector: "app-output",
+  imports: [CommonModule],
+  templateUrl: "./output.component.html",
+  styleUrls: ["./output.component.scss"]
 })
 export class OutputComponent {
   history: GameMessage[] = [];
@@ -26,6 +26,7 @@ export class OutputComponent {
     toObservable(this.gameService.message$).subscribe(
       (message: GameMessage) => {
         this.currentMessage = message;
+        console.log(message);
       },
     );
   }

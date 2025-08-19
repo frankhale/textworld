@@ -1,11 +1,11 @@
 import { Component, ElementRef, ViewChild } from "@angular/core";
-import { CommonModule } from "@angular/common";
+
 import { FormsModule } from "@angular/forms";
 import { GameService } from "../game.service";
 
 @Component({
   selector: "app-input",
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: "./input.component.html",
   styleUrls: ["./input.component.scss"]
 })
