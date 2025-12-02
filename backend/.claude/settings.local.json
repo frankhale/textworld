@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(/C:\\Users\\frank\\Documents\\DEV\\game-dev\\textworld\\backend/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
