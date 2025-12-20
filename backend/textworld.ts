@@ -1,20 +1,6 @@
-/**
- * A Text Adventure Library & Game for Deno
- * Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
- * 28 February 2025
- *
- * TODO:
- *
- * - Improve the README
- *   - Document how to create a game
- * - Rooms now have a players array, this is for multiplayer support and will
- * need to be populated when players switch rooms or join the game.
- * - Player Progress saving/loading needs refactoring to work in a multiplayer
- * environment
- * - Implement leveling (eg. figure out how xp will be calculated)
- * - Stats are not really implemented
- * - Look at all exception throwing and make sure it's consistent
- */
+// A Text Adventure Library & Game for Deno
+// Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
+// 20 February 2025
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -432,11 +418,12 @@ export class TextWorld {
         let result = {
           response: "You must specify a slot name",
         };
-        if (args.length >= 0) {
+        const slot_name = args[0];
+        if(slot_name) {
           result = await this.save_player_progress(
-            player,
-            player_progress_db_name,
-            args[0],
+              player,
+              player_progress_db_name,
+              slot_name,
           );
         }
         return JSON.stringify(result);
@@ -450,10 +437,11 @@ export class TextWorld {
         let result = {
           response: "You must specify a slot name",
         };
-        if (args.length > 0) {
+        const slot_name = args[0];
+        if (slot_name) {
           const player_result = await this.load_player_progress(
             player_progress_db_name,
-            args[0],
+            slot_name,
           );
 
           if (player_result) {
@@ -576,6 +564,7 @@ export class TextWorld {
    *
    * @param {string} from - The id of the sender.
    * @param {string} to - The player to send the email to.
+   * @param {string} subject - The subject of the email.
    * @param {string} body - The body of the email.
    * @param {Drop[]} items - The items attached to the email.
    */
@@ -616,8 +605,10 @@ export class TextWorld {
    * Adds a new session to a player.
    *
    * @param {Player} player - The player to add a session to.
+   * @param {string} name - The name of the session.
    * @param {SessionType} session_type - The type of session to add.
    * @param {unknown} payload - The payload of the session.
+   * @param {NamedSessionAction | null} action - The action to perform when the session ends.
    */
   add_session(
     player: Player,
@@ -646,7 +637,7 @@ export class TextWorld {
    * Get a session from a player.
    *
    * @param {Player} player - The player to get the session from.
-   * @param {SessionType} session_type - The type of session to get.
+   * @param {SessionType} session_name - The name of session to get.
    * @returns {Session | null} - The session or null if it does not exist.
    */
   get_session(player: Player, session_name: string): Session | null {
@@ -807,7 +798,7 @@ export class TextWorld {
   ///////////
 
   /**
-   * Sets an actors health.
+   * Sets an actors' health.
    *
    * @param {Actor} actor - The actor to set the health for.
    * @param {number} health - The health to set.
@@ -871,10 +862,10 @@ export class TextWorld {
   }
 
   /**
-   * Gets an actors health.
+   * Gets an actors' health.
    *
    * @param actor - The actor to get the health for.
-   * @returns {number} - The actors health.
+   * @returns {number} - The actor's health.
    */
   get_actor_health(actor: Actor): number {
     return actor.stats?.health.current ?? 0;
@@ -1070,9 +1061,9 @@ export class TextWorld {
   }
 
   /**
-   * Pickup a quest.
+   * Pick up a quest.
    *
-   * @param {Player} player - The player to pickup the quest.
+   * @param {Player} player - The player to pick up the quest.
    * @param {string} quest_name - The name of the quest to pickup.
    * @returns {string} - The response message.
    */
@@ -1282,6 +1273,8 @@ export class TextWorld {
    * Removes a new NPC from a zone and room.
    *
    * @param {string} name - The name of the NPC to remove.
+   * @param {string | null} zone_name - The name of the zone to remove the NPC from. If null, removes from all zones.
+   * @param {string | null} room_name - The name of the room to remove the NPC from. If null, removes from all rooms.
    */
   remove_npc(
     name: string,
@@ -1506,12 +1499,14 @@ export class TextWorld {
       ["sell"],
       (player, _input, _command, args) => {
         const trigger_index = this.dialog_contains_trigger(["sell"], args);
-        const quantity = parseInt(args[args.length - 1], 10);
+        const item_name = args.slice(trigger_index + 1, -1).join(" ");
+        const lastArg = args[args.length - 1];
+        if (lastArg === undefined) return "You must specify a quantity to sell.";
+        const quantity = parseInt(lastArg, 10);
         if (isNaN(quantity)) {
           return "You must specify a quantity to sell.";
         }
 
-        const item_name = args.slice(trigger_index + 1, -1).join(" ");
         const has_item = this.has_item_in_quantity(player, item_name, quantity);
 
         if (!has_item) {
@@ -1590,6 +1585,7 @@ export class TextWorld {
    * @param {string} name - The name of the item.
    * @param {string} description - The description of the item.
    * @param {boolean} usable - Whether the item is usable.
+   * @param {boolean} consumable - Whether the item is consumable.
    * @param {Action | null} action - The action to perform when the item is used.
    * @returns {Item} - The created item.
    */
@@ -1838,17 +1834,13 @@ export class TextWorld {
       (item) => item.name.toLowerCase() === item_name.toLowerCase(),
     );
 
-    if (item && item.quantity >= quantity) {
-      return true;
-    }
-
-    return false;
+    return !!(item && item.quantity >= quantity);
   }
 
   /**
    * Takes an item from a room.
    *
-   * @param Playerplayer - The player to take the item.
+   * @param {Player} player - The player to take the item.
    * @param {string[]} args - The arguments from the player.
    * @returns {CommandResponse} - The response object.
    */
@@ -2004,6 +1996,7 @@ export class TextWorld {
    *
    * @param {Player} player - The player to remove the item from.
    * @param {string} item_name - The name of the item to remove.
+   * @param {number} quantity - The quantity of the item to remove.
    */
   remove_player_item(
     player: Player,
@@ -2015,13 +2008,14 @@ export class TextWorld {
     );
 
     if (item_index !== -1) {
-      player.items[item_index].quantity -= quantity;
+      const item = player.items[item_index];
 
-      if (
-        player.items[item_index].quantity === 0 ||
-        player.items[item_index].quantity < 0
-      ) {
-        player.items.splice(item_index, 1);
+      if (item) {
+        item.quantity -= quantity;
+
+        if (item.quantity <= 0) {
+          player.items.splice(item_index, 1);
+        }
       }
     }
   }
@@ -2415,6 +2409,8 @@ export class TextWorld {
    * Creates a new zone and adds it to the world.
    *
    * @param {string} name - The name of the zone.
+   * @param {string} description - The description of the zone.
+   * @returns {Zone} - The created zone.
    */
   create_zone(name: string, description: string = ""): Zone {
     const zone = {
@@ -2443,7 +2439,7 @@ export class TextWorld {
       throw new Error(`Zone ${name} does not exist.`);
     }
 
-    // If zone already exists in player instance then filter it out.
+    // If the zone already exists in player instance then filter it out.
     player.instance = player.instance.filter(
       (z) => z.name.toLowerCase() !== name.toLowerCase(),
     );
@@ -2776,7 +2772,7 @@ export class TextWorld {
    * @returns {Exit} - The opposite exit name.
    */
   get_opposite_exit_name(exit_name: ExitName): ExitName {
-    const opposites: { [key: string]: ExitName } = {
+    const opposites: Record<ExitName, ExitName> = {
       north: "south",
       south: "north",
       east: "west",
@@ -2920,7 +2916,7 @@ export class TextWorld {
       throw new Error("Player is not in a valid zone.");
     }
 
-    let current_room = this.get_player_room(player);
+    const current_room = this.get_player_room(player);
     const has_command = command.length > 0;
 
     if (
@@ -2942,8 +2938,6 @@ export class TextWorld {
 
       if (exit.hidden) exit.hidden = false;
       player.location.room = exit.location;
-
-      current_room = this.get_player_room(player);
     }
 
     return this.get_room_description(player);
@@ -2952,6 +2946,7 @@ export class TextWorld {
   /**
    * Checks if a room has actions.
    *
+   * @param {string} zone_name - The name of the zone to check.
    * @param {string} room_name - The name of the room to check.
    * @returns {boolean} - True if the room has actions, false otherwise.
    */
@@ -2997,7 +2992,7 @@ export class TextWorld {
       east: [1, 0],
       west: [-1, 0],
     };
-    const direction_to_symbol: Record<string, string> = {
+    const direction_to_symbol: Record<ExitName, string> = {
       north: "|",
       south: "|",
       east: "-",
@@ -3021,7 +3016,7 @@ export class TextWorld {
       room.exits.forEach((exit) => {
         if (exit.hidden) return;
 
-        const [dx, dy] = direction_to_coords[exit.name];
+        const [dx, dy] = direction_to_coords[exit.name] ?? [0, 0];
 
         const neighbor_room = rooms.find((r) => r.name === exit.location);
         if (neighbor_room) {
@@ -3039,8 +3034,8 @@ export class TextWorld {
     }
 
     const keys = Object.keys(room_grid);
-    const xs = keys.map((key) => parseFloat(key.split(",")[0]));
-    const ys = keys.map((key) => parseFloat(key.split(",")[1]));
+    const xs = keys.map((key) => parseFloat(key.split(",")[0] ?? "0"));
+    const ys = keys.map((key) => parseFloat(key.split(",")[1] ?? "0"));
     const min_x = Math.min(...xs);
     const max_x = Math.max(...xs);
     const min_y = Math.min(...ys);
@@ -3061,7 +3056,7 @@ export class TextWorld {
   }
 
   /**
-   * Creates a new room and adds it to a zone. If the zone does not exist it
+   * Creates a new room and adds it to a zone. If the zone does not exist, it
    * will be created.
    *
    * @param {string} zone_name - The name of the zone to create the room in.
@@ -3120,10 +3115,10 @@ export class TextWorld {
    * @returns {Room} - The room object.
    */
   r(name: string, description: string): Room {
-    const room: Room = {
+    return {
       id: name,
       name,
-      descriptions: [{ flag: "default", description }],
+      descriptions: [{flag: "default", description}],
       items: [],
       npcs: [],
       mobs: [],
@@ -3132,7 +3127,6 @@ export class TextWorld {
       players: [],
       instance: false,
     };
-    return room;
   }
 
   /**
@@ -3319,7 +3313,7 @@ export class TextWorld {
   }
 
   /**
-   * Inpects the current room for items and mobs.
+   * Inspects the current room for items and mobs.
    *
    * @param {Player} player - The player to inspect the room for.
    * @returns {CommandResponse} - The response object.
@@ -3424,11 +3418,11 @@ export class TextWorld {
   /**
    * Places an object in a room.
    *
-   * @param name - The name of the object to place.
    * @param zone_name - The name of the zone to place the object in.
-   * @param room_name - The name of the room to place the object in.
+   * @param in_room_name - The name of the room to place the object in.
+   * @param object_name - The name of the object to place.
    * @param {Player | null} player - If player is not null, the NPC will be placed in the player's instance.
-   * @throws {Error} - If the object, zone or room does not exist.
+   * @throws {Error} - If the object, zone, or room does not exist.
    */
   place_object(
     zone_name: string,
@@ -3690,7 +3684,7 @@ export class TextWorld {
    *
    * @param {string} name - The name of the achievement.
    * @param {string} description - The description of the achievement.
-   * @param {string} flag - The flag that cooresponds to this achievement.
+   * @param {string} flag - The flag that corresponds to this achievement.
    * @param {Action | null} action - The action to add to the achievement or null.
    * @returns {Achievement}
    */
@@ -3857,7 +3851,7 @@ export class TextWorld {
   get_random_number(upper: number = 100): number {
     const nums = new Uint32Array(1);
     crypto.getRandomValues(nums);
-    return nums[0] % (upper + 1);
+    return nums[0]! % (upper + 1);
   }
 
   /**
@@ -4150,9 +4144,9 @@ export class TextWorld {
   }
 
   /**
-   * Converts a string to title case.
+   * Converts a string to a title case.
    *
-   * @param {string} str - The string to convert to title case.
+   * @param {string} str - The string to convert to a title case.
    * @returns {string} - The string in title case.
    */
   to_title_case(str: string): string {
@@ -4160,7 +4154,7 @@ export class TextWorld {
       .split(" ")
       .map((word) =>
         word.length > 0
-          ? word[0].toUpperCase() + word.slice(1).toLowerCase()
+          ? word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
           : ""
       )
       .join(" ");
@@ -4187,8 +4181,7 @@ export class TextWorld {
 
   /**
    * Generates all possible combinations of an array of strings. This is used
-   * to generate all possible commands from a user input for the purposes of
-   * matching them to command actions.
+   * to generate all possible commands from a user input to match them to command actions.
    *
    * @param input_array - The input array to generate combinations for.
    * @returns {string[]} - The generated combinations.
@@ -4202,9 +4195,10 @@ export class TextWorld {
       }
 
       for (let i = start_idx; i < input_array.length; i++) {
+        const current_input = input_array[i]!;
         const new_combination = combination.length > 0
-          ? `${combination} ${input_array[i]}`
-          : input_array[i];
+            ? `${combination} ${current_input}`
+            : current_input;
         generate_helper(new_combination, i + 1);
       }
     }
@@ -4330,7 +4324,7 @@ export class TextWorld {
   }
 
   /**
-   * If player is in godmode, they can go to any room or zone.
+   * If the player is in godmode, they can go to any room or zone.
    *
    * @param {Player} player - The player to go to the room or zone for.
    * @param {string[]} args - The arguments to go to the room or zone with.
@@ -4526,7 +4520,8 @@ export class TextWorld {
       input = "look";
     }
 
-    const [command, ...args] = input.toLowerCase().split(" ");
+    const [first, ...args] = input.toLowerCase().split(" ");
+    const command = first ?? "";
     const possible_actions = this.generate_combinations(input.split(" "));
 
     const talk_to = possible_actions.find((action) =>
@@ -4655,7 +4650,7 @@ export class TextWorld {
       const result: CommandResponse = JSON.parse(
         await this.parse_command(player, game_message.command),
       );
-      const final_response = {
+      return {
         id: crypto.randomUUID(),
         input: game_message.command,
         player: player,
@@ -4663,36 +4658,33 @@ export class TextWorld {
         responseLines: result.response.split("\n"),
         map: this.plot_room_map(player, 5).response,
       };
-      return final_response;
     };
 
     const ac = new AbortController();
-    const server = Deno.serve(
-      {
-        port,
-        signal: ac.signal,
-      },
-      (_req: Request) => {
-        const { socket, response } = Deno.upgradeWebSocket(_req);
-        socket.onopen = async () => {
-          socket.send(JSON.stringify(
-            await process_request({
-              player_id: fix_me_player_id,
-              command: "",
-            }),
-          ));
-        };
-        socket.onmessage = async (e) => {
-          socket.send(
-            // TODO: Check e.data because we don't know if it conforms to what
-            // we expect.
-            JSON.stringify(await process_request(JSON.parse(e.data))),
-          );
-        };
-        return response;
-      },
+    return Deno.serve(
+        {
+          port,
+          signal: ac.signal,
+        },
+        (_req: Request) => {
+          const {socket, response} = Deno.upgradeWebSocket(_req);
+          socket.onopen = async () => {
+            socket.send(JSON.stringify(
+                await process_request({
+                  player_id: fix_me_player_id,
+                  command: "",
+                }),
+            ));
+          };
+          socket.onmessage = async (e) => {
+            socket.send(
+                // TODO: Check e.data because we don't know if it conforms to what
+                // we expect.
+                JSON.stringify(await process_request(JSON.parse(e.data))),
+            );
+          };
+          return response;
+        },
     );
-
-    return server;
   }
 }

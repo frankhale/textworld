@@ -4,5 +4,7 @@
     "test": "deno test --coverage --no-check --unstable-kv --allow-read --allow-write --allow-net .\\textworld_tests.ts",
     "coverage": "deno coverage --html"
   },
-  "imports": { "@std/assert": "jsr:@std/assert@^1.0.6" }
+  "imports": {
+    "@std/assert": "jsr:@std/assert@1"
+  }
 }
