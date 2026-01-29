@@ -12,43 +12,43 @@ import { GameService } from "../game.service";
 export class InputComponent {
   playerInput: string = "";
   history: string[] = [];
+  historySet = new Set<string>();
   currentIndex: number = 0;
 
   @ViewChild("playerTextInput", { static: false })
   playerTextInput!: ElementRef;
 
-  constructor(public gameService: GameService) { }
+  constructor(public gameService: GameService) {}
 
   onKeyDown(event: KeyboardEvent): void {
     if (event.key === "Enter") {
-      //this.response.length = 0;
-      //if (this.playerInput.startsWith("/clear")) {
-      //  this.response = [this.playerInput];
-      //} else {
-      this.gameService.send(this.playerInput);
-      //}
-      if (!this.history.includes(this.playerInput)) {
-        this.history.push(this.playerInput);
+      if (this.playerInput.trim()) {
+        this.gameService.send(this.playerInput);
+        if (!this.historySet.has(this.playerInput)) {
+          this.historySet.add(this.playerInput);
+          this.history.push(this.playerInput);
+        }
+        this.currentIndex = this.history.length;
       }
       this.playerInput = "";
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
-      this.currentIndex = (this.currentIndex - 1 + this.history.length) %
-        this.history.length;
+      if (this.history.length === 0) return;
+      this.currentIndex = (this.currentIndex - 1 + this.history.length) % this.history.length;
       this.playerInput = this.history[this.currentIndex];
-
-      this.playerTextInput.nativeElement.setSelectionRange(
-        this.playerInput.length,
-        this.playerInput.length,
-      );
+      this.setCursorToEnd();
     } else if (event.key === "ArrowDown") {
+      if (this.history.length === 0) return;
       this.currentIndex = (this.currentIndex + 1) % this.history.length;
       this.playerInput = this.history[this.currentIndex];
-
-      this.playerTextInput.nativeElement.setSelectionRange(
-        this.playerInput.length,
-        this.playerInput.length,
-      );
+      this.setCursorToEnd();
     }
+  }
+
+  private setCursorToEnd(): void {
+    this.playerTextInput.nativeElement.setSelectionRange(
+      this.playerInput.length,
+      this.playerInput.length,
+    );
   }
 }

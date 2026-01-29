@@ -1,18 +1,22 @@
 @font-face {
   font-family: "RobotoMono";
   src: url("/fonts/RobotoMono-Medium.ttf") format("truetype");
+  font-display: swap;
 }
 
-* {
+html,
+body {
   font: 24px "RobotoMono", monospace;
-  margin: 0px;
-  padding: 0px;
+  margin: 0;
+  padding: 0;
   background-color: #fff;
   color: #000;
 }
 
 input {
+  font: inherit;
   border: none;
   outline: none;
-  color: #000;
+  background: transparent;
+  color: inherit;
 }

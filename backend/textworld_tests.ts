@@ -247,7 +247,7 @@ Deno.test("can_increase_player_max_health", () => {
     "Zone1",
     "Room1",
   );
-  textworld.increase_actor_max_heath(player, 20);
+  textworld.increase_actor_max_health(player, 20);
   const result = textworld.get_actor_max_health(player);
   assertEquals(result, 30);
   textworld.reset_world();
@@ -261,7 +261,7 @@ Deno.test("cant_increase_actor_max_health_if_actor_does_not_have_stats", () => {
     flags: [],
     items: [],
   };
-  textworld.increase_actor_max_heath(actor, 20);
+  textworld.increase_actor_max_health(actor, 20);
   const result = textworld.get_actor_max_health(actor);
   assertEquals(result, 0);
   textworld.reset_world();

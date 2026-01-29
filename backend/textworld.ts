@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
-// Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 20 February 2025
+// Frank Hale <frankhaledevelops AT gmail.com>
+// 28 January 2026
 
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
@@ -819,7 +819,7 @@ export class TextWorld {
    * @param {Actor} actor - The actor to increase the max health for.
    * @param {number} amount - The amount to increase the max health by.
    */
-  increase_actor_max_heath(actor: Actor, amount: number): void {
+  increase_actor_max_health(actor: Actor, amount: number): void {
     if (actor.stats) {
       actor.stats.health.max += amount;
     }
@@ -1437,10 +1437,6 @@ export class TextWorld {
     return words.findIndex((word) => triggers.includes(word));
   }
 
-  // dialog_remove_trigger(triggers: string[], words: string[]): string[] {
-  //   return words.filter((word) => !triggers.includes(word));
-  // }
-
   /**
    * Creates a new vendor and adds it to the world.
    *
@@ -1834,7 +1830,7 @@ export class TextWorld {
       (item) => item.name.toLowerCase() === item_name.toLowerCase(),
     );
 
-    return !!(item && item.quantity >= quantity);
+    return item !== undefined && item.quantity >= quantity;
   }
 
   /**
@@ -3169,7 +3165,7 @@ export class TextWorld {
         instance_room.instance = true;
 
         if (instance_zone) {
-          instance_zone.rooms.filter((r) =>
+          instance_zone.rooms = instance_zone.rooms.filter((r) =>
             r.name.toLowerCase() !== room_name.toLowerCase()
           );
           instance_zone.rooms.push(instance_room);
@@ -3309,7 +3305,7 @@ export class TextWorld {
   get_zone_starter_room(zone_name: string): Room | null {
     const zone = this.get_zone(zone_name);
     if (!zone) return null;
-    return zone.rooms.find((room) => zone.starting_room == room.name) ?? null;
+    return zone.rooms.find((room) => zone.starting_room === room.name) ?? null;
   }
 
   /**
@@ -4383,14 +4379,6 @@ export class TextWorld {
 
     return result;
   }
-
-  // remove_string_from_array(from_string: string, from_arr: string[]): string[] {
-  //   return from_arr.filter((str) => !from_string.includes(str));
-  // }
-
-  // array_difference(array1: string[], array2: string[]): string[] {
-  //   return array1.filter(element => !array2.includes(element));
-  // }
 
   /**
    * Filters out substrings from an array.

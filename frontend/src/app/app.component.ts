@@ -1,6 +1,4 @@
 import { Component } from "@angular/core";
-
-import { RouterOutlet } from "@angular/router";
 import { InputComponent } from "./input/input.component";
 import { OutputComponent } from "./output/output.component";
 

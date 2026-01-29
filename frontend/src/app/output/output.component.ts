@@ -1,5 +1,13 @@
-import { Component, ElementRef, ViewChild } from "@angular/core";
-import { toObservable } from "@angular/core/rxjs-interop";
+import {
+  Component,
+  ElementRef,
+  ViewChild,
+  ChangeDetectionStrategy,
+  computed,
+  effect,
+  Signal,
+  NgZone,
+} from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { GameService } from "../game.service";
 import { GameMessage } from "../models/game-message";
@@ -8,35 +16,43 @@ import { GameMessage } from "../models/game-message";
   selector: "app-output",
   imports: [CommonModule],
   templateUrl: "./output.component.html",
-  styleUrls: ["./output.component.scss"]
+  styleUrls: ["./output.component.scss"],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OutputComponent {
-  history: GameMessage[] = [];
-  currentMessage: GameMessage | null = null;
-
   @ViewChild("scrollContainer", { static: false })
   scrollContainer!: ElementRef;
 
-  constructor(public gameService: GameService) {
-    toObservable(this.gameService.messageHistory$).subscribe(
-      (history: GameMessage[]) => {
-        this.history = history;
-      },
-    );
-    toObservable(this.gameService.message$).subscribe(
-      (message: GameMessage) => {
-        this.currentMessage = message;
-        console.log(message);
-      },
-    );
+  readonly history: Signal<GameMessage[]>;
+  readonly currentMessage: Signal<GameMessage | null>;
+
+  private scrollPending = false;
+
+  constructor(
+    public gameService: GameService,
+    private ngZone: NgZone,
+  ) {
+    this.history = this.gameService.messageHistory$;
+    this.currentMessage = this.gameService.message$;
+
+    effect(() => {
+      const messages = this.history();
+      if (messages.length > 0) {
+        this.scheduleScrollToBottom();
+      }
+    });
   }
 
-  ngOnChanges() {
-    this.scrollToBottom();
-  }
+  private scheduleScrollToBottom(): void {
+    if (this.scrollPending) return;
+    this.scrollPending = true;
 
-  ngAfterViewChecked() {
-    this.scrollToBottom();
+    this.ngZone.runOutsideAngular(() => {
+      requestAnimationFrame(() => {
+        this.scrollToBottom();
+        this.scrollPending = false;
+      });
+    });
   }
 
   private scrollToBottom(): void {

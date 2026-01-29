@@ -1,5 +1,5 @@
 <div>  
-  @if(gameService.connected) {
+  @if(gameService.connected()) {
   <div class="input-content">
     &gt;<input #playerTextInput type="text" [(ngModel)]="playerInput" (keydown)="onKeyDown($event)" autofocus
       spellcheck="false" class="input" />
