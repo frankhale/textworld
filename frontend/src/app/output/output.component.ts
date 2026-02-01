@@ -3,7 +3,6 @@ import {
   ElementRef,
   ViewChild,
   ChangeDetectionStrategy,
-  computed,
   effect,
   Signal,
   NgZone,
@@ -11,6 +10,14 @@ import {
 import { CommonModule } from "@angular/common";
 import { GameService } from "../game.service";
 import { GameMessage } from "../models/game-message";
+
+const MESSAGE_PREFIXES = {
+  COMMAND: "command:",
+  INVENTORY: "Inventory:",
+  MOBS: "Mobs:",
+  NPCS: "NPCs:",
+  EXITS: "Exits:",
+} as const;
 
 @Component({
   selector: "app-output",
@@ -25,6 +32,7 @@ export class OutputComponent {
 
   readonly history: Signal<GameMessage[]>;
   readonly currentMessage: Signal<GameMessage | null>;
+  readonly error: Signal<string | null>;
 
   private scrollPending = false;
 
@@ -34,6 +42,7 @@ export class OutputComponent {
   ) {
     this.history = this.gameService.messageHistory$;
     this.currentMessage = this.gameService.message$;
+    this.error = this.gameService.error$;
 
     effect(() => {
       const messages = this.history();
@@ -56,17 +65,23 @@ export class OutputComponent {
   }
 
   private scrollToBottom(): void {
-    if (this.scrollContainer) {
+    if (this.scrollContainer?.nativeElement) {
       const container = this.scrollContainer.nativeElement;
       container.scrollTop = container.scrollHeight;
     }
   }
 
   getCssClass(message: string): string {
-    if (message.startsWith("command:")) {
+    if (message.startsWith(MESSAGE_PREFIXES.COMMAND)) {
       return "command-text";
-    } else if (message.startsWith("Inventory:")) {
+    } else if (message.startsWith(MESSAGE_PREFIXES.INVENTORY)) {
       return "inventory-text";
+    } else if (message.startsWith(MESSAGE_PREFIXES.MOBS)) {
+      return "mobs-text";
+    } else if (message.startsWith(MESSAGE_PREFIXES.NPCS)) {
+      return "npcs-text";
+    } else if (message.startsWith(MESSAGE_PREFIXES.EXITS)) {
+      return "exits-text";
     }
 
     return "response-text";

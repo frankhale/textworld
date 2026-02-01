@@ -1,13 +1,26 @@
 .input-content {
   position: absolute;
-  bottom: 10px;
-  width: calc(100vw - 15px);
-  border-top: 1px dashed black;
+  left: 0;
+  right: 0;
+  border-top: 1px solid black;
   margin-left: 5px;
-  padding-top: 5px;
+  margin-right: 5px;
 }
 
 .input {
   padding-left: 5px;
-  width: calc(100vw - 50px);
+  width: calc(100% - 30px);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+  .input-content {
+    margin-left: 2px;
+    margin-right: 2px;
+  }
+
+  .input {
+    width: calc(100% - 20px);
+  }
 }

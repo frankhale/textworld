@@ -1,23 +1,34 @@
 import { Injectable, signal, OnDestroy } from "@angular/core";
 import { GameMessage } from "./models/game-message";
 import { Player } from "./models/player";
+import { environment } from "../environments/environment";
 
-const WEBSOCKET_URL = "ws://localhost:8080";
 const RECONNECT_DELAY_MS = 3000;
 const MAX_RECONNECT_ATTEMPTS = 5;
+const MAX_MESSAGE_HISTORY = 500;
 
 @Injectable({
   providedIn: "root",
 })
 export class GameService implements OnDestroy {
-  private player: Player | null = null;
+  private _player: Player | null = null;
   private socket: WebSocket | null = null;
   private reconnectAttempts = 0;
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  public messageHistory$ = signal<GameMessage[]>([]);
-  public message$ = signal<GameMessage | null>(null);
-  public connected = signal(false);
+  private _messageHistory$ = signal<GameMessage[]>([]);
+  private _message$ = signal<GameMessage | null>(null);
+  private _connected = signal(false);
+  private _error$ = signal<string | null>(null);
+
+  public readonly messageHistory$ = this._messageHistory$.asReadonly();
+  public readonly message$ = this._message$.asReadonly();
+  public readonly connected = this._connected.asReadonly();
+  public readonly error$ = this._error$.asReadonly();
+
+  get player(): Player | null {
+    return this._player;
+  }
 
   constructor() {
     this.connect();
@@ -32,10 +43,11 @@ export class GameService implements OnDestroy {
       return;
     }
 
-    this.socket = new WebSocket(WEBSOCKET_URL);
+    this.socket = new WebSocket(environment.websocketUrl);
 
     this.socket.addEventListener("open", () => {
-      this.connected.set(true);
+      this._connected.set(true);
+      this._error$.set(null);
       this.reconnectAttempts = 0;
     });
 
@@ -45,10 +57,11 @@ export class GameService implements OnDestroy {
 
     this.socket.addEventListener("error", (event) => {
       console.error("WebSocket error:", event);
+      this._error$.set("WebSocket connection error");
     });
 
     this.socket.addEventListener("close", () => {
-      this.connected.set(false);
+      this._connected.set(false);
       this.scheduleReconnect();
     });
   }
@@ -57,26 +70,51 @@ export class GameService implements OnDestroy {
     let message: GameMessage;
 
     try {
-      message = JSON.parse(event.data);
+      const data = JSON.parse(event.data);
+      if (!this.isValidGameMessage(data)) {
+        console.error("Invalid message format received");
+        this._error$.set("Invalid message format received from server");
+        return;
+      }
+      message = data;
+      this._error$.set(null);
     } catch (error) {
       console.error("Failed to parse WebSocket message:", error);
+      this._error$.set("Failed to parse server response");
       return;
     }
 
-    if (!this.player) {
-      this.player = message.player;
+    if (message.player) {
+      this._player = message.player;
     }
 
     this.addMessage(message);
   }
 
+  private isValidGameMessage(data: unknown): data is GameMessage {
+    return (
+      typeof data === "object" &&
+      data !== null &&
+      "id" in data &&
+      "result" in data &&
+      "responseLines" in data
+    );
+  }
+
   private addMessage(message: GameMessage): void {
-    this.messageHistory$.update((history) => [...history, message]);
-    this.message$.set(message);
+    this._messageHistory$.update((history) => {
+      const newHistory = [...history, message];
+      if (newHistory.length > MAX_MESSAGE_HISTORY) {
+        return newHistory.slice(newHistory.length - MAX_MESSAGE_HISTORY);
+      }
+      return newHistory;
+    });
+    this._message$.set(message);
   }
 
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+      this._error$.set("Unable to connect to server after multiple attempts");
       this.addMessage({
         id: crypto.randomUUID(),
         input: "error",
@@ -98,14 +136,17 @@ export class GameService implements OnDestroy {
 
   public send(command: string): void {
     if (this.socket?.readyState === WebSocket.OPEN) {
+      this._error$.set(null);
       this.socket.send(
         JSON.stringify({
-          player_id: this.player?.id,
+          player_id: this._player?.id,
           command: command,
         }),
       );
     } else {
-      console.error("Socket is not open. Cannot send message.");
+      const errorMsg = "Cannot send command: not connected to server";
+      console.error(errorMsg);
+      this._error$.set(errorMsg);
     }
   }
 
