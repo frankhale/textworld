@@ -223,6 +223,60 @@ Deno.test("room_builder_sets_zone_starter", () => {
   textworld.reset_world();
 });
 
+Deno.test("room_builder_adds_spawn_location", () => {
+  textworld.zone("Test Zone").build();
+  textworld.item("Gold Coin").description("A gold coin").build();
+
+  let spawnActionCalled = false;
+
+  textworld.room("Test Zone", "Spawn Room")
+    .description("A room with spawns")
+    .spawnLocation(
+      "Gold Spawner",
+      100,
+      (_spawn_location) => {
+        spawnActionCalled = true;
+      },
+      false, // Don't auto-start
+    )
+    .build();
+
+  // Verify spawn location was created
+  const spawnLocation = textworld.get_spawn_location("Gold Spawner");
+  assertNotEquals(spawnLocation, null);
+  assertEquals(spawnLocation?.name, "Gold Spawner");
+  assertEquals(spawnLocation?.zone, "Test Zone");
+  assertEquals(spawnLocation?.room, "Spawn Room");
+  assertEquals(spawnLocation?.interval, 100);
+
+  // Manually trigger the spawn action
+  spawnLocation?.action(spawnLocation);
+  assertEquals(spawnActionCalled, true);
+
+  textworld.reset_world();
+});
+
+Deno.test("room_builder_spawn_location_auto_starts", () => {
+  textworld.zone("Test Zone").build();
+
+  textworld.room("Test Zone", "Auto Spawn Room")
+    .description("A room with auto-starting spawn")
+    .spawnLocation(
+      "Auto Spawner",
+      1000,
+      (_spawn_location) => {},
+      true, // Auto-start
+    )
+    .build();
+
+  const spawnLocation = textworld.get_spawn_location("Auto Spawner");
+  assertNotEquals(spawnLocation, null);
+  assertEquals(spawnLocation?.active, true);
+
+  textworld.remove_spawn_location("Auto Spawner");
+  textworld.reset_world();
+});
+
 // =================
 // ItemBuilder Tests
 // =================
@@ -700,6 +754,99 @@ Deno.test("player_builder_adds_flags", () => {
 
   assertEquals(textworld.has_flag(player, "tutorial-complete"), true);
   assertEquals(textworld.has_flag(player, "first-boss-killed"), true);
+  textworld.reset_world();
+});
+
+Deno.test("player_builder_creates_question_sequence", () => {
+  textworld.zone("Test Zone").build();
+  textworld.room("Test Zone", "Test Room").description("Test").asZoneStarter().build();
+
+  const player = textworld.player("NewPlayer")
+    .description("A new player")
+    .location("Test Zone", "Test Room")
+    .questionSequence("intro_questions")
+    .question("name", "What is your name?")
+    .question("age", "How old are you?", "Number")
+    .build();
+
+  // Verify sessions were created
+  assertEquals(player.sessions.length, 2);
+
+  // Check current_question_sequence session
+  const cqs = textworld.get_session(player, textworld.current_question_sequence);
+  assertNotEquals(cqs, null);
+  assertEquals(cqs?.payload, "intro_questions");
+
+  // Check the actual question sequence session
+  const qs = textworld.get_session(player, "intro_questions");
+  assertNotEquals(qs, null);
+  const payload = qs?.payload as tw.QuestionSequence;
+  assertEquals(payload.name, "intro_questions");
+  assertEquals(payload.questions.length, 2);
+  assertEquals(payload.questions[0]?.id, "name");
+  assertEquals(payload.questions[0]?.question, "What is your name?");
+  assertEquals(payload.questions[0]?.data_type, "String");
+  assertEquals(payload.questions[1]?.id, "age");
+  assertEquals(payload.questions[1]?.data_type, "Number");
+
+  textworld.reset_world();
+});
+
+Deno.test("player_builder_question_sequence_with_completion_action", async () => {
+  textworld.zone("Test Zone").build();
+  textworld.room("Test Zone", "Test Room").description("Test").asZoneStarter().build();
+
+  let completionCalled = false;
+  let capturedName = "";
+
+  const player = textworld.player("NewPlayer")
+    .description("A new player")
+    .location("Test Zone", "Test Room")
+    .questionSequence("name_question")
+    .question("name", "What is your name?")
+    .onQuestionSequenceComplete((player, session) => {
+      completionCalled = true;
+      const payload = session.payload as tw.QuestionSequence;
+      const name = payload.questions.find((q) => q.id === "name")?.answer;
+      if (name) {
+        capturedName = name;
+        player.name = name;
+      }
+    })
+    .build();
+
+  // Process the question sequence
+  const result1 = await textworld.parse_command(player, "");
+  assert(result1.includes("What is your name?"));
+
+  // Answer the question
+  const result2 = await textworld.parse_command(player, "TestPlayer");
+
+  // Verify completion action was called
+  assertEquals(completionCalled, true);
+  assertEquals(capturedName, "TestPlayer");
+  assertEquals(player.name, "TestPlayer");
+
+  textworld.reset_world();
+});
+
+Deno.test("player_builder_question_sequence_processes_correctly", () => {
+  textworld.zone("Test Zone").build();
+  textworld.room("Test Zone", "Test Room").description("Test").asZoneStarter().build();
+
+  const player = textworld.player("NewPlayer")
+    .description("A new player")
+    .location("Test Zone", "Test Room")
+    .questionSequence("test_questions")
+    .question("q1", "Question 1?")
+    .question("q2", "Question 2?")
+    .build();
+
+  // Process question sequence - should return first question
+  const result = textworld.process_question_sequence(player);
+  assertNotEquals(result, null);
+  assertEquals(result?.question?.question, "Question 1?");
+
   textworld.reset_world();
 });
 

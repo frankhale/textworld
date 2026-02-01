@@ -7,6 +7,8 @@ import type {
   Drop,
   ExitName,
   Room,
+  SpawnLocation,
+  SpawnLocationAction,
   TextWorld,
 } from "../textworld.ts";
 import { BaseBuilder } from "./base-builder.ts";
@@ -29,6 +31,13 @@ interface RoomCommand {
   action: CommandParserAction;
 }
 
+interface SpawnLocationConfig {
+  name: string;
+  interval: number;
+  autoStart: boolean;
+  action: SpawnLocationAction;
+}
+
 /**
  * Builder for creating Room objects with a fluent interface.
  */
@@ -44,6 +53,7 @@ export class RoomBuilder extends BaseBuilder<Room> {
   private _objects: string[] = [];
   private _onEnterActions: Action[] = [];
   private _commands: RoomCommand[] = [];
+  private _spawnLocations: SpawnLocationConfig[] = [];
   private _isZoneStarter: boolean = false;
 
   constructor(textworld: TextWorld, zoneName: string, name: string) {
@@ -150,6 +160,23 @@ export class RoomBuilder extends BaseBuilder<Room> {
     action: CommandParserAction,
   ): this {
     this._commands.push({ name, synonyms, description, action });
+    return this;
+  }
+
+  /**
+   * Adds a spawn location to this room.
+   * @param name - Unique name for the spawn location
+   * @param interval - Time in milliseconds between spawn checks
+   * @param action - Callback function that runs on each spawn check
+   * @param autoStart - Whether to automatically start the spawner (default: true)
+   */
+  spawnLocation(
+    name: string,
+    interval: number,
+    action: SpawnLocationAction,
+    autoStart: boolean = true,
+  ): this {
+    this._spawnLocations.push({ name, interval, autoStart, action });
     return this;
   }
 
@@ -273,6 +300,21 @@ export class RoomBuilder extends BaseBuilder<Room> {
         cmd.synonyms,
         cmd.action,
       );
+    }
+
+    // Create spawn locations
+    for (const spawnConfig of this._spawnLocations) {
+      this.textworld.create_spawn_location(
+        spawnConfig.name,
+        this._zoneName,
+        this._name,
+        spawnConfig.interval,
+        spawnConfig.autoStart,
+        spawnConfig.action,
+      );
+      if (spawnConfig.autoStart) {
+        this.textworld.start_spawn_location(spawnConfig.name);
+      }
     }
 
     // Set as zone starter if requested

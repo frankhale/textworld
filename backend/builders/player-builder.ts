@@ -1,8 +1,31 @@
 // Player Builder for TextWorld
 // Provides a fluent interface for creating players
 
-import type { TextWorld, Player, Stats, Drop, ResourceAmount, Level } from "../textworld.ts";
+import type {
+  TextWorld,
+  Player,
+  Stats,
+  Drop,
+  ResourceAmount,
+  Level,
+  Question,
+  DataType,
+  QuestionSequence,
+  SessionAction,
+} from "../textworld.ts";
 import { BaseBuilder } from "./base-builder.ts";
+
+interface QuestionConfig {
+  id: string;
+  dataType: DataType;
+  questionText: string;
+}
+
+interface QuestionSequenceConfig {
+  name: string;
+  questions: QuestionConfig[];
+  onComplete?: SessionAction;
+}
 
 /**
  * Builder for creating Player objects with a fluent interface.
@@ -25,6 +48,7 @@ export class PlayerBuilder extends BaseBuilder<Player> {
   private _items: Drop[] = [];
   private _flags: string[] = [];
   private _statsObject: Stats | null = null;
+  private _questionSequence: QuestionSequenceConfig | null = null;
 
   constructor(textworld: TextWorld, name: string) {
     super(textworld);
@@ -169,6 +193,47 @@ export class PlayerBuilder extends BaseBuilder<Player> {
   }
 
   /**
+   * Starts a question sequence for the player.
+   * Call question() to add questions and onQuestionSequenceComplete() to handle completion.
+   * @param name - Unique name for the question sequence
+   */
+  questionSequence(name: string): this {
+    this._questionSequence = {
+      name,
+      questions: [],
+    };
+    return this;
+  }
+
+  /**
+   * Adds a question to the question sequence.
+   * Must call questionSequence() first.
+   * @param id - Unique identifier for the question (used to retrieve the answer)
+   * @param questionText - The question to ask the player
+   * @param dataType - Expected data type of the answer (default: "String")
+   */
+  question(id: string, questionText: string, dataType: DataType = "String"): this {
+    if (!this._questionSequence) {
+      throw new Error("Must call questionSequence() before adding questions");
+    }
+    this._questionSequence.questions.push({ id, dataType, questionText });
+    return this;
+  }
+
+  /**
+   * Sets the action to run when the question sequence is complete.
+   * The action receives the player and session, where session.payload is the QuestionSequence.
+   * @param action - Callback function that runs after all questions are answered
+   */
+  onQuestionSequenceComplete(action: SessionAction): this {
+    if (!this._questionSequence) {
+      throw new Error("Must call questionSequence() before setting completion action");
+    }
+    this._questionSequence.onComplete = action;
+    return this;
+  }
+
+  /**
    * Builds and registers the player.
    */
   build(): Player {
@@ -207,6 +272,49 @@ export class PlayerBuilder extends BaseBuilder<Player> {
     // Add flags
     for (const flagName of this._flags) {
       this.textworld.set_flag(player, flagName);
+    }
+
+    // Set up question sequence if configured
+    if (this._questionSequence && this._questionSequence.questions.length > 0) {
+      const questions: Question[] = this._questionSequence.questions.map((q) => ({
+        id: q.id,
+        data_type: q.dataType,
+        question: q.questionText,
+      }));
+
+      const questionSequence: QuestionSequence = {
+        name: this._questionSequence.name,
+        questions,
+      };
+
+      // Set the current question sequence name
+      this.textworld.add_session(
+        player,
+        this.textworld.current_question_sequence,
+        "String",
+        this._questionSequence.name,
+      );
+
+      // Add the question sequence session with optional completion action
+      if (this._questionSequence.onComplete) {
+        this.textworld.add_session(
+          player,
+          this._questionSequence.name,
+          "QuestionSequence",
+          questionSequence,
+          {
+            name: this._questionSequence.name,
+            action: this._questionSequence.onComplete,
+          },
+        );
+      } else {
+        this.textworld.add_session(
+          player,
+          this._questionSequence.name,
+          "QuestionSequence",
+          questionSequence,
+        );
+      }
     }
 
     return player;

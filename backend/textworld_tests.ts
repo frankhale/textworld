@@ -4887,41 +4887,20 @@ Deno.test("can_process_question_sequence", () => {
 });
 
 Deno.test("can_parse_command_with_question_sequence", async () => {
-  const player = textworld.player("Player")
-    .description("You are a strong adventurer")
-    .location("Zone1", "Room1")
-    .build();
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
 
-  const question_sequence: tw.QuestionSequence = {
-    name: "player_questions",
-    questions: [
-      {
-        id: "name",
-        data_type: "String",
-        question: "What is your name?",
-      },
-    ],
-  };
-  textworld.add_session(
-    player,
-    textworld.current_question_sequence,
-    "String",
-    "player_questions",
-  );
-  textworld.add_session(
-    player,
-    "player_questions",
-    "QuestionSequence",
-    question_sequence,
-    {
-      name: "player_questions",
-      action: (_player: tw.Player, _session: tw.Session) => {
-        assertNotEquals(_player, null);
-      },
-    },
-  );
+  // Use the player builder's question sequence support
+  const player = textworld.player("Player")
+    .description("You are a strong adventurer")
+    .location("Zone1", "Room1")
+    .questionSequence("player_questions")
+    .question("name", "What is your name?")
+    .onQuestionSequenceComplete((_player, _session) => {
+      assertNotEquals(_player, null);
+    })
+    .build();
+
   const result = textworld.get_session(player, "player_questions");
   assertNotEquals(result, null);
 
