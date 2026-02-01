@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Read(/C:\\Users\\frank\\Documents\\DEV\\game-dev\\textworld\\backend/**)",
-      "Bash(deno test:*)"
+      "Bash(deno test:*)",
+      "Bash(deno check:*)"
     ],
     "deny": [],
     "ask": []

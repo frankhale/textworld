@@ -1,6 +1,6 @@
 // A Text Adventure Library & Game for Deno
 // Frank Hale <frankhaledevelops AT gmail.com>
-// 28 January 2026
+// 31 January 2026
 
 // Builder imports for fluent API
 import { ZoneBuilder } from "./builders/zone-builder.ts";
@@ -17,17 +17,17 @@ import { StatsBuilder } from "./builders/stats-builder.ts";
 
 // Re-export builders for external use
 export {
-  ZoneBuilder,
-  RoomBuilder,
   ItemBuilder,
-  NPCBuilder,
-  VendorBuilder,
   MobBuilder,
+  NPCBuilder,
   ObjectBuilder,
+  PlayerBuilder,
   QuestBuilder,
   RecipeBuilder,
-  PlayerBuilder,
+  RoomBuilder,
   StatsBuilder,
+  VendorBuilder,
+  ZoneBuilder,
 };
 
 export const player_progress_db_name = "game_saves.db";
@@ -447,11 +447,11 @@ export class TextWorld {
           response: "You must specify a slot name",
         };
         const slot_name = args[0];
-        if(slot_name) {
+        if (slot_name) {
           result = await this.save_player_progress(
-              player,
-              player_progress_db_name,
-              slot_name,
+            player,
+            player_progress_db_name,
+            slot_name,
           );
         }
         return JSON.stringify(result);
@@ -1525,7 +1525,9 @@ export class TextWorld {
         const trigger_index = this.dialog_contains_trigger(["sell"], args);
         const item_name = args.slice(trigger_index + 1, -1).join(" ");
         const lastArg = args[args.length - 1];
-        if (lastArg === undefined) return "You must specify a quantity to sell.";
+        if (lastArg === undefined) {
+          return "You must specify a quantity to sell.";
+        }
         const quantity = parseInt(lastArg, 10);
         if (isNaN(quantity)) {
           return "You must specify a quantity to sell.";
@@ -2806,6 +2808,44 @@ export class TextWorld {
   }
 
   /**
+   * Adds reverse exits to a room for any other rooms in the zone that have
+   * one-way exits pointing to this room (e.g. when rooms were built out of
+   * order). Ensures bidirectional navigation works after room switches.
+   *
+   * @param {string} zone_name - The name of the zone.
+   * @param {string} room_name - The name of the room to add reverse exits to.
+   */
+  add_reverse_exits_for_room(zone_name: string, room_name: string): void {
+    const zone = this.get_zone(zone_name);
+    if (!zone) return;
+
+    const target_room = zone.rooms.find(
+      (r) => r.name.toLowerCase() === room_name.toLowerCase(),
+    );
+    if (!target_room) return;
+
+    for (const other_room of zone.rooms) {
+      if (other_room.name.toLowerCase() === room_name.toLowerCase()) continue;
+
+      for (const exit of other_room.exits) {
+        if (exit.location.toLowerCase() !== room_name.toLowerCase()) continue;
+
+        const opposite_name = this.get_opposite_exit_name(exit.name);
+        const already_has_exit = target_room.exits.some(
+          (e) => e.name === opposite_name && e.location === other_room.name,
+        );
+        if (!already_has_exit) {
+          target_room.exits.push({
+            name: opposite_name,
+            location: other_room.name,
+            hidden: false,
+          });
+        }
+      }
+    }
+  }
+
+  /**
    * Removes an exit from a room.
    *
    * @param {string} zone_name - The name of the zone to remove the exit from.
@@ -3142,7 +3182,7 @@ export class TextWorld {
     return {
       id: name,
       name,
-      descriptions: [{flag: "default", description}],
+      descriptions: [{ flag: "default", description }],
       items: [],
       npcs: [],
       mobs: [],
@@ -4221,8 +4261,8 @@ export class TextWorld {
       for (let i = start_idx; i < input_array.length; i++) {
         const current_input = input_array[i]!;
         const new_combination = combination.length > 0
-            ? `${combination} ${current_input}`
-            : current_input;
+          ? `${combination} ${current_input}`
+          : current_input;
         generate_helper(new_combination, i + 1);
       }
     }
@@ -4678,29 +4718,29 @@ export class TextWorld {
 
     const ac = new AbortController();
     return Deno.serve(
-        {
-          port,
-          signal: ac.signal,
-        },
-        (_req: Request) => {
-          const {socket, response} = Deno.upgradeWebSocket(_req);
-          socket.onopen = async () => {
-            socket.send(JSON.stringify(
-                await process_request({
-                  player_id: fix_me_player_id,
-                  command: "",
-                }),
-            ));
-          };
-          socket.onmessage = async (e) => {
-            socket.send(
-                // TODO: Check e.data because we don't know if it conforms to what
-                // we expect.
-                JSON.stringify(await process_request(JSON.parse(e.data))),
-            );
-          };
-          return response;
-        },
+      {
+        port,
+        signal: ac.signal,
+      },
+      (_req: Request) => {
+        const { socket, response } = Deno.upgradeWebSocket(_req);
+        socket.onopen = async () => {
+          socket.send(JSON.stringify(
+            await process_request({
+              player_id: fix_me_player_id,
+              command: "",
+            }),
+          ));
+        };
+        socket.onmessage = async (e) => {
+          socket.send(
+            // TODO: Check e.data because we don't know if it conforms to what
+            // we expect.
+            JSON.stringify(await process_request(JSON.parse(e.data))),
+          );
+        };
+        return response;
+      },
     );
   }
 

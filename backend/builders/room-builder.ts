@@ -2,12 +2,12 @@
 // Provides a fluent interface for creating rooms with all their contents
 
 import type {
-  TextWorld,
-  Room,
-  ExitName,
   Action,
   CommandParserAction,
   Drop,
+  ExitName,
+  Room,
+  TextWorld,
 } from "../textworld.ts";
 import { BaseBuilder } from "./base-builder.ts";
 
@@ -71,7 +71,11 @@ export class RoomBuilder extends BaseBuilder<Room> {
   /**
    * Adds an exit to another room.
    */
-  exit(direction: ExitName, toRoom: string, options?: { hidden?: boolean }): this {
+  exit(
+    direction: ExitName,
+    toRoom: string,
+    options?: { hidden?: boolean },
+  ): this {
     this._exits.push({
       direction,
       toRoom,
@@ -143,7 +147,7 @@ export class RoomBuilder extends BaseBuilder<Room> {
     name: string,
     synonyms: string[],
     description: string,
-    action: CommandParserAction
+    action: CommandParserAction,
   ): this {
     this._commands.push({ name, synonyms, description, action });
     return this;
@@ -162,17 +166,23 @@ export class RoomBuilder extends BaseBuilder<Room> {
    */
   build(): Room {
     // Create the room with the first onEnter action (if any)
-    const firstAction = this._onEnterActions.length > 0 ? this._onEnterActions[0] : null;
+    const firstAction = this._onEnterActions.length > 0
+      ? this._onEnterActions[0]
+      : null;
     const room = this.textworld.create_room(
       this._zoneName,
       this._name,
       this._description,
-      firstAction
+      firstAction,
     );
 
     // Add additional onEnter actions
     for (let i = 1; i < this._onEnterActions.length; i++) {
-      this.textworld.add_room_action(this._zoneName, this._name, this._onEnterActions[i]!);
+      this.textworld.add_room_action(
+        this._zoneName,
+        this._name,
+        this._onEnterActions[i]!,
+      );
     }
 
     // Add alternate descriptions
@@ -181,7 +191,7 @@ export class RoomBuilder extends BaseBuilder<Room> {
         this._zoneName,
         this._name,
         altDesc.flag,
-        altDesc.text
+        altDesc.text,
       );
     }
 
@@ -195,7 +205,7 @@ export class RoomBuilder extends BaseBuilder<Room> {
           this._name,
           exit.direction,
           exit.toRoom,
-          exit.hidden
+          exit.hidden,
         );
       } catch {
         // If the destination room doesn't exist yet, just add the exit directly
@@ -207,10 +217,19 @@ export class RoomBuilder extends BaseBuilder<Room> {
       }
     }
 
+    // Add reverse exits for any rooms that have one-way exits pointing here
+    // (e.g. when built out of order). Ensures player can always navigate back.
+    this.textworld.add_reverse_exits_for_room(this._zoneName, this._name);
+
     // Place items
     for (const item of this._items) {
       try {
-        this.textworld.place_item(this._zoneName, this._name, item.name, item.quantity);
+        this.textworld.place_item(
+          this._zoneName,
+          this._name,
+          item.name,
+          item.quantity,
+        );
       } catch {
         // Item might not exist yet, add it directly
         room.items.push(item);
@@ -252,7 +271,7 @@ export class RoomBuilder extends BaseBuilder<Room> {
         cmd.name,
         cmd.description,
         cmd.synonyms,
-        cmd.action
+        cmd.action,
       );
     }
 

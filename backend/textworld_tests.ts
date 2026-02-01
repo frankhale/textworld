@@ -1,6 +1,6 @@
 // A Text Adventure Library for Deno
 // Frank Hale &lt;frankhaledevelops AT gmail.com&gt;
-// 20 December 2025
+// 31 January 2026
 
 import {
   assert,
@@ -620,9 +620,11 @@ Deno.test("can_describe_room_with_room_actions", () => {
     .location("Zone1", "Room1")
     .build();
   textworld.zone("Zone1").build();
-  textworld.room("Zone1", "Room1").description("This is room 1").onEnter((_player) => {
-    return `The healing waters have no effect on you.`;
-  }).build();
+  textworld.room("Zone1", "Room1").description("This is room 1").onEnter(
+    (_player) => {
+      return `The healing waters have no effect on you.`;
+    },
+  ).build();
   const result = textworld.get_room_description(player);
   assertEquals(
     result.response,
@@ -845,9 +847,11 @@ Deno.test("can_create_room_with_action", () => {
     .build();
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
-  textworld.room("Zone1", "Room2").description("This is room 2").onEnter((_player) => {
-    return `The healing waters have no effect on you.`;
-  }).build();
+  textworld.room("Zone1", "Room2").description("This is room 2").onEnter(
+    (_player) => {
+      return `The healing waters have no effect on you.`;
+    },
+  ).build();
   textworld.create_exit("Zone1", "Room1", "north", "Room2");
   const result = textworld.switch_room(player, "north");
   assertEquals(
@@ -1093,7 +1097,8 @@ Deno.test("can_add_item_drops_to_room", () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.item("Sword").description("A sharp sword").build();
-  textworld.item("Potion").description("An ordinary potion").usable().consumable().build();
+  textworld.item("Potion").description("An ordinary potion").usable()
+    .consumable().build();
   textworld.create_instance_room(player, "Zone1", "Room1");
   textworld.place_item("Zone1", "Room1", "Sword", 1, player);
   textworld.place_item("Zone1", "Room1", "Potion", 2, player);
@@ -1472,7 +1477,9 @@ Deno.test("can_create_room_object", () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.object("Fireplace")
-    .description("A warm fire burns in the fireplace and you can feel the heat radiating from it.")
+    .description(
+      "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
+    )
     .build();
   textworld.place_object("Zone1", "Room1", "Fireplace");
   const object = textworld.get_room_object("Zone1", "Room1", "Fireplace");
@@ -1503,7 +1510,9 @@ Deno.test("can_create_room_object_with_action", () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.object("Fireplace")
-    .description("A warm fire burns in the fireplace and you can feel the heat radiating from it.")
+    .description(
+      "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
+    )
     .interaction(["fan flame"], "The flames become stronger as you fan them.")
     .build();
   textworld.create_dialog_action(
@@ -1537,7 +1546,9 @@ Deno.test("can_process_look_at_room_object", () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.object("Fireplace")
-    .description("A warm fire burns in the fireplace and you can feel the heat radiating from it.")
+    .description(
+      "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
+    )
     .build();
   textworld.place_object("Zone1", "Room1", "Fireplace");
   const result = textworld.look_at_or_examine_object(
@@ -1585,7 +1596,9 @@ Deno.test("can_process_look_at_room_object", () => {
   assertEquals(result4.response, "That object does not exist.");
   // Object with dialog
   const firepit_object = textworld.object("Firepit")
-    .description("A warm fire burns in the firepit and you can feel the heat radiating from it.")
+    .description(
+      "A warm fire burns in the firepit and you can feel the heat radiating from it.",
+    )
     .interaction(["blow on fire"], "You blew on the fire and it grew stronger.")
     .build();
   textworld.create_dialog_action(
@@ -1627,7 +1640,9 @@ Deno.test("can_process_examine_room_object", () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.object("Fireplace")
-    .description("A warm fire burns in the fireplace and you can feel the heat radiating from it.")
+    .description(
+      "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
+    )
     .interaction(["fan flame"], "The flames become stronger as you fan them.")
     .build();
   textworld.place_object("Zone1", "Room1", "Fireplace");
@@ -1703,7 +1718,9 @@ Deno.test("can_parse_command_examine_room_object", async () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.object("Fireplace")
-    .description("A warm fire burns in the fireplace and you can feel the heat radiating from it.")
+    .description(
+      "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
+    )
     .interaction(["fan flame"], "The flames become stronger as you fan them.")
     .build();
   textworld.place_object("Zone1", "Room1", "Fireplace");
@@ -1802,7 +1819,8 @@ Deno.test("can_parse_command_goto_zone", async () => {
   textworld.zone("Zone1").build();
   textworld.zone("Zone2").build();
   textworld.room("Zone1", "The Room1").description("This is room 1").build();
-  textworld.room("Zone2", "The Forest").description("This is the forest").build();
+  textworld.room("Zone2", "The Forest").description("This is the forest")
+    .build();
   textworld.set_room_as_zone_starter("Zone2", "The Forest");
   const result = JSON.parse(
     await textworld.parse_command(player, "goto zone Zone2"),
@@ -1837,7 +1855,8 @@ Deno.test("can_parse_command_take_all", async () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.item("Sword").description("A sharp sword").build();
-  textworld.item("Potion").description("An ordinary potion").usable().consumable().build();
+  textworld.item("Potion").description("An ordinary potion").usable()
+    .consumable().build();
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   const result = JSON.parse(await textworld.parse_command(player, "take all"));
@@ -1877,7 +1896,8 @@ Deno.test("can_parse_command_drop", async () => {
     .location("Zone1", "Room1")
     .build();
   textworld.zone("Zone1").build();
-  textworld.item("Potion").description("An ordinary potion").usable().consumable().build();
+  textworld.item("Potion").description("An ordinary potion").usable()
+    .consumable().build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_item(player, ["Potion"]);
@@ -1897,7 +1917,8 @@ Deno.test("can_parse_command_drop_all", async () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.item("Sword").description("A sharp sword").build();
-  textworld.item("Potion").description("An ordinary potion").usable().consumable().build();
+  textworld.item("Potion").description("An ordinary potion").usable()
+    .consumable().build();
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   textworld.take_all_items(player);
@@ -1961,7 +1982,9 @@ Deno.test("can_parse_command_examine_object", async () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.object("Fireplace")
-    .description("A warm fire burns in the fireplace and you can feel the heat radiating from it.")
+    .description(
+      "A warm fire burns in the fireplace and you can feel the heat radiating from it.",
+    )
     .interaction(["fan flames"], "The flames become stronger as you fan them.")
     .build();
   textworld.place_object("Zone1", "Room1", "Fireplace");
@@ -1983,7 +2006,8 @@ Deno.test("can_parse_command_inspect_room", async () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.item("Sword").description("A sharp sword").build();
-  textworld.item("Potion").description("An ordinary potion").usable().consumable().build();
+  textworld.item("Potion").description("An ordinary potion").usable()
+    .consumable().build();
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   const result = JSON.parse(await textworld.parse_command(player, "inspect"));
@@ -2032,7 +2056,8 @@ Deno.test("can_parse_command_show_item", async () => {
     .build();
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
-  textworld.item("Potion").description("An ordinary potion").usable().consumable().build();
+  textworld.item("Potion").description("An ordinary potion").usable()
+    .consumable().build();
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   textworld.take_item(player, ["Potion"]);
   const result = JSON.parse(
@@ -2050,7 +2075,8 @@ Deno.test("can_parse_command_show_all_items", async () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.item("Sword").description("A sharp sword").build();
-  textworld.item("Potion").description("An ordinary potion").usable().consumable().build();
+  textworld.item("Potion").description("An ordinary potion").usable()
+    .consumable().build();
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   textworld.take_all_items(player);
@@ -2245,7 +2271,8 @@ Deno.test("can_parse_command_talk_to_vendor_and_sell_item", async () => {
   textworld.add_item_to_player(player, "Sword", 2);
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
-  textworld.vendor("Vendor1").description("A friendly vendor").inventory([]).build();
+  textworld.vendor("Vendor1").description("A friendly vendor").inventory([])
+    .build();
   textworld.place_npc("Zone1", "Room1", "Vendor1");
   const result = JSON.parse(
     await textworld.parse_command(
@@ -2980,7 +3007,8 @@ Deno.test("player_can_take_all_items", () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.item("Sword").description("A sharp sword").build();
-  textworld.item("Potion").description("A potion").usable(true).consumable(true).build();
+  textworld.item("Potion").description("A potion").usable(true).consumable(true)
+    .build();
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_all_items(player);
@@ -3035,7 +3063,8 @@ Deno.test("player_can_drop_item", () => {
     .location("Zone1", "Room1")
     .build();
   textworld.zone("Zone1").build();
-  textworld.item("Potion").description("A potion").usable(true).consumable(true).build();
+  textworld.item("Potion").description("A potion").usable(true).consumable(true)
+    .build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_item(player, ["Potion"]);
@@ -3053,7 +3082,8 @@ Deno.test("player_can_drop_all_items", () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.item("Sword").description("A sharp sword").build();
-  textworld.item("Potion").description("A potion").usable(true).consumable(true).build();
+  textworld.item("Potion").description("A potion").usable(true).consumable(true)
+    .build();
   const result = textworld.drop_all_items(player);
   assertEquals(result.response, "You have no items to drop.");
   textworld.place_item("Zone1", "Room1", "Sword");
@@ -3071,15 +3101,19 @@ Deno.test("player_can_use_item", () => {
     .build();
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
-  textworld.item("Glove").description("A glove").usable(true).consumable(true).onUse((_player) => {
+  textworld.item("Glove").description("A glove").usable(true).consumable(true)
+    .onUse((_player) => {
+      return "";
+    }).build();
+  textworld.item("Cane").description("A wooden cane").usable(true).consumable(
+    true,
+  ).onUse((_player) => {
     return "";
   }).build();
-  textworld.item("Cane").description("A wooden cane").usable(true).consumable(true).onUse((_player) => {
-    return "";
-  }).build();
-  textworld.item("Potion").description("A potion").usable(true).consumable(true).onUse((_player) => {
-    return "You drank the potion but nothing happened.";
-  }).build();
+  textworld.item("Potion").description("A potion").usable(true).consumable(true)
+    .onUse((_player) => {
+      return "You drank the potion but nothing happened.";
+    }).build();
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.place_item("Zone1", "Room1", "Cane");
   textworld.place_item("Zone1", "Room1", "Glove");
@@ -3117,9 +3151,10 @@ Deno.test("can_remove_item_from_player_inventory", () => {
     .build();
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
-  textworld.item("Potion").description("A potion").usable(true).consumable(true).onUse((_player) => {
-    return "You drank the potion but nothing happened.";
-  }).build();
+  textworld.item("Potion").description("A potion").usable(true).consumable(true)
+    .onUse((_player) => {
+      return "You drank the potion but nothing happened.";
+    }).build();
   textworld.place_item("Zone1", "Room1", "Potion");
   textworld.take_item(player, ["Potion"]);
   textworld.remove_player_item(player, "Potion");
@@ -3128,7 +3163,8 @@ Deno.test("can_remove_item_from_player_inventory", () => {
 });
 
 Deno.test("can_create_item_and_remove_it", () => {
-  textworld.item("Potion").description("A potion").usable(true).consumable(true).build();
+  textworld.item("Potion").description("A potion").usable(true).consumable(true)
+    .build();
   textworld.remove_item("Potion");
   const result = textworld.get_item("Potion");
   assertEquals(result, null);
@@ -3183,7 +3219,8 @@ Deno.test("player_can_look_at_self_without_inventory", () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.item("Sword").description("A sharp sword").build();
-  textworld.item("Diamond").description("A diamond surely worth a fortune").build();
+  textworld.item("Diamond").description("A diamond surely worth a fortune")
+    .build();
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Diamond");
   textworld.take_all_items(player);
@@ -3203,7 +3240,8 @@ Deno.test("player_can_look_at_self_with_inventory", () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.item("Sword").description("A sharp sword").build();
-  textworld.item("Diamond").description("A diamond surely worth a fortune").build();
+  textworld.item("Diamond").description("A diamond surely worth a fortune")
+    .build();
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Diamond");
   textworld.take_all_items(player);
@@ -3238,7 +3276,8 @@ Deno.test("player_can_inspect_room_with_items", () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.item("Sword").description("A sharp sword").build();
-  textworld.item("Potion").description("An ordinary potion").usable(true).consumable(true).build();
+  textworld.item("Potion").description("An ordinary potion").usable(true)
+    .consumable(true).build();
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   const result = textworld.inspect_room(player);
@@ -3256,7 +3295,8 @@ Deno.test("player_can_show_item", () => {
     .build();
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
-  textworld.item("Potion").description("An ordinary potion").usable(true).consumable(true).build();
+  textworld.item("Potion").description("An ordinary potion").usable(true)
+    .consumable(true).build();
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   textworld.take_item(player, ["Potion"]);
   const result = textworld.show(player, ["Potion"]);
@@ -3286,7 +3326,8 @@ Deno.test("player_can_show_all_items", () => {
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.item("Sword").description("A sharp sword").build();
-  textworld.item("Potion").description("An ordinary potion").usable(true).consumable(true).build();
+  textworld.item("Potion").description("An ordinary potion").usable(true)
+    .consumable(true).build();
   textworld.place_item("Zone1", "Room1", "Sword");
   textworld.place_item("Zone1", "Room1", "Potion", 2);
   textworld.take_all_items(player);
@@ -3371,7 +3412,9 @@ Deno.test("player_cant_purchase_from_vendor_that_doesnt_have_items_for_sale", ()
   textworld.zone("Zone1").build();
   textworld.room("Zone1", "Room1").description("This is room 1").build();
   textworld.item("Fried Chicken & Roasted Vegetables").description("").build();
-  textworld.vendor("Vendor1").description("A friendly food vendor").inventory([]).build();
+  textworld.vendor("Vendor1").description("A friendly food vendor").inventory(
+    [],
+  ).build();
   textworld.place_npc("Zone1", "Room1", "Vendor1");
   const result = textworld.purchase_from_vendor(
     player,
@@ -3776,6 +3819,49 @@ Deno.test("player_can_navigate_between_rooms", () => {
   textworld.reset_world();
 });
 
+Deno.test(
+  "player_can_navigate_back_after_switching_to_room_built_out_of_order",
+  async () => {
+    // Simulates example1: Room A has exit to Room B before B exists.
+    // Without reverse exits, player gets stuck in B. With fix, can navigate back.
+    textworld.zone("Zone1").build();
+    textworld
+      .room("Zone1", "RoomA")
+      .description("Room A")
+      .exit("east", "RoomB") // RoomB doesn't exist yet - one-way exit added
+      .asZoneStarter()
+      .build();
+    textworld
+      .room("Zone1", "RoomB")
+      .description("Room B")
+      .build(); // No explicit exit back - reverse should be added automatically
+
+    const player = textworld.player("Player")
+      .description("Adventurer")
+      .location("Zone1", "RoomA")
+      .build();
+
+    // Move east to RoomB
+    const moveResult = JSON.parse(
+      await textworld.parse_command(player, "east"),
+    );
+    assertEquals(player.location.room, "RoomB");
+    assert(moveResult.exits, "Room B should have exits (west back to RoomA)");
+
+    // Move west back to RoomA - this would fail before the fix
+    const backResult = JSON.parse(
+      await textworld.parse_command(player, "west"),
+    );
+    assertEquals(player.location.room, "RoomA");
+    assert(
+      !backResult.response.includes("can't go that way"),
+      "Should be able to navigate back",
+    );
+
+    textworld.reset_world();
+  },
+);
+
 Deno.test("player_cant_navigate_to_nonexistent_room", () => {
   const player = textworld.player("Player")
     .description("You are a strong adventurer")
@@ -3795,9 +3881,11 @@ Deno.test("player_can_goto_new_zone", () => {
     .build();
   textworld.set_flag(player, "godmode");
   textworld.zone("Zone1").build();
-  textworld.room("Zone1", "Room1").description("This is room 1 in zone 1").build();
+  textworld.room("Zone1", "Room1").description("This is room 1 in zone 1")
+    .build();
   textworld.zone("Zone2").build();
-  textworld.room("Zone2", "Room1").description("This is room 1 in zone 2").build();
+  textworld.room("Zone2", "Room1").description("This is room 1 in zone 2")
+    .build();
   textworld.set_room_as_zone_starter("Zone2", "Room1");
   const result = textworld.goto(player, ["zone", "Zone2"]);
   assertEquals(result.response, "This is room 1 in zone 2");
@@ -4001,7 +4089,8 @@ Deno.test("player_can_talk_to_npc_and_say_something_npc_doesnt_understand", () =
   );
   assertEquals(result.response, "hmm...");
 
-  const malformed_npc = textworld.npc("Witch").description("A mysterious witch").build();
+  const malformed_npc = textworld.npc("Witch").description("A mysterious witch")
+    .build();
   malformed_npc.dialog = [
     { name: crypto.randomUUID(), trigger: ["hello"], response: undefined },
   ];
@@ -4171,9 +4260,11 @@ Deno.test(
       .build();
     textworld.set_flag(player, "godmode");
     textworld.zone("Zone1").build();
-    textworld.room("Zone1", "Room1").description("This is room 1 in zone 1").build();
+    textworld.room("Zone1", "Room1").description("This is room 1 in zone 1")
+      .build();
     textworld.zone("Zone2").build();
-    textworld.room("Zone2", "Room1").description("This is room 1 in zone 2").build();
+    textworld.room("Zone2", "Room1").description("This is room 1 in zone 2")
+      .build();
     textworld.set_room_as_zone_starter("Zone1", "Room1");
     textworld.set_room_as_zone_starter("Zone2", "Room1");
     textworld.add_room_command_action(
@@ -4266,9 +4357,10 @@ Deno.test("item_actions_work_after_loading_player_progress", async () => {
     .description("You are a strong adventurer")
     .location("Zone1", "Room1")
     .build();
-  textworld.item("Potion").description("A potion").usable(true).consumable(true).onUse((_player) => {
-    return "You drank the potion but nothing happened.";
-  }).build();
+  textworld.item("Potion").description("A potion").usable(true).consumable(true)
+    .onUse((_player) => {
+      return "You drank the potion but nothing happened.";
+    }).build();
   const item = textworld.get_item("Potion");
   assertEquals(item?.name, "Potion");
   await textworld.save_player_progress(
@@ -4294,7 +4386,8 @@ Deno.test(
       .location("Zone1", "Room1")
       .build();
     textworld.zone("Zone1").build();
-    textworld.room("Zone1", "Room1").description("This is room 1 in zone 1").build();
+    textworld.room("Zone1", "Room1").description("This is room 1 in zone 1")
+      .build();
     textworld.set_room_as_zone_starter("Zone1", "Room1");
     textworld.add_room_command_action(
       "Zone1",
@@ -4429,8 +4522,10 @@ Deno.test("can_set_players_room_to_zone_start", () => {
     .build();
   textworld.zone("Zone1").build();
   textworld.zone("Zone2").build();
-  textworld.room("Zone1", "Room1").description("This is room 1 in zone 1").build();
-  textworld.room("Zone2", "Room1").description("This is room 1 in zone 2").build();
+  textworld.room("Zone1", "Room1").description("This is room 1 in zone 1")
+    .build();
+  textworld.room("Zone2", "Room1").description("This is room 1 in zone 2")
+    .build();
   textworld.set_room_as_zone_starter("Zone1", "Room1");
   textworld.set_room_as_zone_starter("Zone2", "Room1");
   textworld.set_player_room_to_zone_start(player, "Zone2");
@@ -4460,8 +4555,10 @@ Deno.test("cant_set_players_room_to_zone_start_if_there_is_no_starter_room_in_zo
     .build();
   textworld.zone("Zone1").build();
   textworld.zone("Zone2").build();
-  textworld.room("Zone1", "Room1").description("This is room 1 in zone 1").build();
-  textworld.room("Zone2", "Room1").description("This is room 1 in zone 2").build();
+  textworld.room("Zone1", "Room1").description("This is room 1 in zone 1")
+    .build();
+  textworld.room("Zone2", "Room1").description("This is room 1 in zone 2")
+    .build();
   textworld.set_room_as_zone_starter("Zone1", "Room1");
   assertThrows(
     () => {
