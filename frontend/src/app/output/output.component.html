@@ -1,18 +1,25 @@
-<div class="header">
+<header class="header" role="banner">
   @if(currentMessage()?.player; as player) {
   {{ player.location.zone }} - {{ player.location.room }}
   }
+</header>
+
+@if(error(); as errorMsg) {
+<div class="error-banner" role="alert" aria-live="polite">
+  {{ errorMsg }}
 </div>
-<div class="output-container">
-  <div #scrollContainer class="output-content">
+}
+
+<main class="output-container">
+  <div #scrollContainer class="output-content" role="log" aria-live="polite" aria-label="Game messages">
     @for(message of history(); track message.id) {
       @if(message.input && message.input.startsWith('map') && message.map) {
       <div>
         Map:
-        <pre>{{ message.result.response }}</pre>
+        <pre aria-label="Game map">{{ message.result.response }}</pre>
       </div>
       } @else {
-      <div>
+      <article>
         @if(message.input) {
         <div class="command-text">Command: {{ message.input }}</div>
         }
@@ -30,14 +37,14 @@
         @if(message.result.mobs) {
         <div class="mobs-text">Mobs: {{ message.result.mobs }}</div>
         }
-      </div>
+      </article>
       }
     }
   </div>
 
   @if(currentMessage(); as msg) {
     @if(msg.player?.stats; as stats) {
-    <div class="right-content">
+    <aside class="right-content" aria-label="Player information">
       <div class="player-info">
         Name: {{ msg.player!.name }}
         <br />
@@ -50,11 +57,11 @@
         <br />
         Map:
         <div class="map">
-          <pre>{{ map.replace("Map:\n\n", "") }}</pre>
+          <pre aria-label="Mini map">{{ map.replace("Map:\n\n", "") }}</pre>
         </div>
         }
       </div>
-    </div>
+    </aside>
     }
   }
-</div>
+</main>

@@ -3,7 +3,7 @@
   color: #fff;
   padding-bottom: 10px;
   text-align: center;
-  width: 100vw;
+  width: 100%;
   height: 25px;
 }
 
@@ -12,7 +12,9 @@
   margin-left: 10px;
   overflow-y: auto;
   height: calc(100vh - 90px);
-  width: calc(100vw - 15px);
+  flex: 1;
+  min-width: 0;
+  padding-right: 10px;
 }
 
 .right-content {
@@ -20,9 +22,11 @@
   margin-top: 10px;
   margin-left: 10px;
   margin-right: 10px;
-  width: 500px;
-  border-left: dashed 1px black;
+  width: 100%;
+  max-width: 500px;
+  border-left: solid 1px black;
   height: calc(100vh - 90px);
+  flex-shrink: 0;
 }
 
 .player-info {
@@ -31,7 +35,7 @@
 
 .command-text {
   font-style: italic;
-  color: rgb(107, 108, 110);
+  color: rgb(75, 75, 77);
 }
 
 .exits-text {
@@ -39,15 +43,27 @@
 }
 
 .npcs-text {
-  color: rgb(210, 119, 34);
+  color: rgb(180, 100, 20);
 }
 
 .mobs-text {
-  color: rgb(210, 0, 0);
+  color: rgb(180, 0, 0);
 }
 
 .inventory-text {
-  color: rgba(25, 101, 168, 0.81);
+  color: rgb(20, 80, 140);
+}
+
+.response-text {
+  color: rgb(30, 30, 30);
+}
+
+.error-banner {
+  background-color: rgb(255, 240, 240);
+  color: rgb(180, 0, 0);
+  padding: 8px 16px;
+  text-align: center;
+  border-bottom: 1px solid rgb(180, 0, 0);
 }
 
 .output-container {
@@ -57,4 +73,34 @@
 .map {
   margin: 0 auto;
   width: 200px;
+}
+
+@media (max-width: 900px) {
+  .output-container {
+    flex-direction: column;
+  }
+
+  .right-content {
+    max-width: 100%;
+    border-left: none;
+    border-top: solid 1px black;
+    height: auto;
+    min-height: 200px;
+    margin-left: 0;
+    padding-left: 10px;
+  }
+
+  .output-content {
+    height: calc(50vh - 90px);
+  }
+}
+
+@media (max-width: 600px) {
+  .player-info {
+    margin-left: 10px;
+  }
+
+  .header {
+    font-size: 14px;
+  }
 }
