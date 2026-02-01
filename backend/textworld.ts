@@ -2,6 +2,34 @@
 // Frank Hale <frankhaledevelops AT gmail.com>
 // 28 January 2026
 
+// Builder imports for fluent API
+import { ZoneBuilder } from "./builders/zone-builder.ts";
+import { RoomBuilder } from "./builders/room-builder.ts";
+import { ItemBuilder } from "./builders/item-builder.ts";
+import { NPCBuilder } from "./builders/npc-builder.ts";
+import { VendorBuilder } from "./builders/vendor-builder.ts";
+import { MobBuilder } from "./builders/mob-builder.ts";
+import { ObjectBuilder } from "./builders/object-builder.ts";
+import { QuestBuilder } from "./builders/quest-builder.ts";
+import { RecipeBuilder } from "./builders/recipe-builder.ts";
+import { PlayerBuilder } from "./builders/player-builder.ts";
+import { StatsBuilder } from "./builders/stats-builder.ts";
+
+// Re-export builders for external use
+export {
+  ZoneBuilder,
+  RoomBuilder,
+  ItemBuilder,
+  NPCBuilder,
+  VendorBuilder,
+  MobBuilder,
+  ObjectBuilder,
+  QuestBuilder,
+  RecipeBuilder,
+  PlayerBuilder,
+  StatsBuilder,
+};
+
 export const player_progress_db_name = "game_saves.db";
 export const input_character_limit = 256;
 export const active_quest_limit = 5;
@@ -4674,5 +4702,223 @@ export class TextWorld {
           return response;
         },
     );
+  }
+
+  /////////////////////
+  // BUILDER METHODS //
+  /////////////////////
+
+  /**
+   * Creates a ZoneBuilder for fluent zone construction.
+   *
+   * @example
+   * textworld.zone("Dark Forest")
+   *   .description("A mysterious forest")
+   *   .startingRoom("Entrance")
+   *   .build();
+   *
+   * @param {string} name - The name of the zone.
+   * @returns {ZoneBuilder} - A builder for configuring the zone.
+   */
+  zone(name: string): ZoneBuilder {
+    return new ZoneBuilder(this, name);
+  }
+
+  /**
+   * Creates a RoomBuilder for fluent room construction.
+   *
+   * @example
+   * textworld.room("Dark Forest", "Entrance")
+   *   .description("You stand at the forest entrance...")
+   *   .exit("north", "Clearing")
+   *   .item("Torch", 1)
+   *   .npc("Old Hermit")
+   *   .asZoneStarter()
+   *   .build();
+   *
+   * @param {string} zoneName - The name of the zone.
+   * @param {string} name - The name of the room.
+   * @returns {RoomBuilder} - A builder for configuring the room.
+   */
+  room(zoneName: string, name: string): RoomBuilder {
+    return new RoomBuilder(this, zoneName, name);
+  }
+
+  /**
+   * Creates an ItemBuilder for fluent item construction.
+   *
+   * @example
+   * textworld.item("Health Potion")
+   *   .description("Restores 20 health")
+   *   .usable()
+   *   .consumable()
+   *   .value(50)
+   *   .onUse((player) => {
+   *     textworld.add_to_actor_health(player, 20);
+   *     return "You feel refreshed!";
+   *   })
+   *   .build();
+   *
+   * @param {string} name - The name of the item.
+   * @returns {ItemBuilder} - A builder for configuring the item.
+   */
+  item(name: string): ItemBuilder {
+    return new ItemBuilder(this, name);
+  }
+
+  /**
+   * Creates an NPCBuilder for fluent NPC construction.
+   *
+   * @example
+   * textworld.npc("Guard")
+   *   .description("A stern-looking guard")
+   *   .dialog(["hello"], "Stay out of trouble!")
+   *   .dialogAction(["quest"], (player) => {
+   *     return textworld.pickup_quest(player, "Guard's Task");
+   *   })
+   *   .build();
+   *
+   * @param {string} name - The name of the NPC.
+   * @returns {NPCBuilder} - A builder for configuring the NPC.
+   */
+  npc(name: string): NPCBuilder {
+    return new NPCBuilder(this, name);
+  }
+
+  /**
+   * Creates a VendorBuilder for fluent vendor construction.
+   *
+   * @example
+   * textworld.vendor("Merchant")
+   *   .description("A shrewd merchant")
+   *   .sells("Health Potion", 50)
+   *   .sells("Mana Potion", 75)
+   *   .build();
+   *
+   * @param {string} name - The name of the vendor.
+   * @returns {VendorBuilder} - A builder for configuring the vendor.
+   */
+  vendor(name: string): VendorBuilder {
+    return new VendorBuilder(this, name);
+  }
+
+  /**
+   * Creates a MobBuilder for fluent mob construction.
+   *
+   * @example
+   * textworld.mob("Goblin")
+   *   .description("A sneaky goblin")
+   *   .health(20, 20)
+   *   .physicalDamage(5)
+   *   .physicalDefense(2)
+   *   .drop("Gold Coin", 3)
+   *   .build();
+   *
+   * @param {string} name - The name of the mob.
+   * @returns {MobBuilder} - A builder for configuring the mob.
+   */
+  mob(name: string): MobBuilder {
+    return new MobBuilder(this, name);
+  }
+
+  /**
+   * Creates an ObjectBuilder for fluent room object construction.
+   *
+   * @example
+   * textworld.object("Ancient Chest")
+   *   .description("A weathered chest")
+   *   .interaction(["open"], "The chest creaks open...")
+   *   .interactionAction(["search"], (player) => {
+   *     return "You found a key!";
+   *   })
+   *   .build();
+   *
+   * @param {string} name - The name of the object.
+   * @returns {ObjectBuilder} - A builder for configuring the object.
+   */
+  object(name: string): ObjectBuilder {
+    return new ObjectBuilder(this, name);
+  }
+
+  /**
+   * Creates a QuestBuilder for fluent quest construction.
+   *
+   * @example
+   * textworld.quest("Dragon's Bane")
+   *   .description("Slay the dragon")
+   *   .onStart((player) => "You accepted the quest!")
+   *   .step("Find the Lair")
+   *     .description("Locate the dragon's lair")
+   *     .isComplete((player) => textworld.has_flag(player, "found-lair"))
+   *   .step("Slay the Dragon")
+   *     .description("Kill the dragon")
+   *     .isComplete((player) => textworld.has_flag(player, "dragon-slain"))
+   *   .onEnd((player) => {
+   *     player.gold += 1000;
+   *     return "Quest complete! +1000 gold";
+   *   })
+   *   .build();
+   *
+   * @param {string} name - The name of the quest.
+   * @returns {QuestBuilder} - A builder for configuring the quest.
+   */
+  quest(name: string): QuestBuilder {
+    return new QuestBuilder(this, name);
+  }
+
+  /**
+   * Creates a RecipeBuilder for fluent recipe construction.
+   *
+   * @example
+   * textworld.recipe("Iron Sword")
+   *   .description("A sturdy iron sword")
+   *   .requires("Iron Ore", 3)
+   *   .requires("Wood", 1)
+   *   .produces("Iron Sword", 1)
+   *   .build();
+   *
+   * @param {string} name - The name of the recipe.
+   * @returns {RecipeBuilder} - A builder for configuring the recipe.
+   */
+  recipe(name: string): RecipeBuilder {
+    return new RecipeBuilder(this, name);
+  }
+
+  /**
+   * Creates a PlayerBuilder for fluent player construction.
+   *
+   * @example
+   * const player = textworld.player("Hero")
+   *   .description("A brave adventurer")
+   *   .location("Village", "Town Square")
+   *   .health(100, 100)
+   *   .gold(50)
+   *   .item("Rusty Sword", 1)
+   *   .build();
+   *
+   * @param {string} name - The name of the player.
+   * @returns {PlayerBuilder} - A builder for configuring the player.
+   */
+  player(name: string): PlayerBuilder {
+    return new PlayerBuilder(this, name);
+  }
+
+  /**
+   * Creates a StatsBuilder for fluent stats construction.
+   *
+   * @example
+   * const stats = textworld.stats()
+   *   .health(100, 100)
+   *   .stamina(50, 50)
+   *   .physicalDamage(15)
+   *   .physicalDefense(10)
+   *   .criticalChance(0.1)
+   *   .level(5)
+   *   .build();
+   *
+   * @returns {StatsBuilder} - A builder for configuring stats.
+   */
+  stats(): StatsBuilder {
+    return new StatsBuilder();
   }
 }
