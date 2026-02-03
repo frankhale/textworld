@@ -1,57 +1,67 @@
-<div class="header">
-  @if(currentMessage && currentMessage.player) {
-  {{ currentMessage.player.location.zone }} - {{ currentMessage.player.location.room }}
+<header class="header" role="banner">
+  @if(currentMessage()?.player; as player) {
+  {{ player.location.zone }} - {{ player.location.room }}
   }
+</header>
+
+@if(error(); as errorMsg) {
+<div class="error-banner" role="alert" aria-live="polite">
+  {{ errorMsg }}
 </div>
-<div class="output-container">
-  <div #scrollContainer class="output-content">
-    @for(message of history; track $index) { @if(message.input &&
-    message.input.startsWith('map') && message.map) {
-    <div>
-      Map:
-      <pre>{{ message.result.response }}</pre>
-    </div>
-    } @else {
-    <div>
-      @if(message.input) {
-      <div class="command-text">Command: {{ message.input }}</div>
-      } @for (line of message.responseLines; track $index) {
-      <div [ngClass]="getCssClass(line)">
-        {{ line }}
+}
+
+<main class="output-container">
+  <div #scrollContainer class="output-content" role="log" aria-live="polite" aria-label="Game messages">
+    @for(message of history(); track message.id) {
+      @if(message.input && message.input.startsWith('map') && message.map) {
+      <div>
+        Map:
+        <pre aria-label="Game map">{{ message.result.response }}</pre>
       </div>
-      } @if(message.result.exits) {
-      <div class="exits-text">Exits: {{ message.result.exits }}</div>
-      } @if(message.result.npcs) {
-      <div class="npcs-text">NPCs: {{ message.result.npcs }}</div>
-      } @if(message.result.mobs) {
-      <div class="mobs-text">Mobs: {{ message.result.mobs }}</div>
+      } @else {
+      <article>
+        @if(message.input) {
+        <div class="command-text">Command: {{ message.input }}</div>
+        }
+        @for (line of message.responseLines; track line) {
+        <div [ngClass]="getCssClass(line)">
+          {{ line }}
+        </div>
+        }
+        @if(message.result.exits) {
+        <div class="exits-text">Exits: {{ message.result.exits }}</div>
+        }
+        @if(message.result.npcs) {
+        <div class="npcs-text">NPCs: {{ message.result.npcs }}</div>
+        }
+        @if(message.result.mobs) {
+        <div class="mobs-text">Mobs: {{ message.result.mobs }}</div>
+        }
+      </article>
       }
-    </div>
-    } }
+    }
   </div>
 
-  @if(currentMessage && currentMessage.player && currentMessage.player.stats) {
-  <div class="right-content">
-    <div class="player-info">
-      Name: {{ currentMessage.player.name }}
-      <br />
-      Level: {{ currentMessage.player.stats.progress.level }} ({{
-      currentMessage.player.stats.progress.xp
-      }})
-      <br />
-      Health: {{ currentMessage.player.stats.health.current }}/{{
-      currentMessage.player.stats.health.max
-      }}
-      <br />
-      Gold: {{ currentMessage.player.gold }}
-      @if(currentMessage.map) {
-      <br />
-      Map:
-      <div class="map">
-        <pre>{{ currentMessage.map.replace("Map:\n\n", "") }}</pre>
+  @if(currentMessage(); as msg) {
+    @if(msg.player?.stats; as stats) {
+    <aside class="right-content" aria-label="Player information">
+      <div class="player-info">
+        Name: {{ msg.player!.name }}
+        <br />
+        Level: {{ stats.progress.level }} ({{ stats.progress.xp }})
+        <br />
+        Health: {{ stats.health.current }}/{{ stats.health.max }}
+        <br />
+        Gold: {{ msg.player!.gold }}
+        @if(msg.map; as map) {
+        <br />
+        Map:
+        <div class="map">
+          <pre aria-label="Mini map">{{ map.replace("Map:\n\n", "") }}</pre>
+        </div>
+        }
       </div>
-      }
-    </div>
-  </div>
+    </aside>
+    }
   }
-</div>
+</main>

@@ -1,8 +1,19 @@
-<div>  
-  @if(gameService.connected) {
+<div>
+  @if(gameService.connected()) {
   <div class="input-content">
-    &gt;<input #playerTextInput type="text" [(ngModel)]="playerInput" (keydown)="onKeyDown($event)" autofocus
-      spellcheck="false" class="input" />
+    <label for="playerTextInput" class="visually-hidden">Enter game command</label>
+    &gt;<input
+      #playerTextInput
+      id="playerTextInput"
+      type="text"
+      [(ngModel)]="playerInput"
+      (keydown)="onKeyDown($event)"
+      autofocus
+      spellcheck="false"
+      class="input"
+      aria-label="Game command input"
+      placeholder="Enter command..."
+    />
   </div>
   }
 </div>

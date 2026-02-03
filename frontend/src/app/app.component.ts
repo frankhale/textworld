@@ -1,6 +1,4 @@
 import { Component } from "@angular/core";
-
-import { RouterOutlet } from "@angular/router";
 import { InputComponent } from "./input/input.component";
 import { OutputComponent } from "./output/output.component";
 
@@ -10,6 +8,4 @@ import { OutputComponent } from "./output/output.component";
   templateUrl: "./app.component.html",
   styleUrls: ["./app.component.scss"]
 })
-export class AppComponent {
-  title = "textworld-ui";
-}
+export class AppComponent {}

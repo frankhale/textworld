@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     // Environment setup & latest features
-    "lib": ["deno.ns", "deno.unstable", "ESNext", "DOM"],
+    "lib": ["deno.ns", "deno.unstable", "esnext", "dom"],
     "types": [],
     "target": "ESNext",
     "module": "Preserve",
